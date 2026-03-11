@@ -1,0 +1,49 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Inter", sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+  
+  --color-brand-primary: #ff9900; /* Vibrant Amazon Orange */
+  --color-brand-secondary: #00457c; /* Professional Royal Blue (instead of near-black) */
+  --color-brand-accent: #e7f3ff; /* Light blue accent */
+  --color-bg-main: #f8f9fa; /* Eggshell White */
+  --color-bg-card: #ffffff;
+  --color-text-main: #1a1a1a; /* Very dark gray, not black */
+  --color-text-muted: #6c757d;
+}
+
+@layer base {
+  body {
+    @apply bg-bg-main text-text-main font-sans antialiased;
+  }
+  
+  h1, h2, h3, h4 {
+    @apply font-sans font-bold tracking-tight text-text-main;
+  }
+}
+
+.amazon-card {
+  @apply bg-white border border-gray-200 rounded-sm shadow-sm hover:shadow-md transition-shadow;
+}
+
+.amazon-button-primary {
+  @apply bg-brand-primary hover:bg-[#f3a847] text-text-main font-medium py-2 px-4 rounded-lg border border-[#a88734] shadow-sm transition-all;
+}
+
+.amazon-button-secondary {
+  @apply bg-white hover:bg-gray-50 text-text-main font-medium py-2 px-4 rounded-lg border border-gray-300 shadow-sm transition-all;
+}
+
+.nav-link {
+  @apply text-sm font-medium hover:text-brand-primary transition-colors cursor-pointer;
+}
+
+.price-tag {
+  @apply text-2xl font-bold text-[#B12704];
+}
+
+.rating-stars {
+  @apply text-[#FFA41C];
+}

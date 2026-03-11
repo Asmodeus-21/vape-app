@@ -1,0 +1,7 @@
+{
+  "name": "VapesHub",
+  "description": "A production-grade vape marketplace and retail operating system powered by VAPEOS AI.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}

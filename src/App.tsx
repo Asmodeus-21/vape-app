@@ -27,8 +27,10 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import { Product, User } from './types';
 import { vapeosAI, SYSTEM_INSTRUCTIONS } from './services/aiService';
+import { fetchProducts } from './services/api';
 import AgeVerification from './components/AgeVerification';
 import FlavorExplorer from './components/FlavorExplorer';
+import { Toaster, toast } from 'react-hot-toast';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<'marketplace' | 'vendor' | 'admin'>('marketplace');
@@ -45,9 +47,7 @@ export default function App() {
   const [activeFilter, setActiveFilter] = useState<'all' | 'bestsellers' | 'newarrivals' | 'express'>('all');
 
   useEffect(() => {
-    fetch('/api/products')
-      .then(res => res.json())
-      .then(data => setProducts(data));
+    fetchProducts().then(data => setProducts(data));
 
     // AI Pop-up right away
     const timer = setTimeout(() => {
@@ -66,8 +66,19 @@ export default function App() {
     if (!isAgeVerified) {
       setShowCheckoutVerification(true);
     } else {
-      alert("Proceeding to secure payment...");
+      toast.success("Proceeding to secure payment module...");
     }
+  };
+
+  const handleFeatureNotReady = (featureName: string) => {
+    toast(`🚧 ${featureName} feature coming soon in v2!`, {
+      icon: '🚀',
+      style: {
+        borderRadius: '10px',
+        background: '#333',
+        color: '#fff',
+      },
+    });
   };
 
   const handleAiChat = async (e: React.FormEvent) => {
@@ -101,6 +112,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen flex flex-col bg-[#eaeded]">
+      <Toaster position="top-center" />
       {/* Age Verification Modal (Only at Checkout) */}
       <AnimatePresence>
         {showCheckoutVerification && (
@@ -156,7 +168,7 @@ export default function App() {
           {/* Nav Actions */}
           <div className="flex items-center gap-3 md:gap-6">
             {/* Account */}
-            <div className="hidden md:flex flex-col cursor-pointer group">
+            <div className="hidden md:flex flex-col cursor-pointer group" onClick={() => handleFeatureNotReady('User Accounts')}>
               <span className="text-[11px] text-text-muted font-bold uppercase tracking-wider">Account</span>
               <div className="flex items-center gap-1 group-hover:text-brand-primary transition-colors">
                 <span className="text-sm font-bold">Sign In</span>
@@ -239,7 +251,7 @@ export default function App() {
           <div className="space-y-6">
             {/* Hero Section */}
             <section className="relative h-[300px] md:h-[600px] overflow-hidden">
-              <img src="https://picsum.photos/seed/vapehero-light/1500/600" alt="Hero" className="w-full h-full object-cover" />
+              <img src="/images/devices/geekvape-aegis-legend.jpg" alt="Hero" className="w-full h-full object-cover object-top" />
               <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#eaeded]" />
             </section>
 
@@ -247,24 +259,24 @@ export default function App() {
             <div className="px-4 -mt-20 md:-mt-60 relative z-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               {/* Featured Categories */}
               {[
-                { title: 'Shop by Category', items: ['Mods', 'Disposables', 'E-Liquids', 'Accessories'] },
-                { title: 'Top Rated Hardware', items: ['VaporMax Elite', 'Zenith Pod V2', 'Titan Mod', 'Zen Pod'] },
-                { title: 'Trending Flavors', items: ['Lush Ice', 'Strawberry Dream', 'Midnight Oak', 'Arctic Breeze'] },
-                { title: 'VapesHub Express', items: ['Same-day Pickup', 'Local Delivery', 'Subscription', 'Bulk Deals'] },
+                { title: 'Shop by Category', items: [{name: 'Mods', img: '/images/devices/smok-nord-4-kit.jpg'}, {name: 'Disposables', img: '/images/devices/elf-bar-bc5000.png'}, {name: 'Accessories', img: '/images/accessories/cotton-bacon-prime.jpg'}, {name: 'Glass', img: '/images/glass/ash-catcher-14mm.jpeg'}] },
+                { title: 'Top Rated Hardware', items: [{name: 'Puffco Plus', img: '/images/devices/puffco-plus-pen.jpeg'}, {name: 'Uwell Caliburn', img: '/images/devices/uwell-caliburn-g2.webp'}, {name: 'Vaporesso XROS 3', img: '/images/devices/vaporesso-xros-3.png'}, {name: 'Vuse Alto', img: '/images/devices/vuse-alto-kit.jpg'}] },
+                { title: 'Premium Glass', items: [{name: 'Straight Tube', img: '/images/glass/straight-tube-bong.jpg'}, {name: 'Sherlock Pipe', img: '/images/glass/sherlock-pipe-glass.webp'}, {name: 'Spoon Pipe', img: '/images/glass/spoon-pipe-color.jpg'}, {name: 'Gravity Bong', img: '/images/glass/gravity-bong-glass.webp'}] },
+                { title: 'VapesHub Express', items: [{name: 'Same-day Pickup', img: '/images/Cloud9 logo.png'}, {name: 'Local Delivery', img: '/images/Cloud9 logo.png'}, {name: 'Subscription', img: '/images/Cloud9 logo.png'}, {name: 'Bulk Deals', img: '/images/Cloud9 logo.png'}] },
               ].map((cat, i) => (
                 <div key={i} className="bg-white p-5 flex flex-col h-full shadow-sm">
                   <h3 className="text-xl font-bold mb-4">{cat.title}</h3>
                   <div className="grid grid-cols-2 gap-4 flex-1">
                     {cat.items.map((item, j) => (
-                      <div key={j} className="space-y-1 cursor-pointer group">
-                        <div className="aspect-square bg-gray-100 overflow-hidden">
-                          <img src={`https://picsum.photos/seed/${item}/300/300`} alt={item} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                      <div key={j} className="space-y-1 cursor-pointer group" onClick={() => handleFeatureNotReady(`Category ${item.name}`)}>
+                        <div className="aspect-square bg-gray-100 overflow-hidden flex items-center justify-center p-2">
+                          <img src={item.img} alt={item.name} className="max-w-full max-h-full object-contain group-hover:scale-105 transition-transform" />
                         </div>
-                        <span className="text-xs text-gray-700 font-medium group-hover:text-brand-primary">{item}</span>
+                        <span className="text-xs text-gray-700 font-medium group-hover:text-brand-primary">{item.name}</span>
                       </div>
                     ))}
                   </div>
-                  <button className="text-sm text-[#007185] hover:text-[#C7511F] hover:underline mt-4 text-left">Shop now</button>
+                  <button onClick={() => { setActiveTab('marketplace'); setActiveFilter('all'); }} className="text-sm text-[#007185] hover:text-[#C7511F] hover:underline mt-4 text-left">Shop now</button>
                 </div>
               ))}
             </div>
@@ -394,7 +406,7 @@ export default function App() {
                 <h2 className="text-2xl font-bold">VapesHub Seller Central</h2>
                 <p className="text-gray-600">Manage your retail operations and AI growth strategies.</p>
               </div>
-              <button className="amazon-button-primary w-full md:w-auto">Add New Product</button>
+              <button className="amazon-button-primary w-full md:w-auto" onClick={() => handleFeatureNotReady('Product Listing')}>Add New Product</button>
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -437,7 +449,7 @@ export default function App() {
                     </div>
                   </div>
                   <p className="text-xs text-gray-600 italic">"Customers are praising the 'Arctic Breeze' for its long-lasting flavor, but 15% mention the packaging is hard to open."</p>
-                  <button className="text-[10px] font-black uppercase tracking-widest text-brand-secondary hover:text-brand-primary transition-colors">View Full Report</button>
+                  <button className="text-[10px] font-black uppercase tracking-widest text-brand-secondary hover:text-brand-primary transition-colors" onClick={() => handleFeatureNotReady('Analytics Report')}>View Full Report</button>
                 </div>
 
                 {/* Inventory Analyst Bot */}
@@ -452,7 +464,7 @@ export default function App() {
                     </div>
                   </div>
                   <p className="text-xs text-gray-600 italic">"Restock Alert: Cloud King Pro is selling 40% faster than predicted. Order 200 units now to avoid stockout."</p>
-                  <button className="text-[10px] font-black uppercase tracking-widest text-brand-secondary hover:text-brand-primary transition-colors">Approve Order</button>
+                  <button className="text-[10px] font-black uppercase tracking-widest text-brand-secondary hover:text-brand-primary transition-colors" onClick={() => handleFeatureNotReady('Inventory Orders')}>Approve Order</button>
                 </div>
 
                 {/* Market Trend Bot */}
@@ -467,7 +479,7 @@ export default function App() {
                     </div>
                   </div>
                   <p className="text-xs text-gray-600 italic">"Emerging Trend: 'Savory Dessert' profiles are gaining 200% search volume in Ukiah. Consider adding 'Salted Caramel' to inventory."</p>
-                  <button className="text-[10px] font-black uppercase tracking-widest text-brand-secondary hover:text-brand-primary transition-colors">Explore Trends</button>
+                  <button className="text-[10px] font-black uppercase tracking-widest text-brand-secondary hover:text-brand-primary transition-colors" onClick={() => handleFeatureNotReady('Trend Explorer')}>Explore Trends</button>
                 </div>
               </div>
 
@@ -506,7 +518,7 @@ export default function App() {
               <Settings className="w-16 h-16 text-gray-300 mx-auto" />
               <h2 className="text-2xl font-bold">Platform Administration</h2>
               <p className="text-gray-600 max-w-md mx-auto">Global oversight of VapesHub marketplace, vendor approvals, and fraud detection systems.</p>
-              <button className="amazon-button-secondary">Access Admin Console</button>
+              <button className="amazon-button-secondary" onClick={() => handleFeatureNotReady('Admin Dashboard')}>Access Admin Console</button>
             </div>
           </div>
         )}
@@ -720,37 +732,37 @@ export default function App() {
           <div>
             <h4 className="text-sm font-black uppercase tracking-widest mb-6 text-brand-primary">Get to Know Us</h4>
             <ul className="space-y-3 text-sm text-gray-300">
-              <li className="hover:text-white cursor-pointer transition-colors">Careers</li>
-              <li className="hover:text-white cursor-pointer transition-colors">Blog</li>
-              <li className="hover:text-white cursor-pointer transition-colors">About VapesHub</li>
-              <li className="hover:text-white cursor-pointer transition-colors">Sustainability</li>
+              <li className="hover:text-white cursor-pointer transition-colors" onClick={() => handleFeatureNotReady('Careers')}>Careers</li>
+              <li className="hover:text-white cursor-pointer transition-colors" onClick={() => handleFeatureNotReady('Blog')}>Blog</li>
+              <li className="hover:text-white cursor-pointer transition-colors" onClick={() => handleFeatureNotReady('About')}>About VapesHub</li>
+              <li className="hover:text-white cursor-pointer transition-colors" onClick={() => handleFeatureNotReady('Sustainability')}>Sustainability</li>
             </ul>
           </div>
           <div>
             <h4 className="text-sm font-black uppercase tracking-widest mb-6 text-brand-primary">Make Money</h4>
             <ul className="space-y-3 text-sm text-gray-300">
-              <li className="hover:text-white cursor-pointer transition-colors">Sell on VapesHub</li>
-              <li className="hover:text-white cursor-pointer transition-colors">VapesHub OS for Shops</li>
-              <li className="hover:text-white cursor-pointer transition-colors">Become an Affiliate</li>
-              <li className="hover:text-white cursor-pointer transition-colors">Advertise Products</li>
+              <li className="hover:text-white cursor-pointer transition-colors" onClick={() => handleFeatureNotReady('Sell on VapesHub')}>Sell on VapesHub</li>
+              <li className="hover:text-white cursor-pointer transition-colors" onClick={() => handleFeatureNotReady('Retailer OS Info')}>VapesHub OS for Shops</li>
+              <li className="hover:text-white cursor-pointer transition-colors" onClick={() => handleFeatureNotReady('Affiliates')}>Become an Affiliate</li>
+              <li className="hover:text-white cursor-pointer transition-colors" onClick={() => handleFeatureNotReady('Advertising')}>Advertise Products</li>
             </ul>
           </div>
           <div>
             <h4 className="text-sm font-black uppercase tracking-widest mb-6 text-brand-primary">Payment</h4>
             <ul className="space-y-3 text-sm text-gray-300">
-              <li className="hover:text-white cursor-pointer transition-colors">VapesHub Rewards Visa</li>
-              <li className="hover:text-white cursor-pointer transition-colors">Store Card</li>
-              <li className="hover:text-white cursor-pointer transition-colors">Business Card</li>
-              <li className="hover:text-white cursor-pointer transition-colors">Shop with Points</li>
+              <li className="hover:text-white cursor-pointer transition-colors" onClick={() => handleFeatureNotReady('Rewards Card')}>VapesHub Rewards Visa</li>
+              <li className="hover:text-white cursor-pointer transition-colors" onClick={() => handleFeatureNotReady('Store Card')}>Store Card</li>
+              <li className="hover:text-white cursor-pointer transition-colors" onClick={() => handleFeatureNotReady('Business Card')}>Business Card</li>
+              <li className="hover:text-white cursor-pointer transition-colors" onClick={() => handleFeatureNotReady('Points Checkout')}>Shop with Points</li>
             </ul>
           </div>
           <div>
             <h4 className="text-sm font-black uppercase tracking-widest mb-6 text-brand-primary">Support</h4>
             <ul className="space-y-3 text-sm text-gray-300">
-              <li className="hover:text-white cursor-pointer transition-colors">Your Account</li>
-              <li className="hover:text-white cursor-pointer transition-colors">Your Orders</li>
-              <li className="hover:text-white cursor-pointer transition-colors">Shipping Rates</li>
-              <li className="hover:text-white cursor-pointer transition-colors">Returns & Replacements</li>
+              <li className="hover:text-white cursor-pointer transition-colors" onClick={() => handleFeatureNotReady('Account Tracking')}>Your Account</li>
+              <li className="hover:text-white cursor-pointer transition-colors" onClick={() => handleFeatureNotReady('Order Tracking')}>Your Orders</li>
+              <li className="hover:text-white cursor-pointer transition-colors" onClick={() => handleFeatureNotReady('Shipping Info')}>Shipping Rates</li>
+              <li className="hover:text-white cursor-pointer transition-colors" onClick={() => handleFeatureNotReady('Returns Policy')}>Returns & Replacements</li>
             </ul>
           </div>
         </div>

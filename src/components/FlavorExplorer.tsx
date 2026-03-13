@@ -11,11 +11,11 @@ export default function FlavorExplorer() {
   const [selectedProfile, setSelectedProfile] = useState<string | null>(null);
 
   const flavorProfiles = [
-    { id: 'fruity', name: 'Fruity Blends', image: 'https://picsum.photos/seed/fruit-vape/400/400', desc: 'Fresh & Vibrant' },
-    { id: 'icy', name: 'Icy Menthol', image: 'https://picsum.photos/seed/ice-vape/400/400', desc: 'Cool & Refreshing' },
-    { id: 'dessert', name: 'Sweet Desserts', image: 'https://picsum.photos/seed/dessert-vape/400/400', desc: 'Rich & Creamy' },
-    { id: 'candy', name: 'Candy Shop', image: 'https://picsum.photos/seed/candy-vape/400/400', desc: 'Sweet & Tangy' },
-    { id: 'tobacco', name: 'Classic Tobacco', image: 'https://picsum.photos/seed/tobacco-vape/400/400', desc: 'Bold & Earthy' },
+    { id: 'fruity', name: 'Fruity Blends', image: '/images/flavor_fruity_1773423120040.png', desc: 'Fresh & Vibrant' },
+    { id: 'icy', name: 'Icy Menthol', image: '/images/flavor_icy_1773423140543.png', desc: 'Cool & Refreshing' },
+    { id: 'dessert', name: 'Sweet Desserts', image: '/images/flavor_desserts_1773423159844.png', desc: 'Rich & Creamy' },
+    { id: 'candy', name: 'Candy Shop', image: '/images/flavor_candy_1773423186249.png', desc: 'Sweet & Tangy' },
+    { id: 'tobacco', name: 'Classic Tobacco', image: '/images/flavor_tobacco_1773423204201.png', desc: 'Bold & Earthy' },
   ];
 
   const handleExplore = async (customQuery?: string) => {

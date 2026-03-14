@@ -1,76 +1,131 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Inter", sans-serif;
-  --font-mono: "JetBrains Mono", monospace;
-  
-  --color-brand-primary: #10b981; /* Emerald Green - More premium than pure orange */
-  --color-brand-secondary: #0f172a; /* Slate 900 */
-  --color-brand-accent: #34d399; /* Emerald 400 */
-  --color-bg-main: #f1f5f9; /* Slate 100 */
-  --color-bg-card: #ffffff;
-  --color-text-primary: #0f172a; /* Slate 900 */
-  --color-text-secondary: #475569; /* Slate 600 */
-  --color-border: #e2e8f0; /* Slate 200 */
+    --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+    --font-display: "Inter", sans-serif;
+    --font-mono: "JetBrains Mono", monospace;
+
+    /* Core Brand Colors */
+    --color-brand-primary: #FF9900;
+    /* Brand Primary - Logo, CTA buttons, AI chat trigger */
+    --color-brand-secondary: #00457C;
+    /* Brand Secondary - Nav sub-bar, footer, headings */
+    --color-brand-accent: #E7F3FF;
+    /* Brand Accent - Subtle backgrounds, hover states, Express Delivery tags */
+
+    /* UI & Background Colors */
+    --color-bg-main: #F8F9FA;
+    /* Eggshell White - Main page background */
+    --color-bg-section: #EAEDED;
+    /* Section Background - Content wrapper */
+    --color-bg-card: #FFFFFF;
+    /* Card Background - Product cards, header */
+
+    /* Text Colors */
+    --color-text-primary: #1A1A1A;
+    /* Main Text - Body text and titles */
+    --color-text-secondary: #6C757D;
+    /* Muted Text - Descriptions, labels */
+
+    /* Status & Highlight Colors */
+    --color-price: #B12704;
+    /* Price Red - Price tags */
+    --color-star: #FFA41C;
+    /* Star Gold - Rating stars */
+    --color-link: #007185;
+    /* Link Blue - Interactive text links */
+
+    /* Functional Accents */
+    --color-brand-primary-hover: #F3A847;
+    /* Primary button hover */
+    --color-back-to-top: #1A5A8E;
+    /* Back to top button */
+    --color-button-border: #A88734;
+    /* Subtle button border for 3D effect */
+
+    --color-border: #e2e8f0;
+    /* Border color */
 }
 
 @layer base {
-  * {
-    @apply border-border;
-  }
-  body {
-    @apply bg-bg-main text-text-primary font-sans antialiased;
-    scrollbar-gutter: stable;
-  }
-  
-  /* Premium Scrollbar */
-  ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-  }
-  ::-webkit-scrollbar-track {
-    @apply bg-transparent;
-  }
-  ::-webkit-scrollbar-thumb {
-    @apply bg-slate-300 rounded-full hover:bg-slate-400 transition-colors;
-  }
+    * {
+        @apply border-border;
+    }
+
+    body {
+        @apply bg-bg-main text-text-primary font-sans antialiased;
+        scrollbar-gutter: stable;
+    }
+
+    /* Premium Scrollbar */
+    ::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+        @apply bg-transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+        @apply bg-slate-300 rounded-full hover:bg-slate-400 transition-colors;
+    }
 }
 
 .glass {
-  @apply bg-white/70 backdrop-blur-xl border border-white/20;
+    @apply bg-white/70 backdrop-blur-xl border border-white/20;
 }
 
 .premium-card {
-  @apply bg-white rounded-3xl border border-slate-100 shadow-xl shadow-slate-200/50 hover:shadow-2xl hover:shadow-slate-300/50 transition-all duration-500 overflow-hidden;
+    @apply bg-bg-card rounded-3xl border border-slate-100 shadow-xl shadow-slate-200/50 hover:shadow-2xl hover:shadow-slate-300/50 transition-all duration-500 overflow-hidden;
 }
 
 .amazon-button-primary {
-  @apply bg-brand-primary hover:bg-brand-accent text-white font-black uppercase tracking-widest text-[10px] py-4 px-8 rounded-2xl shadow-lg shadow-brand-primary/20 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-300;
+    @apply bg-brand-primary hover:bg-brand-primary-hover text-white font-black uppercase tracking-widest text-[10px] py-4 px-8 rounded-2xl shadow-lg shadow-brand-primary/30 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-300 border border-button-border;
 }
 
 .amazon-button-secondary {
-  @apply bg-white hover:bg-slate-50 text-slate-900 font-black uppercase tracking-widest text-[10px] py-4 px-8 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all duration-300;
+    @apply bg-white hover:bg-brand-accent text-brand-secondary font-black uppercase tracking-widest text-[10px] py-4 px-8 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all duration-300;
 }
 
 .nav-link {
-  @apply text-[11px] font-black uppercase tracking-widest text-slate-500 hover:text-brand-primary transition-all duration-300 cursor-pointer;
+    @apply text-[11px] font-black uppercase tracking-widest text-text-secondary hover:text-brand-primary transition-all duration-300 cursor-pointer;
 }
 
 @keyframes float {
-  0% { transform: translateY(0px); }
-  50% { transform: translateY(-10px); }
-  100% { transform: translateY(0px); }
+    0% {
+        transform: translateY(0px);
+    }
+
+    50% {
+        transform: translateY(-10px);
+    }
+
+    100% {
+        transform: translateY(0px);
+    }
 }
 
 .float {
-  animation: float 6s ease-in-out infinite;
+    animation: float 6s ease-in-out infinite;
 }
 
 .price-tag {
-  @apply text-2xl font-bold text-[#B12704];
+    @apply text-2xl font-bold text-price;
 }
 
 .rating-stars {
-  @apply text-[#FFA41C];
+    @apply text-star;
+}
+
+.link-text {
+    @apply text-link hover:underline cursor-pointer transition-colors;
+}
+
+.express-delivery {
+    @apply bg-brand-accent text-brand-secondary text-xs font-semibold px-2 py-1 rounded;
+}
+
+.back-to-top {
+    @apply bg-back-to-top hover:bg-brand-secondary text-white transition-colors;
 }

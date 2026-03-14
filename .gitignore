@@ -6,3 +6,11 @@ coverage/
 *.log
 .env*
 !.env.example
+*.db
+*.db-shm
+*.db-wal
+.gemini/
+.agents/
+.agent/
+_agents/
+_agent/

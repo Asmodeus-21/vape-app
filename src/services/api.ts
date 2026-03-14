@@ -1,131 +1,220 @@
 import { Product } from '../types';
 
-export const mockProducts: Product[] = [
-  { 
-    id: 1, 
-    name: "VaporMax Elite Pro Mod - Carbon Fiber Edition", 
-    brand: "TitanVape", 
-    flavor: "N/A (Hardware)", 
-    nicotine: "N/A", 
-    price: 149.99, 
-    rating: 4.9,
-    reviews: 2450,
-    image: "/images/devices/geekvape-aegis-legend.jpg", 
-    category: "Mods",
-    isExpressDelivery: true,
-    isBestSeller: true,
-    description: "The ultimate power for professional vapers. Featuring a dual-21700 battery configuration and the advanced Titan-X chipset."
-  },
-  { 
-    id: 2, 
-    name: "Geek Bar Pulse X 25000 Puffs - Clear", 
-    brand: "Geek Bar", 
-    flavor: "Clear", 
-    nicotine: "5%", 
-    price: 24.50, 
-    rating: 4.6,
-    reviews: 5102,
-    image: "/images/geek-bar-pulse-x-25000-clear.jpg", 
-    category: "Disposables",
-    isExpressDelivery: true,
-    isBestSeller: true,
-    description: "The longest lasting disposable with a built-in LED screen for e-liquid and battery monitoring."
-  },
-  { 
-    id: 3, 
-    name: "Backwoods Cigars - Honey Berry", 
-    brand: "Backwoods", 
-    flavor: "Honey Berry", 
-    nicotine: "Tobacco", 
-    price: 9.99, 
-    rating: 4.9,
-    reviews: 1240,
-    image: "/images/backwoods-honey-berry.jpg", 
-    category: "Rolling",
-    isExpressDelivery: true,
-    isNewArrival: true,
-    description: "Authentic rustic smoking experience."
-  },
-  { 
-    id: 4, 
-    name: "Puffco Pivot Portable Vaporizer", 
-    brand: "Puffco", 
-    flavor: "N/A (Hardware)", 
-    nicotine: "N/A", 
-    price: 189.00, 
-    rating: 4.8,
-    reviews: 3100,
-    image: "/images/puffco-pivot-device.jpg", 
-    category: "Devices",
-    isExpressDelivery: true,
-    isNewArrival: true,
-    description: "Sleek, pocket-friendly, and powerful flavor extraction."
-  },
-  { 
-    id: 5, 
-    name: "SMOK RPM Series Replacement Coils", 
-    brand: "SMOK", 
-    flavor: "N/A", 
-    nicotine: "N/A", 
-    price: 18.99, 
-    rating: 4.7,
-    reviews: 890,
-    image: "/images/accessories/smok-rpm-coils.jpeg", 
-    category: "Accessories",
-    isExpressDelivery: true,
-    description: "High-performance mesh coils designed for maximum flavor clarity and longevity."
-  },
-  { 
-    id: 6, 
-    name: "JUUL Kit with Virginia Tobacco Pods", 
-    brand: "JUUL", 
-    flavor: "Virginia Tobacco", 
-    nicotine: "5%", 
-    price: 29.99, 
-    rating: 4.5,
-    reviews: 1820,
-    image: "/images/juul-virginia-tobacco-pods.jpg", 
-    category: "Pod Systems",
-    isExpressDelivery: true,
-    isBestSeller: true,
-    description: "A smooth, familiar tobacco experience perfectly balanced."
-  },
-  { 
-    id: 7, 
-    name: "Cookies Premium Glass - Flame Beaker", 
-    brand: "Cookies", 
-    flavor: "N/A", 
-    nicotine: "N/A", 
-    price: 119.50, 
-    rating: 4.7,
-    reviews: 945,
-    image: "/images/cookies-flame-beaker.JPG", 
-    category: "Glass",
-    isExpressDelivery: true,
-    description: "Authentic Cookies branded glassware for the smoothest hits."
-  },
-  { 
-    id: 8, 
-    name: "Tyson 2.0 Gravity Bong", 
-    brand: "Tyson", 
-    flavor: "N/A", 
-    nicotine: "N/A", 
-    price: 499.00, 
-    rating: 4.9,
-    reviews: 320,
-    image: "/images/tyson-gravity-bong-2.0.jpeg", 
-    category: "Glass",
-    isExpressDelivery: false,
-    isNewArrival: true,
-    description: "Premium kinetic motion gravity bong championed by Mike Tyson."
-  }
-];
+export async function fetchProducts(params?: {
+  search?: string;
+  filter?: 'all' | 'bestsellers' | 'newarrivals' | 'express';
+  category?: string;
+}): Promise<Product[]> {
+  const query = new URLSearchParams();
+  if (params?.search) query.set('search', params.search);
+  if (params?.filter && params.filter !== 'all') query.set('filter', params.filter);
+  if (params?.category) query.set('category', params.category);
 
-export const fetchProducts = async (): Promise<Product[]> => {
-  // Simulate network delay
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve(mockProducts);
-    }, 300);
+  const url = `/api/products${query.toString() ? `?${query.toString()}` : ''}`;
+
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`Products API error: ${res.status}`);
+    return await res.json() as Product[];
+  } catch (err) {
+    console.error('[api] fetchProducts failed:', err);
+    return [];
+  }
+}
+
+export interface AuthResponse {
+  token: string;
+  user: {
+    id: number;
+    email: string;
+    name: string;
+    role: string;
+  };
+}
+
+export async function registerUser(email: string, password: string, name: string, isVendor: boolean = false): Promise<AuthResponse> {
+  const role = isVendor ? 'vendor' : 'customer';
+  const res = await fetch('/api/auth/register', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password, name, role }),
   });
-};
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Registration failed');
+  return data as AuthResponse;
+}
+
+export async function loginUser(email: string, password: string): Promise<AuthResponse> {
+  const res = await fetch('/api/auth/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Login failed');
+  return data as AuthResponse;
+}
+
+export async function fetchCurrentUser(token: string) {
+  const res = await fetch('/api/auth/me', {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) return null;
+  const data = await res.json();
+  return data.user;
+}
+
+export async function fetchProductById(id: string | number): Promise<Product | null> {
+  try {
+    const res = await fetch(`/api/products/${id}`);
+    if (!res.ok) return null;
+    return await res.json() as Product;
+  } catch (err) {
+    console.error(`[api] fetchProductById failed for id ${id}:`, err);
+    return null;
+  }
+}
+
+export async function createOrder(token: string, items: { productId: number; quantity: number }[], shippingAddress: string) {
+  const res = await fetch('/api/orders/checkout', {
+    method: 'POST',
+    headers: { 
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}` 
+    },
+    body: JSON.stringify({ items, shippingAddress }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Checkout failed');
+  return data;
+}
+
+export async function fetchVendorStats(token: string) {
+  const res = await fetch('/api/vendor/stats', {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) throw new Error('Failed to fetch vendor stats');
+  return await res.json();
+}
+
+export async function fetchVendorOrders(token: string) {
+  const res = await fetch('/api/vendor/orders', {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) throw new Error('Failed to fetch orders');
+  return await res.json();
+}
+
+export async function updateVendorOrderStatus(token: string, orderId: number, status: string) {
+  const res = await fetch(`/api/vendor/orders/${orderId}/status`, {
+    method: 'PATCH',
+    headers: { 
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}` 
+    },
+    body: JSON.stringify({ status }),
+  });
+  if (!res.ok) throw new Error('Failed to update order status');
+  return res.json();
+}
+
+export async function fetchVendorProducts(token: string): Promise<Product[]> {
+  const res = await fetch('/api/vendor/products', {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) throw new Error('Failed to fetch vendor products');
+  return res.json();
+}
+
+export async function createVendorProduct(token: string, productData: any) {
+  const res = await fetch('/api/vendor/products', {
+    method: 'POST',
+    headers: { 
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}` 
+    },
+    body: JSON.stringify(productData),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Failed to create product');
+  return data;
+}
+
+export async function updateVendorProduct(token: string, productId: number, productData: any) {
+  const res = await fetch(`/api/vendor/products/${productId}`, {
+    method: 'PATCH',
+    headers: { 
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}` 
+    },
+    body: JSON.stringify(productData),
+  });
+  if (!res.ok) throw new Error('Failed to update product');
+  return res.json();
+}
+
+export async function deleteVendorProduct(token: string, productId: number) {
+  const res = await fetch(`/api/vendor/products/${productId}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) throw new Error('Failed to delete product');
+  return res.json();
+}
+export async function fetchAdminStats(token: string) {
+  const res = await fetch('/api/admin/stats', {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) throw new Error('Failed to fetch admin stats');
+  return res.json();
+}
+
+export async function fetchAdminUsers(token: string) {
+  const res = await fetch('/api/admin/users', {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) throw new Error('Failed to fetch admin users');
+  return res.json();
+}
+
+export async function updateAdminUserVerification(token: string, userId: number, status: string) {
+  const res = await fetch(`/api/admin/users/${userId}/verify`, {
+    method: 'PATCH',
+    headers: { 
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}` 
+    },
+    body: JSON.stringify({ status }),
+  });
+  if (!res.ok) throw new Error('Failed to update verification status');
+  return res.json();
+}
+
+export async function updateAdminUserRole(token: string, userId: number, role: string) {
+  const res = await fetch(`/api/admin/users/${userId}/role`, {
+    method: 'PATCH',
+    headers: { 
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}` 
+    },
+    body: JSON.stringify({ role }),
+  });
+  if (!res.ok) throw new Error('Failed to update user role');
+  return res.json();
+}
+
+export async function fetchAdminProducts(token: string) {
+  const res = await fetch('/api/admin/products', {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) throw new Error('Failed to fetch platform products');
+  return res.json();
+}
+
+export async function fetchAdminOrders(token: string) {
+  const res = await fetch('/api/admin/orders', {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) throw new Error('Failed to fetch platform orders');
+  return res.json();
+}

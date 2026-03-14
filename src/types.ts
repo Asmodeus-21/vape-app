@@ -13,6 +13,7 @@ export interface Product {
   isBestSeller?: boolean;
   isNewArrival?: boolean;
   description: string;
+  stockQty: number;
 }
 
 export interface User {

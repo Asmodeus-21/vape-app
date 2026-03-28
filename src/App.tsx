@@ -55,6 +55,20 @@ export default function App() {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [showCheckoutOverlay, setShowCheckoutOverlay] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
+
+    useEffect(() => {
+        const path = window.location.pathname.replace(/^\/+|\/+$/g, '');
+        if (path === 'admin') setActiveTab('admin');
+        else if (path === 'vendor') setActiveTab('vendor');
+        else setActiveTab('marketplace');
+    }, []);
+
+    useEffect(() => {
+        const target = activeTab === 'marketplace' ? '/' : `/${activeTab}`;
+        if (window.location.pathname !== target) {
+            window.history.replaceState(null, '', target);
+        }
+    }, [activeTab]);
     const [aiChatOpen, setAiChatOpen] = useState(false);
     const [aiMessages, setAiMessages] = useState<{ role: 'user' | 'ai', text: string }[]>([]);
     const [chatInput, setChatInput] = useState('');

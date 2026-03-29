@@ -1,54 +1,79 @@
 # VapesHub Deployment Guide
 
-This document provides instructions for deploying the VapesHub platform to production environments like Vercel or Cloudflare Pages.
+This application runs as a single Node service:
+- Express API in `server.ts`
+- Vite-built SPA in `dist/`
+- SQLite database file `vapeshub.db`
 
-## 🚀 Environment Configuration
+Use a host that supports a persistent Node process and persistent disk storage.
 
-VapesHub requires the following environment variables to be set in your production host:
+## Recommended Hosting Path
 
-| Variable | Description | Example |
-|---|---|---|
-| `GEMINI_API_KEY` | Your Google Gemini AI API key for the Intelligence Center. | `AIzaSy...` |
-| `NODE_ENV` | Environment mode. Set to `production`. | `production` |
-| `VITE_API_URL` (optional) | The base URL for API calls if hosted on a different domain. | `https://api.vapeshub.com` |
+Use Render Web Service (or Railway with equivalent settings).
 
-## 📦 Build & Deploy
+Why this path:
+- Supports long-running Node process required by Express.
+- Supports persistent disk required by SQLite.
+- Keeps deployment simple with one service.
 
-### Vercel (Recommended)
+## Environment Variables
 
-VapesHub is optimized for Vercel's zero-config deployment.
+Set these in your host dashboard:
 
-1.  Connect your GitHub repository to Vercel.
-2.  Set the **Environment Variables** listed above.
-3.  Vercel will automatically detect the Vite project and use the following settings:
-    *   **Build Command**: `npm run build`
-    *   **Output Directory**: `dist`
-    *   **Install Command**: `npm install`
+- `NODE_ENV=production`
+- `PORT=10000` (Render injects this automatically; keep if required by host)
+- `JWT_SECRET=<random-32-plus-char-secret>`
+- `GEMINI_API_KEY=<your-google-key>`
+- `CORS_ORIGIN=https://your-domain.com` (required in production)
 
-### Cloudflare Pages
+## Build and Start Commands
 
-1.  Create a new project in Cloudflare Pages.
-2.  Connect your repository.
-3.  Configure Build Settings:
-    *   **Framework preset**: `Vite`
-    *   **Build command**: `npm run build`
-    *   **Build output directory**: `dist`
-4.  Add the `GEMINI_API_KEY` in the **Environment variables** section of the project settings.
+- Build command: `npm ci && npm run build`
+- Start command: `npm run start`
 
-## 🛠️ Performance & Maintenance
+`npm run start` uses `tsx server.ts`.
 
-### 1. Database Persistence
-By default, the project uses `better-sqlite3` with a local file. For serverless environments like Vercel (which have ephemeral filesystems), you should:
-*   Use a managed SQLite service like **Turso** or **Neon**.
-*   Update `db/index.ts` to connect to your remote database URI.
+## Render Setup (Concrete)
 
-### 2. Service Worker & PWA
-The PWA service worker (`public/sw.js`) is automatically registered in production. ensure you are serving over **HTTPS** for the service worker to activate correctly.
+1. Create a new Web Service from your Git repository.
+2. Set runtime to Node.
+3. Configure commands:
+   - Build: `npm ci && npm run build`
+   - Start: `npm run start`
+4. Add a Persistent Disk mounted at `/opt/render/project/src`.
+5. Add required environment variables listed above.
+6. Deploy.
 
-### 3. Image Optimization
-Ensure all images in `public/images/` are optimized. The current build process does not minify images automatically.
+## Data and Backups
 
-## 🔒 Security Checklist
-*   [ ] Ensure `GEMINI_API_KEY` is never exposed in the client-side bundle (Vites sub-folder).
-*   [ ] Verify `authMiddleware` is active on all `/api/vendor/*` and `/api/admin/*` routes.
-*   [ ] Use high-entropy salts for password hashing (handled by `bcryptjs` in `server/auth.ts`).
+SQLite file is stored at project root (`vapeshub.db`).
+
+- Keep persistent disk enabled.
+- Schedule periodic snapshots/backups from host dashboard.
+- Before major releases, take a manual backup.
+
+## Verification Before Go-Live
+
+Run locally from project root:
+
+```bash
+npm run lint
+npm run build
+```
+
+Both commands must pass before deploying.
+
+## Post-Deploy Smoke Checks
+
+After deployment:
+
+1. Open `/` and verify app shell loads.
+2. Verify `GET /api/products` returns JSON.
+3. Register/login flow works.
+4. Vendor and admin protected endpoints return `401/403` correctly when unauthorized.
+5. AI chat endpoint works when `GEMINI_API_KEY` is set.
+
+## Notes
+
+- Static-only hosts (Pages-only setup) are not sufficient for this architecture.
+- For horizontal scaling or multi-instance deployment, migrate from SQLite to a managed database first.

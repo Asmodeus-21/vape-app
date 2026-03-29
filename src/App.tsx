@@ -33,7 +33,6 @@ import AuthModal from './components/AuthModal';
 import CheckoutOverlay from './components/CheckoutOverlay';
 import FlavorExplorer from './components/FlavorExplorer';
 import ProductDetail from './components/ProductDetail';
-import UserProfile from './components/UserProfile';
 import VendorOrders from './components/VendorOrders';
 import VendorProductForm from './components/VendorProductForm';
 import VendorProductList from './components/VendorProductList';
@@ -46,32 +45,17 @@ interface AuthUser {
     email: string;
     name: string;
     role: string;
+    storeId?: number | null;
 }
 
 export default function App() {
-    const [activeTab, setActiveTab] = useState<'marketplace' | 'vendor' | 'admin' | 'profile' | 'legal'>('marketplace');
+    const [activeTab, setActiveTab] = useState<'marketplace' | 'vendor' | 'admin'>('marketplace');
     const [products, setProducts] = useState<Product[]>([]);
     const [productsLoading, setProductsLoading] = useState(true);
     const [selectedProductId, setSelectedProductId] = useState<number | null>(null);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [showCheckoutOverlay, setShowCheckoutOverlay] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
-
-    useEffect(() => {
-        const path = window.location.pathname.replace(/^\/+|\/+$/g, '');
-        if (path === 'admin') setActiveTab('admin');
-        else if (path === 'vendor') setActiveTab('vendor');
-        else if (path === 'profile') setActiveTab('profile');
-        else if (path === 'legal') setActiveTab('legal');
-        else setActiveTab('marketplace');
-    }, []);
-
-    useEffect(() => {
-        const target = activeTab === 'marketplace' ? '/' : `/${activeTab}`;
-        if (window.location.pathname !== target) {
-            window.history.replaceState(null, '', target);
-        }
-    }, [activeTab]);
     const [aiChatOpen, setAiChatOpen] = useState(false);
     const [aiMessages, setAiMessages] = useState<{ role: 'user' | 'ai', text: string }[]>([]);
     const [chatInput, setChatInput] = useState('');
@@ -337,7 +321,7 @@ export default function App() {
     const filteredProducts = products;
 
     return (
-        <div className="min-h-screen flex flex-col bg-bg-main">
+        <div className="min-h-screen flex flex-col bg-slate-50">
             <Toaster
                 position="top-right"
                 toastOptions={{
@@ -387,8 +371,8 @@ export default function App() {
                         onClick={() => { setActiveTab('marketplace'); setSelectedProductId(null); setSearchQuery(''); }}
                         className="flex items-center gap-3 cursor-pointer group shrink-0"
                     >
-                        <div className="w-10 h-10 md:w-12 md:h-12 bg-brand-primary rounded-2xl flex items-center justify-center shadow-xl rotate-3 group-hover:rotate-12 transition-all">
-                            <Zap className="text-white w-6 h-6 md:w-7 md:h-7" />
+                        <div className="w-10 h-10 md:w-12 md:h-12 bg-slate-900 rounded-2xl flex items-center justify-center shadow-xl rotate-3 group-hover:rotate-12 transition-all">
+                            <Zap className="text-brand-primary w-6 h-6 md:w-7 md:h-7" />
                         </div>
                         <div className="flex flex-col">
                             <span className="text-xl md:text-2xl font-black tracking-tighter uppercase italic leading-none">VapesHub<span className="text-brand-primary">.</span></span>
@@ -408,7 +392,7 @@ export default function App() {
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                         />
-                        <button className="bg-brand-primary px-6 hover:bg-brand-primary-hover transition-colors">
+                        <button className="bg-slate-900 px-6 hover:bg-brand-primary transition-colors">
                             <Search className="w-5 h-5 text-white" />
                         </button>
                     </div>
@@ -418,10 +402,10 @@ export default function App() {
                         {currentUser ? (
                             <div
                                 className="hidden md:flex items-center gap-4 cursor-pointer group"
-                                onClick={() => setActiveTab('profile')}
+                                onClick={() => handleFeatureNotReady('User Profile')}
                             >
-                                <div className="w-10 h-10 bg-brand-secondary rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-all border-2 border-brand-primary/20">
-                                    <UserIcon className="w-5 h-5 text-white" />
+                                <div className="w-10 h-10 bg-slate-900 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-all border-2 border-brand-primary/20">
+                                    <UserIcon className="w-5 h-5 text-brand-primary" />
                                 </div>
                                 <div className="flex flex-col">
                                     <span className="text-[9px] text-slate-400 font-black uppercase tracking-widest leading-none mb-1">Authenticated</span>
@@ -448,7 +432,7 @@ export default function App() {
 
                         {/* Cart */}
                         <div className="flex items-center gap-4 cursor-pointer group relative" onClick={() => setIsCartOpen(true)}>
-                            <div className="relative bg-brand-secondary p-3 md:p-4 rounded-[1.25rem] shadow-xl shadow-brand-secondary/10 group-hover:bg-brand-primary transition-all duration-300 before:absolute before:inset-0 before:bg-white/10 before:rounded-[1.25rem] before:opacity-0 group-hover:before:opacity-100">
+                            <div className="relative bg-slate-900 p-3 md:p-4 rounded-[1.25rem] shadow-xl shadow-slate-900/10 group-hover:bg-brand-primary transition-all duration-300 before:absolute before:inset-0 before:bg-white/10 before:rounded-[1.25rem] before:opacity-0 group-hover:before:opacity-100">
                                 <ShoppingCart className="w-5 h-5 md:w-6 md:h-6 text-white" />
                                 <span className="absolute -top-1 -right-1 bg-brand-primary text-slate-900 text-[10px] font-black w-6 h-6 rounded-full flex items-center justify-center border-4 border-white group-hover:scale-110 transition-all">{cart.length}</span>
                             </div>
@@ -477,7 +461,7 @@ export default function App() {
                 </div>
 
                 {/* Sub Nav - Mobile Responsive */}
-                <div className="bg-brand-secondary text-white px-6 md:px-10 py-5 flex items-center gap-6 md:gap-10 text-[10px] font-black uppercase tracking-[0.2em] overflow-x-auto scrollbar-hide border-t border-white/5 shadow-inner">
+                <div className="bg-slate-900 text-white px-6 md:px-10 py-5 flex items-center gap-6 md:gap-10 text-[10px] font-black uppercase tracking-[0.2em] overflow-x-auto scrollbar-hide border-t border-white/5 shadow-inner">
                     <div
                         onClick={() => { setActiveTab('marketplace'); setActiveFilter('all'); }}
                         className={`flex items-center gap-3 cursor-pointer hover:text-brand-primary transition-all whitespace-nowrap ${activeFilter === 'all' ? 'text-brand-primary' : 'text-slate-400'}`}
@@ -510,12 +494,6 @@ export default function App() {
                         Express Logistics
                     </span>
                     <div className="flex-1" />
-                    <span
-                        onClick={() => setActiveTab('legal')}
-                        className={`cursor-pointer hover:text-brand-primary transition-all whitespace-nowrap ${activeTab === 'legal' ? 'text-brand-primary' : 'text-slate-400'}`}
-                    >
-                        Legal Compliance
-                    </span>
                     <div
                         onClick={handleVendorTabClick}
                         className="flex items-center gap-3 text-brand-accent cursor-pointer hover:text-white transition-all whitespace-nowrap bg-white/5 px-4 py-2 rounded-xl border border-white/5 hover:bg-brand-accent/20"
@@ -540,8 +518,8 @@ export default function App() {
                 {activeTab === 'marketplace' && !selectedProductId && (
                     <div className="space-y-6">
                         {/* Hero Section */}
-                        <section className="relative h-[300px] md:h-[500px] overflow-hidden bg-gradient-to-r from-brand-secondary to-brand-secondary/80 mx-4 rounded-[2.5rem] mt-6 shadow-2xl group">
-                            <div className="absolute inset-0 bg-gradient-to-r from-brand-secondary via-brand-secondary/60 to-transparent z-10" />
+                        <section className="relative h-[300px] md:h-[500px] overflow-hidden bg-slate-900 mx-4 rounded-[2.5rem] mt-6 shadow-2xl group">
+                            <div className="absolute inset-0 bg-gradient-to-r from-slate-950 via-slate-900/60 to-transparent z-10" />
                             <img src="/images/devices/geekvape-aegis-legend.jpg" alt="Hero" className="absolute right-0 top-0 w-3/4 h-full object-cover grayscale opacity-40 group-hover:scale-105 transition-transform duration-[2s]" />
                             <div className="absolute inset-0 flex flex-col justify-center px-10 md:px-20 z-20">
                                 <div className="flex items-center gap-3 mb-6">
@@ -552,7 +530,7 @@ export default function App() {
                                     Industry<br /><span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-primary via-brand-accent to-emerald-400">Standard.</span>
                                 </h2>
                                 <div className="flex flex-wrap gap-4">
-                                    <button onClick={() => { setActiveTab('marketplace'); setActiveFilter('newarrivals'); }} className="px-10 py-4 bg-brand-primary text-white text-[10px] font-black uppercase tracking-[0.4em] rounded-2xl hover:bg-brand-primary-hover transition-all shadow-xl shadow-brand-primary/20">Current Drops</button>
+                                    <button onClick={() => { setActiveTab('marketplace'); setActiveFilter('newarrivals'); }} className="px-10 py-4 bg-brand-primary text-slate-900 text-[10px] font-black uppercase tracking-[0.4em] rounded-2xl hover:bg-white transition-all shadow-xl shadow-brand-primary/20">Current Drops</button>
                                     <button onClick={scrollToFlavorExplorer} className="px-10 py-4 bg-white/5 backdrop-blur-md border border-white/10 text-white text-[10px] font-black uppercase tracking-[0.4em] rounded-2xl hover:bg-white/10 transition-all">Flavor DNA Engine</button>
                                 </div>
                             </div>
@@ -924,14 +902,6 @@ export default function App() {
                     </div>
                 )}
 
-                {activeTab === 'legal' && (
-                    <LegalPages />
-                )}
-
-                {activeTab === 'profile' && (
-                    <UserProfile />
-                )}
-
                 {activeTab === 'admin' && (
                     <div className="p-4" ref={(el) => { if (el && !adminLoading && !adminStats) loadAdminStats(); }}>
                         <div className="mb-8">
@@ -939,7 +909,7 @@ export default function App() {
                             <p className="text-gray-500 font-bold uppercase tracking-widest text-[10px]">Master Control Center — Restricted to Authorized Administrators</p>
                         </div>
 
-                        <AdminDashboard token={localStorage.getItem('vapeshub_token') || ''} stats={adminStats} />
+                        <AdminDashboard token={localStorage.getItem('vapeshub_token') || ''} stats={adminStats} currentUser={currentUser} />
                     </div>
                 )}
             </main>
@@ -993,8 +963,7 @@ export default function App() {
                                 <div className="space-y-6">
                                     <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-brand-primary">Operational Layers</h3>
                                     <ul className="space-y-5">
-                                        <li onClick={() => { setActiveTab('legal'); setIsMenuOpen(false); }} className="text-white font-black uppercase tracking-widest text-xs hover:text-brand-primary cursor-pointer transition-colors">Legal Compliance</li>
-                                        <li onClick={() => { setActiveTab('profile'); setIsMenuOpen(false); }} className="text-white font-black uppercase tracking-widest text-xs hover:text-brand-primary cursor-pointer transition-colors">User Profile</li>
+                                        <li className="text-white font-black uppercase tracking-widest text-xs hover:text-brand-primary cursor-pointer transition-colors">User Profile</li>
                                         <li onClick={() => { handleVendorTabClick(); setIsMenuOpen(false); }} className="text-brand-accent font-black uppercase tracking-widest text-xs hover:text-white cursor-pointer transition-colors flex items-center gap-2">
                                             <span className="w-1.5 h-1.5 bg-brand-accent rounded-full animate-pulse" />
                                             Retailer OS
@@ -1138,9 +1107,9 @@ export default function App() {
                             initial={{ opacity: 0, scale: 0.9, y: 40 }}
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.9, y: 40 }}
-                            className="w-full md:w-[380px] h-[450px] md:h-[550px] bg-brand-secondary rounded-[2.5rem] shadow-2xl border border-white/10 flex flex-col overflow-hidden pointer-events-auto"
+                            className="w-full md:w-[380px] h-[450px] md:h-[550px] bg-slate-900 rounded-[2.5rem] shadow-2xl border border-white/10 flex flex-col overflow-hidden pointer-events-auto"
                         >
-                            <div className="bg-brand-secondary p-6 flex items-center justify-between border-b border-white/5">
+                            <div className="bg-slate-950 p-6 flex items-center justify-between border-b border-white/5">
                                 <div className="flex items-center gap-4">
                                     <div className="w-10 h-10 bg-brand-primary rounded-xl flex items-center justify-center shadow-lg shadow-brand-primary/20">
                                         <Sparkles className="text-white w-5 h-5" />
@@ -1158,12 +1127,12 @@ export default function App() {
                                 </button>
                             </div>
 
-                            <div className="flex-1 overflow-y-auto p-6 space-y-5 bg-brand-secondary/80">
+                            <div className="flex-1 overflow-y-auto p-6 space-y-5 bg-slate-900/50">
                                 {aiMessages.map((msg, i) => (
                                     <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                                         <div className={`max-w-[85%] p-4 rounded-2xl text-xs font-black uppercase tracking-tight shadow-sm leading-relaxed ${msg.role === 'user'
-                                            ? 'bg-brand-primary text-white rounded-tr-none'
-                                            : 'bg-white/10 text-slate-200 border border-white/5 rounded-tl-none'
+                                                ? 'bg-brand-primary text-slate-900 rounded-tr-none'
+                                                : 'bg-white/5 text-slate-300 border border-white/5 rounded-tl-none'
                                             }`}>
                                             {msg.text}
                                         </div>
@@ -1171,16 +1140,16 @@ export default function App() {
                                 ))}
                             </div>
 
-                            <form onSubmit={handleAiChat} className="p-6 bg-brand-secondary border-t border-white/5">
+                            <form onSubmit={handleAiChat} className="p-6 bg-slate-950/50 border-t border-white/5">
                                 <div className="flex gap-3">
                                     <input
                                         type="text"
                                         placeholder="Inquire module data..."
-                                        className="flex-1 bg-white/10 border border-white/10 rounded-xl px-5 py-3 text-xs text-white focus:outline-none focus:border-brand-primary focus:bg-white/15 transition-all font-black uppercase tracking-widest placeholder:text-slate-400"
+                                        className="flex-1 bg-white/5 border border-white/10 rounded-xl px-5 py-3 text-xs text-white focus:outline-none focus:border-brand-primary focus:bg-white/10 transition-all font-black uppercase tracking-widest placeholder:text-slate-600"
                                         value={chatInput}
                                         onChange={(e) => setChatInput(e.target.value)}
                                     />
-                                    <button type="submit" className="bg-brand-primary text-white p-3 rounded-xl shadow-xl shadow-brand-primary/20 hover:scale-105 active:scale-95 transition-all">
+                                    <button type="submit" className="bg-brand-primary text-slate-900 p-3 rounded-xl shadow-xl shadow-brand-primary/20 hover:scale-105 active:scale-95 transition-all">
                                         <ArrowRight className="w-5 h-5" />
                                     </button>
                                 </div>
@@ -1194,11 +1163,11 @@ export default function App() {
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.9 }}
                     onClick={() => setAiChatOpen(!aiChatOpen)}
-                    className="bg-brand-primary text-white p-5 md:p-6 rounded-[2rem] shadow-2xl shadow-brand-primary/40 pointer-events-auto flex items-center justify-center group relative border border-brand-primary-hover hover:bg-brand-primary-hover transition-all"
+                    className="bg-slate-900 text-white p-5 md:p-6 rounded-[2rem] shadow-2xl shadow-slate-950/40 pointer-events-auto flex items-center justify-center group relative border border-white/10 hover:border-brand-primary/50 transition-all"
                 >
-                    {aiChatOpen ? <X className="w-6 h-6 md:w-7 md:h-7" /> : <MessageSquare className="w-6 h-6 md:w-7 md:h-7 text-white" />}
+                    {aiChatOpen ? <X className="w-6 h-6 md:w-7 md:h-7" /> : <MessageSquare className="w-6 h-6 md:w-7 md:h-7 text-brand-primary" />}
                     {!aiChatOpen && (
-                        <div className="absolute right-full mr-6 py-3 px-5 bg-brand-secondary backdrop-blur-xl rounded-2xl border border-white/10 shadow-3xl opacity-0 group-hover:opacity-100 transition-all hidden md:flex items-center gap-3">
+                        <div className="absolute right-full mr-6 py-3 px-5 bg-slate-900 backdrop-blur-xl rounded-2xl border border-white/10 shadow-3xl opacity-0 group-hover:opacity-100 transition-all hidden md:flex items-center gap-3">
                             <div className="w-2 h-2 bg-brand-primary rounded-full animate-pulse" />
                             <span className="text-white text-[10px] font-black uppercase tracking-[0.3em] whitespace-nowrap">Neural Link Standby</span>
                         </div>
@@ -1206,7 +1175,7 @@ export default function App() {
                 </motion.button>
             </div>
 
-            <footer className="bg-brand-secondary text-white mt-auto">
+            <footer className="bg-slate-900 text-white mt-auto">
                 {/* Return to Top */}
                 <button
                     onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}

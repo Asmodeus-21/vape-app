@@ -33,6 +33,7 @@ import AuthModal from './components/AuthModal';
 import CheckoutOverlay from './components/CheckoutOverlay';
 import FlavorExplorer from './components/FlavorExplorer';
 import ProductDetail from './components/ProductDetail';
+import UserProfile from './components/UserProfile';
 import VendorOrders from './components/VendorOrders';
 import VendorProductForm from './components/VendorProductForm';
 import VendorProductList from './components/VendorProductList';
@@ -48,7 +49,7 @@ interface AuthUser {
 }
 
 export default function App() {
-    const [activeTab, setActiveTab] = useState<'marketplace' | 'vendor' | 'admin'>('marketplace');
+    const [activeTab, setActiveTab] = useState<'marketplace' | 'vendor' | 'admin' | 'profile' | 'legal'>('marketplace');
     const [products, setProducts] = useState<Product[]>([]);
     const [productsLoading, setProductsLoading] = useState(true);
     const [selectedProductId, setSelectedProductId] = useState<number | null>(null);
@@ -60,6 +61,8 @@ export default function App() {
         const path = window.location.pathname.replace(/^\/+|\/+$/g, '');
         if (path === 'admin') setActiveTab('admin');
         else if (path === 'vendor') setActiveTab('vendor');
+        else if (path === 'profile') setActiveTab('profile');
+        else if (path === 'legal') setActiveTab('legal');
         else setActiveTab('marketplace');
     }, []);
 
@@ -415,7 +418,7 @@ export default function App() {
                         {currentUser ? (
                             <div
                                 className="hidden md:flex items-center gap-4 cursor-pointer group"
-                                onClick={() => handleFeatureNotReady('User Profile')}
+                                onClick={() => setActiveTab('profile')}
                             >
                                 <div className="w-10 h-10 bg-brand-secondary rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-all border-2 border-brand-primary/20">
                                     <UserIcon className="w-5 h-5 text-white" />
@@ -507,6 +510,12 @@ export default function App() {
                         Express Logistics
                     </span>
                     <div className="flex-1" />
+                    <span
+                        onClick={() => setActiveTab('legal')}
+                        className={`cursor-pointer hover:text-brand-primary transition-all whitespace-nowrap ${activeTab === 'legal' ? 'text-brand-primary' : 'text-slate-400'}`}
+                    >
+                        Legal Compliance
+                    </span>
                     <div
                         onClick={handleVendorTabClick}
                         className="flex items-center gap-3 text-brand-accent cursor-pointer hover:text-white transition-all whitespace-nowrap bg-white/5 px-4 py-2 rounded-xl border border-white/5 hover:bg-brand-accent/20"
@@ -915,6 +924,14 @@ export default function App() {
                     </div>
                 )}
 
+                {activeTab === 'legal' && (
+                    <LegalPages />
+                )}
+
+                {activeTab === 'profile' && (
+                    <UserProfile />
+                )}
+
                 {activeTab === 'admin' && (
                     <div className="p-4" ref={(el) => { if (el && !adminLoading && !adminStats) loadAdminStats(); }}>
                         <div className="mb-8">
@@ -976,7 +993,8 @@ export default function App() {
                                 <div className="space-y-6">
                                     <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-brand-primary">Operational Layers</h3>
                                     <ul className="space-y-5">
-                                        <li className="text-white font-black uppercase tracking-widest text-xs hover:text-brand-primary cursor-pointer transition-colors">User Profile</li>
+                                        <li onClick={() => { setActiveTab('legal'); setIsMenuOpen(false); }} className="text-white font-black uppercase tracking-widest text-xs hover:text-brand-primary cursor-pointer transition-colors">Legal Compliance</li>
+                                        <li onClick={() => { setActiveTab('profile'); setIsMenuOpen(false); }} className="text-white font-black uppercase tracking-widest text-xs hover:text-brand-primary cursor-pointer transition-colors">User Profile</li>
                                         <li onClick={() => { handleVendorTabClick(); setIsMenuOpen(false); }} className="text-brand-accent font-black uppercase tracking-widest text-xs hover:text-white cursor-pointer transition-colors flex items-center gap-2">
                                             <span className="w-1.5 h-1.5 bg-brand-accent rounded-full animate-pulse" />
                                             Retailer OS

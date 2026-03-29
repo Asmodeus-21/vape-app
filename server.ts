@@ -7,9 +7,30 @@ import helmet from "helmet";
 import path from "path";
 import { fileURLToPath } from "url";
 import { createServer as createViteServer } from "vite";
-import getDb from "./db/index.js";
-import { seed } from "./db/seed.js";
+import { getPostgresClient, initializeDatabase } from "./db/index.js";
+import { seedPostgres } from "./db/seed-postgres.js";
 import { authMiddleware, loginUser, registerUser, verifyToken, type AuthPayload } from "./server/auth.js";
+import {
+    checkoutOrder,
+    createVendorProduct,
+    deleteVendorProduct,
+    findUserById,
+    getAdminStats,
+    getProductById,
+    getVendorStats,
+    listAdminOrders,
+    listAdminProducts,
+    listAdminStores,
+    listAdminUsers,
+    listMarketplaceProducts,
+    listVendorOrders,
+    listVendorProducts,
+    storeExists,
+    updateUserRole,
+    updateUserVerification,
+    updateVendorOrderStatus,
+    updateVendorProduct,
+} from "./server/postgres-repo.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -39,6 +60,58 @@ function isSuperAdminRole(role?: string): boolean {
     return role === 'admin' || role === 'super_admin';
 }
 
+function parseOptionalStoreId(rawStoreId: unknown): number | null {
+    if (typeof rawStoreId !== 'string') {
+        return null;
+    }
+
+    const parsed = Number(rawStoreId);
+    if (!Number.isInteger(parsed) || parsed <= 0) {
+        throw new Error('Invalid storeId query parameter');
+    }
+
+    return parsed;
+}
+
+function sendSafeError(res: express.Response, err: any, fallback: string): void {
+    const safeMessage = process.env.NODE_ENV === 'production' ? fallback : (err?.message || fallback);
+    console.error('[server]', err);
+    res.status(500).json({ error: safeMessage });
+}
+
+function parseProductNumberFields(rawPrice: unknown, rawStockQty: unknown) {
+    const price = Number(rawPrice);
+    const stockQty = Number(rawStockQty ?? 100);
+
+    if (!Number.isFinite(price) || price <= 0 || price > 999999) {
+        throw new Error('Price must be a positive number between 0.01 and 999999');
+    }
+
+    if (!Number.isInteger(stockQty) || stockQty < 0 || stockQty > 1000000) {
+        throw new Error('Stock quantity must be a non-negative integer up to 1,000,000');
+    }
+
+    return { price, stockQty };
+}
+
+function parseProductInput(body: any, fallbackVendorId: number, storeId: number) {
+    const { price, stockQty } = parseProductNumberFields(body.price, body.stockQty);
+
+    return {
+        name: body.name,
+        brand: body.brand || 'VapesHub Retailer',
+        flavor: body.flavor || 'N/A',
+        nicotine: body.nicotine || 'N/A',
+        price,
+        image: body.image,
+        category: body.category,
+        description: body.description,
+        stockQty,
+        vendorId: fallbackVendorId,
+        storeId,
+    };
+}
+
 async function startServer() {
     if (process.env.NODE_ENV === "production") {
         if (!process.env.JWT_SECRET?.trim()) {
@@ -50,8 +123,10 @@ async function startServer() {
     }
 
     // ─── Init DB ───────────────────────────────────────────────────────────────
-    const db = getDb();
-    seed();
+    await initializeDatabase();
+    await seedPostgres();
+    const sql = getPostgresClient();
+    console.log('[db] Supabase/PostgreSQL schema ensured from schema.sql during startup.');
 
     const app = express();
     const PORT = Number(process.env.PORT || 3000);
@@ -98,79 +173,26 @@ async function startServer() {
     app.use("/api", apiLimiter);
 
     // ─── PRODUCTS API ─────────────────────────────────────────────────────────
-    app.get("/api/products", (req, res) => {
-        const { search = "", filter = "all", category = "" } = req.query as Record<string, string>;
-
-        let sql = "SELECT * FROM products WHERE 1=1";
-        const params: (string | number)[] = [];
-
-        if (search) {
-            sql += " AND (name LIKE ? OR brand LIKE ? OR flavor LIKE ?)";
-            const like = `%${search}%`;
-            params.push(like, like, like);
+    app.get("/api/products", async (req, res) => {
+        try {
+            const { search = "", filter = "all", category = "" } = req.query as Record<string, string>;
+            res.json(await listMarketplaceProducts(sql, { search, filter, category }));
+        } catch (err: any) {
+            sendSafeError(res, err, "Failed to fetch products");
         }
-
-        if (category) {
-            sql += " AND category = ?";
-            params.push(category);
-        }
-
-        if (filter === "bestsellers") {
-            sql += " AND is_bestseller = 1";
-        } else if (filter === "newarrivals") {
-            sql += " AND is_new_arrival = 1";
-        } else if (filter === "express") {
-            sql += " AND is_express_delivery = 1";
-        }
-
-        sql += " ORDER BY is_bestseller DESC, rating DESC, reviews DESC";
-
-        const rows = db.prepare(sql).all(...params) as any[];
-        // Map DB snake_case to frontend camelCase
-        const products = rows.map(r => ({
-            id: r.id,
-            name: r.name,
-            brand: r.brand,
-            flavor: r.flavor,
-            nicotine: r.nicotine,
-            price: r.price,
-            rating: r.rating,
-            reviews: r.reviews,
-            image: r.image,
-            category: r.category,
-            description: r.description,
-            stockQty: r.stock_qty,
-            isExpressDelivery: r.is_express_delivery === 1,
-            isBestSeller: r.is_bestseller === 1,
-            isNewArrival: r.is_new_arrival === 1,
-        }));
-
-        res.json(products);
     });
 
-    app.get("/api/products/:id", (req, res) => {
-        const product = db.prepare("SELECT * FROM products WHERE id = ?").get(req.params.id) as any;
-        if (!product) {
-            res.status(404).json({ error: "Product not found" });
-            return;
+    app.get("/api/products/:id", async (req, res) => {
+        try {
+            const product = await getProductById(sql, Number(req.params.id));
+            if (!product) {
+                res.status(404).json({ error: "Product not found" });
+                return;
+            }
+            res.json(product);
+        } catch (err: any) {
+            sendSafeError(res, err, "Failed to fetch product");
         }
-        res.json({
-            id: product.id,
-            name: product.name,
-            brand: product.brand,
-            flavor: product.flavor,
-            nicotine: product.nicotine,
-            price: product.price,
-            rating: product.rating,
-            reviews: product.reviews,
-            image: product.image,
-            category: product.category,
-            description: product.description,
-            stockQty: product.stock_qty,
-            isExpressDelivery: product.is_express_delivery === 1,
-            isBestSeller: product.is_bestseller === 1,
-            isNewArrival: product.is_new_arrival === 1,
-        });
     });
 
     // ─── AUTH ROUTES ──────────────────────────────────────────────────────────
@@ -205,7 +227,7 @@ async function startServer() {
         res.json({ token: result.token, user: result.user });
     });
 
-    app.get("/api/auth/me", (req, res) => {
+    app.get("/api/auth/me", async (req, res) => {
         const authHeader = req.headers.authorization;
         if (!authHeader || !authHeader.startsWith("Bearer ")) {
             res.status(401).json({ error: "Not authenticated" });
@@ -217,7 +239,7 @@ async function startServer() {
             res.status(401).json({ error: "Invalid or expired token" });
             return;
         }
-        const user = db.prepare("SELECT id, email, name, role, store_id, age_verified, verification_status FROM users WHERE id = ?").get(payload.userId) as any;
+        const user = await findUserById(sql, payload.userId);
         if (!user) {
             res.status(404).json({ error: "User not found" });
             return;
@@ -230,7 +252,7 @@ async function startServer() {
         });
     });
     // ─── ORDERS API ─────────────────────────────────────────────────────────
-    app.post("/api/orders/checkout", authMiddleware, (req, res) => {
+    app.post("/api/orders/checkout", authMiddleware, async (req, res) => {
         const { items, shippingAddress } = req.body;
         if (!Array.isArray(items) || items.length === 0) {
             res.status(400).json({ error: "Items array is required" });
@@ -268,45 +290,7 @@ async function startServer() {
         const userId = req.user!.userId;
 
         try {
-            const processCheckout = db.transaction((cartItems: any[]) => {
-                let total = 0;
-                const processedItems: any[] = [];
-                let orderStoreId: number | null = null;
-
-                for (const item of cartItems) {
-                    const product = db.prepare("SELECT id, price, stock_qty, store_id FROM products WHERE id = ?").get(item.productId) as any;
-                    if (!product) throw new Error(`Product ${item.productId} not found`);
-                    if (product.stock_qty < item.quantity) throw new Error(`Insufficient stock for product ${item.productId}`);
-                    if (!product.store_id) throw new Error(`Product ${item.productId} is not linked to a store`);
-
-                    if (orderStoreId === null) {
-                        orderStoreId = product.store_id;
-                    } else if (orderStoreId !== product.store_id) {
-                        throw new Error('Checkout across multiple stores is not supported in one order');
-                    }
-
-                    db.prepare("UPDATE products SET stock_qty = stock_qty - ? WHERE id = ?").run(item.quantity, item.productId);
-
-                    total += product.price * item.quantity;
-                    processedItems.push({ productId: product.id, quantity: item.quantity, price: product.price });
-                }
-
-                if (!orderStoreId) throw new Error('Order store could not be determined');
-
-                const insertOrderResult = db
-                    .prepare("INSERT INTO orders (user_id, store_id, status, total_amount, shipping_address) VALUES (?, ?, 'processing', ?, ?)")
-                    .run(userId, orderStoreId, total, normalizedShippingAddress);
-                const newOrderId = insertOrderResult.lastInsertRowid as number;
-
-                const insertItemStmt = db.prepare("INSERT INTO order_items (order_id, product_id, quantity, price_at_time) VALUES (?, ?, ?, ?)");
-                for (const pi of processedItems) {
-                    insertItemStmt.run(newOrderId, pi.productId, pi.quantity, pi.price);
-                }
-
-                return newOrderId;
-            });
-
-            const orderId = processCheckout(items);
+            const orderId = await checkoutOrder(sql, userId, items, normalizedShippingAddress);
             res.status(201).json({ success: true, orderId });
         } catch (err: any) {
             res.status(400).json({ error: err.message });
@@ -325,46 +309,31 @@ async function startServer() {
     });
 
     // ─── ADMIN ROUTES (restricted) ───────────────────────────────────────────
-    app.get("/api/admin/stats", authMiddleware, (req, res) => {
+    app.get("/api/admin/stats", authMiddleware, async (req, res) => {
         if (!isSuperAdminRole(req.user?.role)) {
             res.status(403).json({ error: "Admin access required" });
             return;
         }
-        const db = getDb();
         try {
-            const totalUsers = db.prepare("SELECT COUNT(*) as count FROM users").get() as any;
-            const totalVendors = db.prepare("SELECT COUNT(*) as count FROM users WHERE role = 'vendor'").get() as any;
-            const totalSales = db.prepare("SELECT SUM(total_amount) as total FROM orders WHERE status != 'cancelled'").get() as any;
-            const totalProducts = db.prepare("SELECT COUNT(*) as count FROM products").get() as any;
-            const pendingVerifications = db.prepare("SELECT COUNT(*) as count FROM users WHERE verification_status = 'pending'").get() as any;
-
-            res.json({
-                totalUsers: totalUsers.count,
-                totalVendors: totalVendors.count,
-                totalSales: totalSales.total || 0,
-                totalProducts: totalProducts.count,
-                pendingVerifications: pendingVerifications.count
-            });
+            res.json(await getAdminStats(sql));
         } catch (err: any) {
-            res.status(500).json({ error: err.message });
+            sendSafeError(res, err, 'Failed to fetch admin stats');
         }
     });
 
-    app.get("/api/admin/users", authMiddleware, (req, res) => {
+    app.get("/api/admin/users", authMiddleware, async (req, res) => {
         if (!isSuperAdminRole(req.user?.role)) {
             res.status(403).json({ error: "Admin access required" });
             return;
         }
-        const db = getDb();
-        const users = db.prepare("SELECT id, email, name, role, store_id, verification_status, created_at FROM users ORDER BY created_at DESC").all();
-        res.json(users.map((user: any) => ({
-            ...user,
-            role: user.role === 'vendor' && user.store_id ? 'store_manager' : user.role,
-            storeId: user.store_id ?? null,
-        })));
+        try {
+            res.json(await listAdminUsers(sql));
+        } catch (err: any) {
+            sendSafeError(res, err, 'Failed to fetch admin users');
+        }
     });
 
-    app.patch("/api/admin/users/:id/verify", authMiddleware, (req, res) => {
+    app.patch("/api/admin/users/:id/verify", authMiddleware, async (req, res) => {
         if (!isSuperAdminRole(req.user?.role)) {
             res.status(403).json({ error: "Admin access required" });
             return;
@@ -376,14 +345,14 @@ async function startServer() {
             return;
         }
         try {
-            db.prepare("UPDATE users SET verification_status = ? WHERE id = ?").run(status, id);
+            await updateUserVerification(sql, Number(id), status);
             res.json({ success: true });
         } catch (err: any) {
-            res.status(500).json({ error: err.message });
+            sendSafeError(res, err, 'Failed to update verification status');
         }
     });
 
-    app.patch("/api/admin/users/:id/role", authMiddleware, (req, res) => {
+    app.patch("/api/admin/users/:id/role", authMiddleware, async (req, res) => {
         if (!isSuperAdminRole(req.user?.role)) {
             res.status(403).json({ error: "Admin access required" });
             return;
@@ -400,121 +369,78 @@ async function startServer() {
             return;
         }
         try {
-            if (normalizedRole === 'vendor') {
-                const user = db.prepare('SELECT store_id FROM users WHERE id = ?').get(id) as { store_id?: number | null } | undefined;
-                if (!user) {
-                    res.status(404).json({ error: 'User not found' });
-                    return;
-                }
-                if (!user.store_id) {
-                    res.status(400).json({ error: 'Cannot promote to store_manager without assigning a store.' });
-                    return;
-                }
-            }
-
-            db.prepare("UPDATE users SET role = ? WHERE id = ?").run(normalizedRole, id);
+            await updateUserRole(sql, Number(id), normalizedRole);
             res.json({ success: true });
         } catch (err: any) {
-            res.status(500).json({ error: err.message });
+            if (err.message === 'User not found') {
+                res.status(404).json({ error: err.message });
+                return;
+            }
+            if (err.message.includes('store_manager')) {
+                res.status(400).json({ error: err.message });
+                return;
+            }
+            sendSafeError(res, err, 'Failed to update user role');
         }
     });
 
-    app.get("/api/admin/products", authMiddleware, (req, res) => {
+    app.get("/api/admin/products", authMiddleware, async (req, res) => {
         if (!isSuperAdminRole(req.user?.role)) {
             res.status(403).json({ error: "Admin access required" });
             return;
         }
-        const db = getDb();
-        const storeIdQuery = typeof req.query.storeId === 'string' ? Number(req.query.storeId) : null;
-        if (storeIdQuery !== null && (!Number.isInteger(storeIdQuery) || storeIdQuery <= 0)) {
-            res.status(400).json({ error: 'Invalid storeId query parameter' });
-            return;
-        }
-
-        if (storeIdQuery !== null) {
-            const store = db.prepare('SELECT id FROM stores WHERE id = ?').get(storeIdQuery);
-            if (!store) {
+        try {
+            const storeIdQuery = parseOptionalStoreId(req.query.storeId);
+            if (storeIdQuery !== null && !(await storeExists(sql, storeIdQuery))) {
                 res.status(404).json({ error: 'Store not found' });
                 return;
             }
+            res.json(await listAdminProducts(sql, storeIdQuery));
+        } catch (err: any) {
+            if (err.message === 'Invalid storeId query parameter') {
+                res.status(400).json({ error: err.message });
+                return;
+            }
+            sendSafeError(res, err, 'Failed to fetch admin products');
         }
-
-        const products = db.prepare(
-            `SELECT * FROM products ${storeIdQuery !== null ? 'WHERE store_id = ?' : ''} ORDER BY created_at DESC`
-        ).all(...(storeIdQuery !== null ? [storeIdQuery] : []));
-        res.json(products.map((p: any) => ({
-            ...p,
-            stockQty: p.stock_qty,
-            storeId: p.store_id ?? null,
-            isExpressDelivery: p.is_express_delivery === 1
-        })));
     });
 
-    app.get("/api/admin/orders", authMiddleware, (req, res) => {
+    app.get("/api/admin/orders", authMiddleware, async (req, res) => {
         if (!isSuperAdminRole(req.user?.role)) {
             res.status(403).json({ error: "Admin access required" });
             return;
         }
-        const db = getDb();
-        const storeIdQuery = typeof req.query.storeId === 'string' ? Number(req.query.storeId) : null;
-        if (storeIdQuery !== null && (!Number.isInteger(storeIdQuery) || storeIdQuery <= 0)) {
-            res.status(400).json({ error: 'Invalid storeId query parameter' });
-            return;
-        }
-
-        if (storeIdQuery !== null) {
-            const store = db.prepare('SELECT id FROM stores WHERE id = ?').get(storeIdQuery);
-            if (!store) {
+        try {
+            const storeIdQuery = parseOptionalStoreId(req.query.storeId);
+            if (storeIdQuery !== null && !(await storeExists(sql, storeIdQuery))) {
                 res.status(404).json({ error: 'Store not found' });
                 return;
             }
+            res.json(await listAdminOrders(sql, storeIdQuery));
+        } catch (err: any) {
+            if (err.message === 'Invalid storeId query parameter') {
+                res.status(400).json({ error: err.message });
+                return;
+            }
+            sendSafeError(res, err, 'Failed to fetch admin orders');
         }
-
-        const orders = db.prepare(`
-      SELECT o.*, u.name as customer_name 
-      FROM orders o 
-      LEFT JOIN users u ON o.user_id = u.id 
-      ${storeIdQuery !== null ? 'WHERE o.store_id = ?' : ''}
-      ORDER BY o.created_at DESC
-    `).all(...(storeIdQuery !== null ? [storeIdQuery] : []));
-        res.json(orders.map((order: any) => ({
-            ...order,
-            storeId: order.store_id ?? null,
-        })));
     });
 
-    app.get('/api/admin/stores', authMiddleware, (req, res) => {
+    app.get('/api/admin/stores', authMiddleware, async (req, res) => {
         if (!isSuperAdminRole(req.user?.role)) {
             res.status(403).json({ error: 'Super admin access required' });
             return;
         }
 
         try {
-            const stores = db.prepare(`
-              SELECT
-                s.id,
-                s.name,
-                s.address,
-                s.owner_id,
-                u.name AS owner_name,
-                u.email AS owner_email,
-                COALESCE(SUM(CASE WHEN o.status != 'cancelled' THEN o.total_amount ELSE 0 END), 0) AS total_sales,
-                COUNT(DISTINCT o.id) AS total_orders
-              FROM stores s
-              LEFT JOIN users u ON u.id = s.owner_id
-              LEFT JOIN orders o ON o.store_id = s.id
-              GROUP BY s.id, s.name, s.address, s.owner_id, u.name, u.email
-              ORDER BY s.created_at DESC
-            `).all();
-
-            res.json(stores);
+            res.json(await listAdminStores(sql));
         } catch (err: any) {
-            res.status(500).json({ error: err.message });
+            sendSafeError(res, err, 'Failed to fetch stores');
         }
     });
 
     // ─── VENDOR ROUTES (protected) ────────────────────────────────────────────
-    app.get("/api/vendor/stats", authMiddleware, (req, res) => {
+    app.get("/api/vendor/stats", authMiddleware, async (req, res) => {
         const isManager = isStoreManagerRole(req.user?.role);
         const isSuperAdmin = isSuperAdminRole(req.user?.role);
 
@@ -527,59 +453,15 @@ async function startServer() {
             res.status(403).json({ error: 'Store manager is not linked to a store' });
             return;
         }
-        const db = getDb();
 
         try {
-            const scopedArg = isSuperAdmin ? [] : [storeId];
-
-            // 1. Today's Sales (Total amount for orders created today)
-            const todaySales = db.prepare(`
-        SELECT SUM(total_amount) as total 
-        FROM orders 
-                WHERE date(created_at) = date('now') AND status != 'cancelled' ${isSuperAdmin ? '' : 'AND store_id = ?'}
-            `).get(...scopedArg) as any;
-
-            // 2. Open Orders (Pending or Processing)
-            const openOrders = db.prepare(`
-        SELECT COUNT(*) as count 
-        FROM orders 
-                WHERE status IN ('pending', 'processing') ${isSuperAdmin ? '' : 'AND store_id = ?'}
-            `).get(...scopedArg) as any;
-
-            // 3. Low Stock Items (Products with < 10 items)
-            const lowStock = db.prepare(`
-        SELECT COUNT(*) as count 
-        FROM products 
-                WHERE stock_qty < 10 ${isSuperAdmin ? '' : 'AND store_id = ?'}
-            `).get(...scopedArg) as any;
-
-            // 4. Lifetime Earnings (Total for all non-cancelled orders)
-            const earnings = db.prepare(`
-        SELECT SUM(total_amount) as total 
-        FROM orders 
-                WHERE status != 'cancelled' ${isSuperAdmin ? '' : 'AND store_id = ?'}
-            `).get(...scopedArg) as any;
-
-            // 5. Customer Satisfaction (Average Rating of vendor's products)
-            const rating = db.prepare(`
-        SELECT AVG(rating) as avg 
-        FROM products 
-                WHERE 1=1 ${isSuperAdmin ? '' : 'AND store_id = ?'}
-            `).get(...scopedArg) as any;
-
-            res.json({
-                todaySales: todaySales?.total || 0,
-                openOrders: openOrders?.count || 0,
-                lowStockItems: lowStock?.count || 0,
-                totalEarnings: earnings?.total || 0,
-                avgRating: parseFloat(rating?.avg?.toFixed(1)) || 4.5,
-            });
+            res.json(await getVendorStats(sql, isSuperAdmin ? null : storeId));
         } catch (err: any) {
-            res.status(500).json({ error: err.message });
+            sendSafeError(res, err, 'Failed to fetch vendor stats');
         }
     });
 
-    app.get("/api/vendor/orders", authMiddleware, (req, res) => {
+    app.get("/api/vendor/orders", authMiddleware, async (req, res) => {
         const isManager = isStoreManagerRole(req.user?.role);
         const isSuperAdmin = isSuperAdminRole(req.user?.role);
 
@@ -593,18 +475,14 @@ async function startServer() {
             return;
         }
 
-        const orders = db.prepare(`
-            SELECT o.id, o.status, o.total_amount, o.created_at, o.store_id, u.name as customer_name, u.email as customer_email
-      FROM orders o
-      JOIN users u ON o.user_id = u.id
-            ${isSuperAdmin ? '' : 'WHERE o.store_id = ?'}
-      ORDER BY o.created_at DESC
-      LIMIT 50
-        `).all(...(isSuperAdmin ? [] : [storeId]));
-        res.json(orders);
+        try {
+            res.json(await listVendorOrders(sql, isSuperAdmin ? null : storeId));
+        } catch (err: any) {
+            sendSafeError(res, err, 'Failed to fetch vendor orders');
+        }
     });
 
-    app.patch("/api/vendor/orders/:id/status", authMiddleware, (req, res) => {
+    app.patch("/api/vendor/orders/:id/status", authMiddleware, async (req, res) => {
         const isManager = isStoreManagerRole(req.user?.role);
         const isSuperAdmin = isSuperAdminRole(req.user?.role);
 
@@ -626,18 +504,14 @@ async function startServer() {
         }
 
         try {
-            if (isSuperAdmin) {
-                db.prepare("UPDATE orders SET status = ? WHERE id = ?").run(status, id);
-            } else {
-                db.prepare("UPDATE orders SET status = ? WHERE id = ? AND store_id = ?").run(status, id, req.user?.storeId ?? null);
-            }
+            await updateVendorOrderStatus(sql, Number(id), status, isSuperAdmin ? null : (req.user?.storeId ?? null));
             res.json({ success: true });
         } catch (err: any) {
-            res.status(500).json({ error: err.message });
+            sendSafeError(res, err, 'Failed to update order status');
         }
     });
 
-    app.get("/api/vendor/products", authMiddleware, (req, res) => {
+    app.get("/api/vendor/products", authMiddleware, async (req, res) => {
         const isManager = isStoreManagerRole(req.user?.role);
         const isSuperAdmin = isSuperAdminRole(req.user?.role);
 
@@ -651,34 +525,14 @@ async function startServer() {
             return;
         }
 
-        const db = getDb();
-        const vendorProducts = db
-            .prepare(`SELECT * FROM products ${isSuperAdmin ? '' : 'WHERE store_id = ?'}`)
-            .all(...(isSuperAdmin ? [] : [storeId]));
-
-        // Convert to camelCase
-        res.json(vendorProducts.map((p: any) => ({
-            id: p.id,
-            name: p.name,
-            brand: p.brand,
-            flavor: p.flavor,
-            nicotine: p.nicotine,
-            price: p.price,
-            rating: p.rating,
-            reviews: p.reviews,
-            image: p.image,
-            category: p.category,
-            description: p.description,
-            stockQty: p.stock_qty,
-            isExpressDelivery: p.is_express_delivery === 1,
-            isBestSeller: p.is_bestseller === 1,
-            isNewArrival: p.is_new_arrival === 1,
-            vendorId: p.vendor_id,
-            storeId: p.store_id ?? null,
-        })));
+        try {
+            res.json(await listVendorProducts(sql, isSuperAdmin ? null : storeId));
+        } catch (err: any) {
+            sendSafeError(res, err, 'Failed to fetch vendor products');
+        }
     });
 
-    app.post("/api/vendor/products", authMiddleware, (req, res) => {
+    app.post("/api/vendor/products", authMiddleware, async (req, res) => {
         const isManager = isStoreManagerRole(req.user?.role);
         const isSuperAdmin = isSuperAdminRole(req.user?.role);
 
@@ -701,69 +555,59 @@ async function startServer() {
         }
 
         try {
-            const db = getDb();
-            const store = db.prepare('SELECT id FROM stores WHERE id = ?').get(targetStoreId);
-            if (!store) {
+            if (!(await storeExists(sql, Number(targetStoreId)))) {
                 res.status(400).json({ error: `Store ID ${targetStoreId} does not exist` });
                 return;
             }
-            const stmt = db.prepare(`
-        INSERT INTO products (
-                    name, brand, flavor, nicotine, price, image, category, description, stock_qty, vendor_id, store_id,
-          rating, reviews, is_express_delivery, is_bestseller, is_new_arrival
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, 0, 0, 0)
-      `);
-
-            const result = stmt.run(
-                name, brand || 'VapesHub Retailer', flavor || 'N/A', nicotine || 'N/A', price,
-                image, category, description, stockQty || 100, req.user!.userId, targetStoreId
-            );
-
-            res.status(201).json({ success: true, productId: result.lastInsertRowid });
+            const productId = await createVendorProduct(sql, parseProductInput(req.body, req.user!.userId, Number(targetStoreId)));
+            res.status(201).json({ success: true, productId });
         } catch (err: any) {
-            res.status(500).json({ error: err.message || "Failed to create product" });
+            if (err.message.includes('Price must') || err.message.includes('Stock quantity')) {
+                res.status(400).json({ error: err.message });
+                return;
+            }
+            sendSafeError(res, err, 'Failed to create product');
         }
     });
 
-    app.patch("/api/vendor/products/:id", authMiddleware, (req, res) => {
+    app.patch("/api/vendor/products/:id", authMiddleware, async (req, res) => {
         const isManager = isStoreManagerRole(req.user?.role);
         const isSuperAdmin = isSuperAdminRole(req.user?.role);
 
         if (!isManager && !isSuperAdmin) {
             res.status(403).json({ error: "Vendor access required" });
+            return;
+        }
+        if (isManager && !req.user?.storeId) {
+            res.status(403).json({ error: 'Store manager is not linked to a store' });
             return;
         }
         const { name, brand, flavor, nicotine, price, category, description, stockQty } = req.body;
         const { id } = req.params;
 
         try {
-            const scopeSql = isSuperAdmin ? '' : ' AND store_id = ?';
-            const params = [
+            const validatedNumbers = parseProductNumberFields(price, stockQty);
+            await updateVendorProduct(sql, Number(id), {
                 name,
                 brand,
                 flavor,
                 nicotine,
-                price,
+                price: validatedNumbers.price,
                 category,
                 description,
-                stockQty,
-                id,
-            ];
-            const scopedParams = isSuperAdmin ? params : [...params, req.user?.storeId ?? null];
-
-            db.prepare(`
-        UPDATE products SET 
-          name = ?, brand = ?, flavor = ?, nicotine = ?, price = ?, 
-          category = ?, description = ?, stock_qty = ?
-        WHERE id = ?${scopeSql}
-      `).run(...scopedParams);
+                stockQty: validatedNumbers.stockQty,
+            }, isSuperAdmin ? null : (req.user?.storeId ?? null));
             res.json({ success: true });
         } catch (err: any) {
-            res.status(500).json({ error: err.message });
+            if (err.message.includes('Price must') || err.message.includes('Stock quantity')) {
+                res.status(400).json({ error: err.message });
+                return;
+            }
+            sendSafeError(res, err, 'Failed to update product');
         }
     });
 
-    app.delete("/api/vendor/products/:id", authMiddleware, (req, res) => {
+    app.delete("/api/vendor/products/:id", authMiddleware, async (req, res) => {
         const isManager = isStoreManagerRole(req.user?.role);
         const isSuperAdmin = isSuperAdminRole(req.user?.role);
 
@@ -771,16 +615,16 @@ async function startServer() {
             res.status(403).json({ error: "Vendor access required" });
             return;
         }
+        if (isManager && !req.user?.storeId) {
+            res.status(403).json({ error: 'Store manager is not linked to a store' });
+            return;
+        }
         const { id } = req.params;
         try {
-            if (isSuperAdmin) {
-                db.prepare('DELETE FROM products WHERE id = ?').run(id);
-            } else {
-                db.prepare('DELETE FROM products WHERE id = ? AND store_id = ?').run(id, req.user?.storeId ?? null);
-            }
+            await deleteVendorProduct(sql, Number(id), isSuperAdmin ? null : (req.user?.storeId ?? null));
             res.json({ success: true });
         } catch (err: any) {
-            res.status(500).json({ error: err.message });
+            sendSafeError(res, err, 'Failed to delete product');
         }
     });
 
@@ -801,7 +645,7 @@ async function startServer() {
     app.listen(PORT, "0.0.0.0", () => {
         console.log(`\n🚀 VapesHub Server running on http://localhost:${PORT}`);
         console.log(`   Gemini AI: ${process.env.GEMINI_API_KEY ? '✅ Key loaded' : '⚠️  No API key found'}`);
-        console.log(`   Database: ✅ SQLite ready\n`);
+        console.log(`   Database: ✅ Supabase/PostgreSQL ready\n`);
     });
 }
 

@@ -1,7 +1,8 @@
 import bcrypt from 'bcryptjs';
 import { NextFunction, Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
-import getDb from '../db/index.js';
+import { getPostgresClient } from '../db/index.js';
+import { findUserByEmail } from './postgres-repo.js';
 
 function resolveJwtSecret(): string {
     const secret = process.env.JWT_SECRET?.trim();
@@ -93,8 +94,9 @@ export async function registerUser(
     role: string = 'customer',
     storeInput?: { name?: string; address?: string }
 ): Promise<RegisterResult> {
-    const db = getDb();
-    const existing = db.prepare('SELECT id FROM users WHERE email = ?').get(email);
+    const sql = getPostgresClient();
+    const normalizedEmail = email.toLowerCase().trim();
+    const existing = await findUserByEmail(sql, normalizedEmail);
     if (existing) {
         return { success: false, error: 'An account with this email already exists.' };
     }
@@ -108,12 +110,11 @@ export async function registerUser(
     };
     const normalizedRoleInput = roleAliasMap[role] || role;
     const validRole = ['customer', 'vendor', 'admin'].includes(normalizedRoleInput) ? normalizedRoleInput : 'customer';
-    const normalizedEmail = email.toLowerCase().trim();
     const normalizedName = name.trim();
 
     let result: { userId: number; storeId: number | null };
     try {
-        result = db.transaction(() => {
+        result = await sql.begin(async (tx) => {
             let storeId: number | null = null;
 
             if (validRole === 'vendor') {
@@ -130,21 +131,25 @@ export async function registerUser(
                     throw new Error('Store address must be 200 characters or fewer.');
                 }
 
-                const storeInsert = db.prepare('INSERT INTO stores (name, address) VALUES (?, ?)').run(storeName, storeAddressRaw);
-                storeId = storeInsert.lastInsertRowid as number;
+                const storeRows = await tx.unsafe<any[]>(
+                    'INSERT INTO stores (name, address) VALUES ($1, $2) RETURNING id',
+                    [storeName, storeAddressRaw]
+                );
+                storeId = Number(storeRows[0].id);
             }
 
-            const userInsert = db
-                .prepare('INSERT INTO users (email, password_hash, name, role, store_id) VALUES (?, ?, ?, ?, ?)')
-                .run(normalizedEmail, hash, normalizedName, validRole, storeId);
-            const userId = userInsert.lastInsertRowid as number;
+            const userRows = await tx.unsafe<any[]>(
+                'INSERT INTO users (email, password_hash, name, role, store_id) VALUES ($1, $2, $3, $4, $5) RETURNING id',
+                [normalizedEmail, hash, normalizedName, validRole, storeId]
+            );
+            const userId = Number(userRows[0].id);
 
             if (storeId) {
-                db.prepare('UPDATE stores SET owner_id = ? WHERE id = ?').run(userId, storeId);
+                await tx.unsafe('UPDATE stores SET owner_id = $1 WHERE id = $2', [userId, storeId]);
             }
 
             return { userId, storeId };
-        })();
+        });
     } catch (err: any) {
         return { success: false, error: err?.message || 'Unable to create account.' };
     }
@@ -164,8 +169,8 @@ export async function registerUser(
 }
 
 export async function loginUser(email: string, password: string): Promise<RegisterResult> {
-    const db = getDb();
-    const user = db.prepare('SELECT * FROM users WHERE email = ?').get(email.toLowerCase().trim()) as any;
+    const sql = getPostgresClient();
+    const user = await findUserByEmail(sql, email.toLowerCase().trim());
     if (!user) {
         return { success: false, error: 'No account found with this email.' };
     }

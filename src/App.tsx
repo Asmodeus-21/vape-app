@@ -48,6 +48,8 @@ interface AuthUser {
     storeId?: number | null;
 }
 
+type ProductFilter = 'all' | 'bestsellers' | 'newarrivals' | 'express';
+
 export default function App() {
     const [activeTab, setActiveTab] = useState<'marketplace' | 'vendor' | 'admin'>('marketplace');
     const [products, setProducts] = useState<Product[]>([]);
@@ -60,7 +62,82 @@ export default function App() {
     const [aiMessages, setAiMessages] = useState<{ role: 'user' | 'ai', text: string }[]>([]);
     const [chatInput, setChatInput] = useState('');
     const [isCartOpen, setIsCartOpen] = useState(false);
-    const [activeFilter, setActiveFilter] = useState<'all' | 'bestsellers' | 'newarrivals' | 'express'>('all');
+    const [activeFilter, setActiveFilter] = useState<ProductFilter>('all');
+    const [activeCategory, setActiveCategory] = useState<string | undefined>(undefined);
+    const mapTagToFilter = useCallback((tag: string | null): ProductFilter => {
+        if (!tag || !tag.trim()) return 'all';
+        const normalizedTag = tag.trim().toLowerCase();
+
+        if (normalizedTag === 'bestseller' || normalizedTag === 'bestsellers' || normalizedTag === 'peak-performance') {
+            return 'bestsellers';
+        }
+        if (normalizedTag === 'newarrival' || normalizedTag === 'newarrivals' || normalizedTag === 'current-drops') {
+            return 'newarrivals';
+        }
+        if (normalizedTag === 'express' || normalizedTag === 'quick-delivery') {
+            return 'express';
+        }
+        return 'all';
+    }, []);
+
+    const applyMarketplaceStateFromUrl = useCallback((search: string) => {
+        const params = new URLSearchParams(search);
+        const filterFromQuery = params.get('filter') as ProductFilter | null;
+        const tag = params.get('tag');
+        const category = params.get('category') || undefined;
+        const quickDelivery = params.get('quickDelivery') === 'true';
+        const assistant = params.get('assistant');
+
+        const mappedFilter = filterFromQuery && ['all', 'bestsellers', 'newarrivals', 'express'].includes(filterFromQuery)
+            ? filterFromQuery
+            : mapTagToFilter(tag);
+
+        const resolvedFilter = quickDelivery ? 'express' : mappedFilter;
+
+        setActiveTab('marketplace');
+        setSelectedProductId(null);
+        setActiveFilter(resolvedFilter);
+        setActiveCategory(category);
+
+        if (assistant === 'flavor') {
+            setAiChatOpen(true);
+            setAiMessages((prev) => {
+                if (prev.length > 0) return prev;
+                return [{ role: 'ai', text: "Hey! I'm VapeOS AI — tell me what flavors you usually like and I'll recommend your best match." }];
+            });
+        }
+
+        if (resolvedFilter === 'express') {
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    const logisticsSection = document.getElementById('shipping-logistics-section');
+                    if (logisticsSection) {
+                        const offset = 100;
+                        const sectionPosition = logisticsSection.getBoundingClientRect().top + window.pageYOffset - offset;
+                        window.scrollTo({ top: sectionPosition, behavior: 'smooth' });
+                    }
+                });
+            });
+        }
+    }, [mapTagToFilter]);
+
+    const navigateToProducts = useCallback((params?: {
+        tag?: string;
+        category?: string;
+        assistant?: 'flavor';
+        quickDelivery?: boolean;
+    }) => {
+        const query = new URLSearchParams();
+        if (params?.tag) query.set('tag', params.tag);
+        if (params?.category) query.set('category', params.category);
+        if (params?.assistant) query.set('assistant', params.assistant);
+        if (params?.quickDelivery) query.set('quickDelivery', 'true');
+
+        const nextUrl = `/products${query.toString() ? `?${query.toString()}` : ''}`;
+        window.history.pushState({}, '', nextUrl);
+        applyMarketplaceStateFromUrl(query.toString() ? `?${query.toString()}` : '');
+    }, [applyMarketplaceStateFromUrl]);
+
     const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
     const [showAuthModal, setShowAuthModal] = useState(false);
     const [vendorQuery, setVendorQuery] = useState('');
@@ -98,13 +175,45 @@ export default function App() {
         }
     }, []);
 
+    useEffect(() => {
+        const syncFromLocation = () => {
+            if (window.location.pathname === '/products') {
+                applyMarketplaceStateFromUrl(window.location.search);
+            }
+        };
+
+        syncFromLocation();
+        window.addEventListener('popstate', syncFromLocation);
+
+        return () => {
+            window.removeEventListener('popstate', syncFromLocation);
+        };
+    }, [applyMarketplaceStateFromUrl]);
+
+    useEffect(() => {
+        if (activeTab !== 'marketplace' || window.location.pathname !== '/products') {
+            return;
+        }
+
+        const params = new URLSearchParams();
+        if (activeFilter !== 'all') params.set('filter', activeFilter);
+        if (activeCategory) params.set('category', activeCategory);
+
+        const targetUrl = `/products${params.toString() ? `?${params.toString()}` : ''}`;
+        const currentUrl = `${window.location.pathname}${window.location.search}`;
+
+        if (targetUrl !== currentUrl) {
+            window.history.replaceState({}, '', targetUrl);
+        }
+    }, [activeTab, activeFilter, activeCategory]);
+
     // ── Products: fetch from API ───────────────────────────────────────
     const loadProducts = useCallback(async () => {
         setProductsLoading(true);
-        const data = await fetchProducts({ filter: activeFilter, search: searchQuery });
+        const data = await fetchProducts({ filter: activeFilter, search: searchQuery, category: activeCategory });
         setProducts(data);
         setProductsLoading(false);
-    }, [activeFilter, searchQuery]);
+    }, [activeFilter, searchQuery, activeCategory]);
 
     useEffect(() => {
         const debounce = setTimeout(loadProducts, 300);
@@ -114,11 +223,15 @@ export default function App() {
     useEffect(() => {
         // AI Pop-up after 5s — delayed so it doesn't conflict with modals opening on load
         const timer = setTimeout(() => {
+            if (aiChatOpen) return;
             setAiChatOpen(true);
-            setAiMessages([{ role: 'ai', text: "Hey! I'm VapeOS AI — tell me what you're looking for and I'll find the perfect match! 🌿" }]);
+            setAiMessages((prev) => {
+                if (prev.length > 0) return prev;
+                return [{ role: 'ai', text: "Hey! I'm VapeOS AI — tell me what you're looking for and I'll find the perfect match! 🌿" }];
+            });
         }, 5000);
         return () => clearTimeout(timer);
-    }, []);
+    }, [aiChatOpen]);
 
     // ── PWA: Service Worker Registration ──────────────────────────────
     useEffect(() => {
@@ -302,19 +415,7 @@ export default function App() {
     };
 
     const scrollToFlavorExplorer = () => {
-        setActiveTab('marketplace');
-        setTimeout(() => {
-            const element = document.getElementById('flavor-explorer-section');
-            if (element) {
-                const offset = 100; // Account for sticky header
-                const elementPosition = element.getBoundingClientRect().top;
-                const offsetPosition = elementPosition + window.pageYOffset - offset;
-                window.scrollTo({
-                    top: offsetPosition,
-                    behavior: 'smooth'
-                });
-            }
-        }, 100);
+        navigateToProducts({ assistant: 'flavor' });
     };
 
     // Server-side filtering — products are already filtered, just use them directly
@@ -461,38 +562,43 @@ export default function App() {
                 </div>
 
                 {/* Sub Nav - Mobile Responsive */}
-                <div className="bg-slate-900 text-white px-6 md:px-10 py-5 flex items-center gap-6 md:gap-10 text-[10px] font-black uppercase tracking-[0.2em] overflow-x-auto scrollbar-hide border-t border-white/5 shadow-inner">
-                    <div
-                        onClick={() => { setActiveTab('marketplace'); setActiveFilter('all'); }}
+                <div role="navigation" aria-label="Marketplace quick links" className="bg-slate-900 text-white px-6 md:px-10 py-5 flex items-center gap-6 md:gap-10 text-[10px] font-black uppercase tracking-[0.2em] overflow-x-auto scrollbar-hide border-t border-white/5 shadow-inner">
+                    <button
+                        type="button"
+                        onClick={() => navigateToProducts()}
                         className={`flex items-center gap-3 cursor-pointer hover:text-brand-primary transition-all whitespace-nowrap ${activeFilter === 'all' ? 'text-brand-primary' : 'text-slate-400'}`}
                     >
                         <Menu className="w-4 h-4" />
                         <span className="tracking-[0.3em]">Master Inventory</span>
-                    </div>
-                    <span
-                        onClick={() => { setActiveTab('marketplace'); setActiveFilter('bestsellers'); }}
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => navigateToProducts({ tag: 'bestseller' })}
                         className={`cursor-pointer hover:text-brand-primary transition-all whitespace-nowrap ${activeFilter === 'bestsellers' ? 'text-brand-primary' : 'text-slate-400'}`}
                     >
                         Peak Performance
-                    </span>
-                    <span
-                        onClick={() => { setActiveTab('marketplace'); setActiveFilter('newarrivals'); }}
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => navigateToProducts({ tag: 'newarrivals' })}
                         className={`cursor-pointer hover:text-brand-primary transition-all whitespace-nowrap ${activeFilter === 'newarrivals' ? 'text-brand-primary' : 'text-slate-400'}`}
                     >
                         Current Drops
-                    </span>
-                    <span
+                    </button>
+                    <button
+                        type="button"
                         onClick={scrollToFlavorExplorer}
                         className="cursor-pointer hover:text-brand-primary transition-all whitespace-nowrap text-slate-400"
                     >
                         Flavor DNA Engine
-                    </span>
-                    <span
-                        onClick={() => { setActiveTab('marketplace'); setActiveFilter('express'); }}
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => navigateToProducts({ quickDelivery: true })}
                         className={`hidden md:block cursor-pointer hover:text-brand-primary transition-all whitespace-nowrap ${activeFilter === 'express' ? 'text-brand-primary' : 'text-slate-400'}`}
                     >
                         Express Logistics
-                    </span>
+                    </button>
                     <div className="flex-1" />
                     <div
                         onClick={handleVendorTabClick}
@@ -568,7 +674,7 @@ export default function App() {
                         </div>
 
                         {/* Horizontal Scroll Section - Master Inventory */}
-                        <section className="bg-white mx-4 p-8 md:p-12 border border-slate-100 rounded-[2.5rem] shadow-sm">
+                        <section id="shipping-logistics-section" className="bg-white mx-4 p-8 md:p-12 border border-slate-100 rounded-[2.5rem] shadow-sm">
                             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
                                 <div className="flex items-center gap-4">
                                     <div className="w-12 h-12 bg-slate-900 rounded-2xl flex items-center justify-center shadow-xl shadow-slate-900/10">
@@ -1131,8 +1237,8 @@ export default function App() {
                                 {aiMessages.map((msg, i) => (
                                     <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                                         <div className={`max-w-[85%] p-4 rounded-2xl text-xs font-black uppercase tracking-tight shadow-sm leading-relaxed ${msg.role === 'user'
-                                                ? 'bg-brand-primary text-slate-900 rounded-tr-none'
-                                                : 'bg-white/5 text-slate-300 border border-white/5 rounded-tl-none'
+                                            ? 'bg-brand-primary text-slate-900 rounded-tr-none'
+                                            : 'bg-white/5 text-slate-300 border border-white/5 rounded-tl-none'
                                             }`}>
                                             {msg.text}
                                         </div>

@@ -241,3 +241,101 @@ export async function fetchAdminStores(token: string): Promise<Store[]> {
     if (!res.ok) throw new Error('Failed to fetch franchise stores');
     return res.json();
 }
+
+// ─── CART API ────────────────────────────────────────────────────────────────
+
+export interface CartApiItem {
+    cartItemId: number;
+    quantity: number;
+    product: Product;
+}
+
+export async function fetchCart(token: string): Promise<CartApiItem[]> {
+    const res = await fetch('/api/cart', {
+        headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) return [];
+    return res.json();
+}
+
+export async function addCartItemApi(token: string, productId: number, quantity: number = 1): Promise<void> {
+    await fetch('/api/cart', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ productId, quantity }),
+    });
+}
+
+export async function updateCartItemApi(token: string, productId: number, quantity: number): Promise<void> {
+    await fetch(`/api/cart/${productId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ quantity }),
+    });
+}
+
+export async function removeCartItemApi(token: string, productId: number): Promise<void> {
+    await fetch(`/api/cart/${productId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+    });
+}
+
+export async function clearCartApi(token: string): Promise<void> {
+    await fetch('/api/cart/clear', {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+    });
+}
+
+// ─── OTP AUTH ─────────────────────────────────────────────────────────────────
+
+export async function requestOtp(email: string): Promise<void> {
+    const res = await fetch('/api/auth/request-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to send OTP');
+}
+
+export async function requestLoginOtp(email: string): Promise<void> {
+    const res = await fetch('/api/auth/login-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to send login code');
+}
+
+export async function verifyLoginOtp(email: string, code: string): Promise<AuthResponse> {
+    const res = await fetch('/api/auth/verify-login-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, code }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'OTP login failed');
+    return data as AuthResponse;
+}
+
+export async function registerWithOtp(
+    email: string,
+    code: string,
+    name: string,
+    password: string,
+    isVendor: boolean = false,
+    storeName?: string,
+    storeAddress?: string
+): Promise<AuthResponse> {
+    const res = await fetch('/api/auth/register-with-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, code, name, password, isVendor, storeName, storeAddress }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Registration failed');
+    return data as AuthResponse;
+}

@@ -9,14 +9,21 @@ import { fileURLToPath } from "url";
 import { createServer as createViteServer } from "vite";
 import { getPostgresClient, initializeDatabase } from "./db/index.js";
 import { seedPostgres } from "./db/seed-postgres.js";
-import { authMiddleware, loginUser, registerUser, verifyToken, type AuthPayload } from "./server/auth.js";
+import { authMiddleware, createToken, loginUser, registerUser, verifyToken, type AuthPayload } from "./server/auth.js";
+import { sendDeliveredNotification, sendOrderConfirmation, sendOtpEmail } from "./server/email.js";
 import {
     checkoutOrder,
+    clearUserCart,
+    createOtp,
     createVendorProduct,
     deleteVendorProduct,
+    findUserByEmail,
     findUserById,
     getAdminStats,
+    getCartItems,
+    getOrderWithUser,
     getProductById,
+    getValidOtp,
     getVendorStats,
     listAdminOrders,
     listAdminProducts,
@@ -25,11 +32,15 @@ import {
     listMarketplaceProducts,
     listVendorOrders,
     listVendorProducts,
+    markOtpUsed,
+    removeCartItem,
+    setCartItemQuantity,
     storeExists,
     updateUserRole,
     updateUserVerification,
     updateVendorOrderStatus,
     updateVendorProduct,
+    upsertCartItem
 } from "./server/postgres-repo.js";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -123,13 +134,24 @@ async function startServer() {
     }
 
     // ─── Init DB ───────────────────────────────────────────────────────────────
-    await initializeDatabase();
-    await seedPostgres();
-    const sql = getPostgresClient();
-    console.log('[db] Supabase/PostgreSQL schema ensured from schema.sql during startup.');
+    let sql!: ReturnType<typeof getPostgresClient>;
+    let isDatabaseConnected = false;
+    const databaseWarningMessage = '⚠️ DATABASE NOT CONNECTED. Add DATABASE_URL to .env or .env.local and restart the server.';
+
+    try {
+        await initializeDatabase();
+        await seedPostgres();
+        sql = getPostgresClient();
+        isDatabaseConnected = true;
+        console.log('[db] Supabase/PostgreSQL schema ensured from schema.sql during startup.');
+    } catch (err) {
+        console.error(databaseWarningMessage);
+        console.error('[db]', err);
+    }
 
     const app = express();
-    const PORT = Number(process.env.PORT || 3000);
+    const parsedPort = Number.parseInt(String(process.env.PORT ?? '3000').trim(), 10);
+    const PORT = Number.isInteger(parsedPort) && parsedPort > 0 && parsedPort < 65536 ? parsedPort : 3000;
 
     app.use(express.json());
 
@@ -170,7 +192,30 @@ async function startServer() {
 
     app.use("/api/auth/login", authLimiter);
     app.use("/api/auth/register", authLimiter);
+    app.use("/api/auth/request-otp", authLimiter);
+    app.use("/api/auth/register-with-otp", authLimiter);
+    app.use("/api/auth/login-otp", authLimiter);
+    app.use("/api/auth/verify-login-otp", authLimiter);
     app.use("/api", apiLimiter);
+
+    app.get('/api/health', (_req, res) => {
+        res.status(isDatabaseConnected ? 200 : 503).json({
+            ok: isDatabaseConnected,
+            error: isDatabaseConnected ? null : databaseWarningMessage,
+        });
+    });
+
+    app.use('/api', (req, res, next) => {
+        if (req.path === '/health') {
+            next();
+            return;
+        }
+        if (isDatabaseConnected) {
+            next();
+            return;
+        }
+        res.status(503).json({ error: databaseWarningMessage });
+    });
 
     // ─── PRODUCTS API ─────────────────────────────────────────────────────────
     app.get("/api/products", async (req, res) => {
@@ -225,6 +270,76 @@ async function startServer() {
             return;
         }
         res.json({ token: result.token, user: result.user });
+    });
+
+    app.post('/api/auth/login-otp', async (req, res) => {
+        const { email } = req.body;
+        if (!email || typeof email !== 'string') {
+            res.status(400).json({ error: 'Valid email is required.' });
+            return;
+        }
+
+        const normalizedEmail = email.toLowerCase().trim();
+        try {
+            const existingUser = await findUserByEmail(sql, normalizedEmail);
+            if (!existingUser) {
+                res.status(404).json({ error: 'No account found for that email.' });
+                return;
+            }
+
+            const code = Math.floor(100000 + Math.random() * 900000).toString();
+            const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+            await createOtp(sql, normalizedEmail, code, expiresAt);
+            await sendOtpEmail(normalizedEmail, code);
+            res.json({ success: true });
+        } catch (err: any) {
+            sendSafeError(res, err, 'Failed to send login code');
+        }
+    });
+
+    app.post('/api/auth/verify-login-otp', async (req, res) => {
+        const { email, code } = req.body;
+        if (!email || !code) {
+            res.status(400).json({ error: 'Email and code are required.' });
+            return;
+        }
+
+        const normalizedEmail = String(email).toLowerCase().trim();
+        try {
+            const otp = await getValidOtp(sql, normalizedEmail, String(code).trim());
+            if (!otp) {
+                res.status(400).json({ error: 'Invalid or expired verification code.' });
+                return;
+            }
+
+            const existingUser = await findUserByEmail(sql, normalizedEmail);
+            if (!existingUser) {
+                res.status(404).json({ error: 'User not found.' });
+                return;
+            }
+
+            await markOtpUsed(sql, otp.id);
+
+            const token = createToken({
+                userId: Number(existingUser.id),
+                email: existingUser.email,
+                role: existingUser.role,
+                storeId: existingUser.store_id ?? null,
+            });
+
+            res.json({
+                token,
+                user: {
+                    id: Number(existingUser.id),
+                    email: existingUser.email,
+                    name: existingUser.name,
+                    role: existingUser.role,
+                    storeId: existingUser.store_id ?? null,
+                },
+            });
+        } catch (err: any) {
+            sendSafeError(res, err, 'Failed to verify login code');
+        }
     });
 
     app.get("/api/auth/me", async (req, res) => {
@@ -291,9 +406,134 @@ async function startServer() {
 
         try {
             const orderId = await checkoutOrder(sql, userId, items, normalizedShippingAddress);
+            // Clear the user's saved cart after successful checkout
+            await clearUserCart(sql, userId);
+            // Send order confirmation email
+            const orderInfo = await getOrderWithUser(sql, orderId);
+            if (orderInfo?.email) {
+                await sendOrderConfirmation(orderInfo.email, orderId, Number(orderInfo.total_amount));
+            }
             res.status(201).json({ success: true, orderId });
         } catch (err: any) {
             res.status(400).json({ error: err.message });
+        }
+    });
+
+    // ─── CART API ────────────────────────────────────────────────────────────
+    app.get("/api/cart", authMiddleware, async (req, res) => {
+        try {
+            const items = await getCartItems(sql, req.user!.userId);
+            res.json(items);
+        } catch (err: any) {
+            sendSafeError(res, err, 'Failed to fetch cart');
+        }
+    });
+
+    app.post("/api/cart", authMiddleware, async (req, res) => {
+        const { productId, quantity } = req.body;
+        if (!Number.isInteger(productId) || productId <= 0) {
+            res.status(400).json({ error: 'Invalid productId' });
+            return;
+        }
+        const qty = Number.isInteger(quantity) && quantity > 0 ? quantity : 1;
+        try {
+            await upsertCartItem(sql, req.user!.userId, productId, qty);
+            res.json({ success: true });
+        } catch (err: any) {
+            sendSafeError(res, err, 'Failed to add to cart');
+        }
+    });
+
+    app.patch("/api/cart/:productId", authMiddleware, async (req, res) => {
+        const productId = Number(req.params.productId);
+        const { quantity } = req.body;
+        if (!Number.isInteger(productId) || productId <= 0) {
+            res.status(400).json({ error: 'Invalid productId' });
+            return;
+        }
+        if (!Number.isInteger(quantity) || quantity < 1) {
+            res.status(400).json({ error: 'Quantity must be a positive integer' });
+            return;
+        }
+        try {
+            await setCartItemQuantity(sql, req.user!.userId, productId, quantity);
+            res.json({ success: true });
+        } catch (err: any) {
+            sendSafeError(res, err, 'Failed to update cart item');
+        }
+    });
+
+    app.delete("/api/cart/clear", authMiddleware, async (req, res) => {
+        try {
+            await clearUserCart(sql, req.user!.userId);
+            res.json({ success: true });
+        } catch (err: any) {
+            sendSafeError(res, err, 'Failed to clear cart');
+        }
+    });
+
+    app.delete("/api/cart/:productId", authMiddleware, async (req, res) => {
+        const productId = Number(req.params.productId);
+        if (!Number.isInteger(productId) || productId <= 0) {
+            res.status(400).json({ error: 'Invalid productId' });
+            return;
+        }
+        try {
+            await removeCartItem(sql, req.user!.userId, productId);
+            res.json({ success: true });
+        } catch (err: any) {
+            sendSafeError(res, err, 'Failed to remove cart item');
+        }
+    });
+
+    // ─── OTP AUTH ─────────────────────────────────────────────────────────────
+    app.post("/api/auth/request-otp", async (req, res) => {
+        const { email } = req.body;
+        if (!email || typeof email !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            res.status(400).json({ error: 'Valid email is required' });
+            return;
+        }
+        const code = Math.floor(100000 + Math.random() * 900000).toString();
+        const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+        try {
+            await createOtp(sql, email.toLowerCase().trim(), code, expiresAt);
+            await sendOtpEmail(email.toLowerCase().trim(), code);
+            res.json({ success: true });
+        } catch (err: any) {
+            sendSafeError(res, err, 'Failed to send OTP');
+        }
+    });
+
+    app.post("/api/auth/register-with-otp", async (req, res) => {
+        const { email, code, name, password, isVendor, storeName, storeAddress } = req.body;
+        if (!email || !code || !name || !password) {
+            res.status(400).json({ error: 'email, code, name, and password are required' });
+            return;
+        }
+        if (typeof password !== 'string' || password.length < 8) {
+            res.status(400).json({ error: 'Password must be at least 8 characters' });
+            return;
+        }
+        const normalizedEmail = String(email).toLowerCase().trim();
+        try {
+            const otp = await getValidOtp(sql, normalizedEmail, String(code).trim());
+            if (!otp) {
+                res.status(400).json({ error: 'Invalid or expired verification code' });
+                return;
+            }
+            await markOtpUsed(sql, otp.id);
+            const role = isVendor ? 'store_manager' : 'customer';
+            const storeInput = isVendor
+                ? { name: storeName || `${name}'s Franchise`, address: storeAddress || '' }
+                : undefined;
+            const result = await registerUser(normalizedEmail, password, name, role, storeInput);
+            if (!result.success) {
+                res.status(400).json({ error: result.error });
+                return;
+            }
+            res.status(201).json({ success: true, user: result.user, token: result.token });
+        } catch (err: any) {
+            res.status(400).json({ error: err.message || 'Registration failed' });
         }
     });
 
@@ -505,6 +745,12 @@ async function startServer() {
 
         try {
             await updateVendorOrderStatus(sql, Number(id), status, isSuperAdmin ? null : (req.user?.storeId ?? null));
+            if (status === 'delivered') {
+                const orderInfo = await getOrderWithUser(sql, Number(id));
+                if (orderInfo?.email) {
+                    await sendDeliveredNotification(orderInfo.email, Number(id));
+                }
+            }
             res.json({ success: true });
         } catch (err: any) {
             sendSafeError(res, err, 'Failed to update order status');

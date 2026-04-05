@@ -26,8 +26,9 @@ import {
     Zap
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
-import React, { useCallback, useEffect, useState } from 'react';
-import { Toaster, toast } from 'react-hot-toast';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { toast, Toaster } from 'react-hot-toast';
+import { resolveCatalogImage } from '../shared/product-images';
 import AdminDashboard from './components/AdminDashboard';
 import AuthModal from './components/AuthModal';
 import CheckoutOverlay from './components/CheckoutOverlay';
@@ -36,9 +37,9 @@ import ProductDetail from './components/ProductDetail';
 import VendorOrders from './components/VendorOrders';
 import VendorProductForm from './components/VendorProductForm';
 import VendorProductList from './components/VendorProductList';
-import { SYSTEM_INSTRUCTIONS, vapeosAI } from './services/aiService';
-import { fetchAdminStats, fetchCurrentUser, fetchProducts, fetchVendorStats } from './services/api';
-import { Product } from './types';
+import { getSmartAiResponse, SYSTEM_INSTRUCTIONS, vapeosAI } from './services/aiService';
+import { addCartItemApi, fetchAdminStats, fetchCart, fetchCurrentUser, fetchProducts, fetchVendorStats, removeCartItemApi, updateCartItemApi } from './services/api';
+import { ParentVariantGroup, Product } from './types';
 
 interface AuthUser {
     id: number;
@@ -49,6 +50,48 @@ interface AuthUser {
 }
 
 type ProductFilter = 'all' | 'bestsellers' | 'newarrivals' | 'express';
+
+interface ProductCardImageProps {
+    imageUrl: string;
+    productName: string;
+    brand: string;
+    category: string;
+    isExpressDelivery: boolean;
+}
+
+function ProductCardImage({ imageUrl, productName, brand, category, isExpressDelivery }: ProductCardImageProps) {
+    const resolvedCatalogImage = useMemo(() => resolveCatalogImage({ image: imageUrl, name: productName, brand, category }), [imageUrl, productName, brand, category]);
+    const [currentImageUrl, setCurrentImageUrl] = useState(resolvedCatalogImage);
+
+    useEffect(() => {
+        setCurrentImageUrl(resolvedCatalogImage);
+    }, [resolvedCatalogImage]);
+
+    return (
+        <div className="aspect-[1/1] bg-slate-50 rounded-3xl border border-slate-100 group-hover:border-brand-primary/30 group-hover:bg-white transition-all duration-500 shadow-sm relative isolate overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-br from-brand-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+            <div className="absolute inset-0 flex items-center justify-center p-8">
+                <img
+                    src={currentImageUrl}
+                    alt={productName}
+                    loading="lazy"
+                    onError={() => {
+                        if (currentImageUrl !== resolvedCatalogImage) {
+                            setCurrentImageUrl(resolvedCatalogImage);
+                        }
+                    }}
+                    className="h-full w-full object-contain group-hover:scale-110 transition-transform duration-700 relative z-10"
+                />
+            </div>
+            {isExpressDelivery && (
+                <div className="absolute top-2 right-2 z-30 bg-slate-900/95 border border-white/10 px-2 py-1 rounded-lg flex items-center gap-1.5 shadow-xl">
+                    <Zap className="w-3 h-3 text-brand-primary" />
+                    <span className="text-[9px] font-black uppercase tracking-widest text-white">Express</span>
+                </div>
+            )}
+        </div>
+    );
+}
 
 export default function App() {
     const [activeTab, setActiveTab] = useState<'marketplace' | 'vendor' | 'admin'>('marketplace');
@@ -64,6 +107,8 @@ export default function App() {
     const [isCartOpen, setIsCartOpen] = useState(false);
     const [activeFilter, setActiveFilter] = useState<ProductFilter>('all');
     const [activeCategory, setActiveCategory] = useState<string | undefined>(undefined);
+    const [pendingScrollTarget, setPendingScrollTarget] = useState<string | null>(null);
+    const [selectedVariantByGroup, setSelectedVariantByGroup] = useState<Record<string, number>>({});
     const mapTagToFilter = useCallback((tag: string | null): ProductFilter => {
         if (!tag || !tag.trim()) return 'all';
         const normalizedTag = tag.trim().toLowerCase();
@@ -346,17 +391,43 @@ export default function App() {
         const newItems = Array(quantity).fill(itemToAdd);
         setCart(prev => [...prev, ...newItems]);
         toast.success(`${product.name.substring(0, 30)}... added to cart!`, { duration: 2000 });
+        const token = localStorage.getItem('vapeshub_token');
+        if (token && product.id) {
+            addCartItemApi(token, product.id, quantity).catch(() => { });
+        }
     };
 
     const removeFromCart = (index: number) => {
-        setCart(prev => prev.filter((_, i) => i !== index));
+        const removedProduct = cart[index];
+        setCart(prev => {
+            const next = prev.filter((_, i) => i !== index);
+            const token = localStorage.getItem('vapeshub_token');
+            if (token && removedProduct) {
+                const remaining = next.filter(p => p.id === removedProduct.id).length;
+                if (remaining === 0) {
+                    removeCartItemApi(token, removedProduct.id).catch(() => { });
+                } else {
+                    updateCartItemApi(token, removedProduct.id, remaining).catch(() => { });
+                }
+            }
+            return next;
+        });
     };
 
     const updateQty = (index: number, delta: number) => {
+        const product = cart[index];
         setCart(prev => {
             const updated = [...prev];
-            if (delta < 0) { updated.splice(index, 1); return updated; }
-            updated.splice(index + 1, 0, updated[index]);
+            if (delta < 0) { updated.splice(index, 1); } else { updated.splice(index + 1, 0, updated[index]); }
+            const token = localStorage.getItem('vapeshub_token');
+            if (token && product) {
+                const newQty = updated.filter(p => p.id === product.id).length;
+                if (newQty <= 0) {
+                    removeCartItemApi(token, product.id).catch(() => { });
+                } else {
+                    updateCartItemApi(token, product.id, newQty).catch(() => { });
+                }
+            }
             return updated;
         });
     };
@@ -388,6 +459,24 @@ export default function App() {
         setSelectedProductId(null);
     };
 
+    const handleProfileNavigation = () => {
+        if (!currentUser) {
+            setShowAuthModal(true);
+            return;
+        }
+
+        if (currentUser.role === 'admin') {
+            setActiveTab('admin');
+        } else if (currentUser.role === 'vendor') {
+            setActiveTab('vendor');
+        } else {
+            setActiveTab('marketplace');
+        }
+
+        setSelectedProductId(null);
+        setIsMenuOpen(false);
+    };
+
     const handleFeatureNotReady = (featureName: string) => {
         toast.error(`LAYER OFFLINE: ${featureName} scheduled for v2 deployment.`, {
             style: {
@@ -410,16 +499,278 @@ export default function App() {
         setAiMessages(prev => [...prev, { role: 'user', text: userMsg }]);
         setChatInput('');
         setAiMessages(prev => [...prev, { role: 'ai', text: '...' }]);
-        const response = await vapeosAI.generateResponse(userMsg, SYSTEM_INSTRUCTIONS.FLAVOR_EXPERT);
-        setAiMessages(prev => { const next = [...prev]; next[next.length - 1] = { role: 'ai', text: response || 'Sorry, try again!' }; return next; });
+        try {
+            const response = await vapeosAI.generateResponse(userMsg, SYSTEM_INSTRUCTIONS.FLAVOR_EXPERT);
+            setAiMessages(prev => {
+                const next = [...prev];
+                next[next.length - 1] = { role: 'ai', text: response || getSmartAiResponse(userMsg, SYSTEM_INSTRUCTIONS.FLAVOR_EXPERT) };
+                return next;
+            });
+        } catch (error) {
+            console.error('Flavor chat fallback engaged:', error);
+            setAiMessages(prev => {
+                const next = [...prev];
+                next[next.length - 1] = { role: 'ai', text: getSmartAiResponse(userMsg, SYSTEM_INSTRUCTIONS.FLAVOR_EXPERT) };
+                return next;
+            });
+        }
     };
 
+    const scrollToSection = useCallback((sectionId: string) => {
+        const target = document.getElementById(sectionId);
+        if (!target) return;
+
+        const offset = 100;
+        const top = target.getBoundingClientRect().top + window.pageYOffset - offset;
+        window.scrollTo({ top, behavior: 'smooth' });
+    }, []);
+
+    const focusMarketplaceSection = useCallback((options: { filter: ProductFilter; sectionId: string; openAssistant?: boolean; category?: string }) => {
+        setActiveTab('marketplace');
+        setSelectedProductId(null);
+        setActiveFilter(options.filter);
+        setActiveCategory(options.category);
+        setPendingScrollTarget(options.sectionId);
+
+        const params = new URLSearchParams();
+        if (options.filter !== 'all') params.set('filter', options.filter);
+        if (options.category) params.set('category', options.category);
+        const nextUrl = `/products${params.toString() ? `?${params.toString()}` : ''}`;
+        const currentUrl = `${window.location.pathname}${window.location.search}`;
+        if (nextUrl !== currentUrl) {
+            window.history.pushState({}, '', nextUrl);
+        }
+
+        if (options.openAssistant) {
+            setAiChatOpen(true);
+        }
+    }, []);
+
+    useEffect(() => {
+        if (!pendingScrollTarget) {
+            return;
+        }
+
+        let isCancelled = false;
+        let attempts = 0;
+        let timeoutId: number | undefined;
+
+        const attemptScroll = () => {
+            if (isCancelled) {
+                return;
+            }
+
+            if (activeTab !== 'marketplace' || selectedProductId !== null) {
+                if (attempts >= 20) {
+                    setPendingScrollTarget(null);
+                    return;
+                }
+                attempts += 1;
+                timeoutId = window.setTimeout(attemptScroll, 80);
+                return;
+            }
+
+            const target = document.getElementById(pendingScrollTarget);
+            if (target) {
+                scrollToSection(pendingScrollTarget);
+                setPendingScrollTarget(null);
+                return;
+            }
+
+            if (attempts >= 20) {
+                setPendingScrollTarget(null);
+                return;
+            }
+
+            attempts += 1;
+            timeoutId = window.setTimeout(attemptScroll, 80);
+        };
+
+        timeoutId = window.setTimeout(attemptScroll, 0);
+
+        return () => {
+            isCancelled = true;
+            if (timeoutId !== undefined) {
+                window.clearTimeout(timeoutId);
+            }
+        };
+    }, [pendingScrollTarget, activeTab, selectedProductId, scrollToSection]);
+
     const scrollToFlavorExplorer = () => {
-        navigateToProducts({ assistant: 'flavor' });
+        focusMarketplaceSection({
+            filter: activeFilter,
+            sectionId: 'flavor-explorer-section',
+            openAssistant: true,
+        });
     };
 
     // Server-side filtering — products are already filtered, just use them directly
     const filteredProducts = products;
+
+    const categoryOrder = useMemo(() => ['Disposables', 'Nicotine Pouches', 'Supplements', 'Pod Systems', 'Devices', 'Mods', 'Accessories', 'Glass', 'E-Liquids', 'Nic Salts'], []);
+
+    const sortedFilteredProducts = useMemo(() => {
+        const orderIndex = new Map(categoryOrder.map((cat, i) => [cat.toLowerCase(), i]));
+        return [...filteredProducts].sort((a, b) => {
+            const ra = orderIndex.get((a.category || '').toLowerCase()) ?? 999;
+            const rb = orderIndex.get((b.category || '').toLowerCase()) ?? 999;
+            return ra !== rb ? ra - rb : a.name.localeCompare(b.name);
+        });
+    }, [filteredProducts, categoryOrder]);
+
+    const parentVariantGroups = useMemo(() => {
+        const groups = new Map<string, ParentVariantGroup>();
+
+        for (const product of sortedFilteredProducts) {
+            const category = product.category || 'Uncategorized';
+            const parentName = product.name.split(' - ')[0]?.trim() || product.brand || product.name;
+            const key = `${category.toLowerCase()}::${(product.brand || 'unknown').toLowerCase()}::${parentName.toLowerCase()}`;
+            const existingGroup = groups.get(key);
+
+            if (!existingGroup) {
+                groups.set(key, {
+                    key,
+                    parentName,
+                    brand: product.brand,
+                    category,
+                    variants: [product],
+                });
+                continue;
+            }
+
+            existingGroup.variants.push(product);
+        }
+
+        const orderIndex = new Map(categoryOrder.map((cat, i) => [cat.toLowerCase(), i]));
+
+        return Array.from(groups.values())
+            .map((group) => ({
+                ...group,
+                variants: [...group.variants].sort((a, b) => a.flavor.localeCompare(b.flavor)),
+            }))
+            .sort((a, b) => {
+                const aRank = orderIndex.get(a.category.toLowerCase()) ?? 999;
+                const bRank = orderIndex.get(b.category.toLowerCase()) ?? 999;
+                return aRank !== bRank ? aRank - bRank : a.parentName.localeCompare(b.parentName);
+            });
+    }, [sortedFilteredProducts, categoryOrder]);
+
+    const groupedParentVariantProducts = useMemo(() => {
+        return parentVariantGroups.reduce<Record<string, ParentVariantGroup[]>>((acc, group) => {
+            if (!acc[group.category]) {
+                acc[group.category] = [];
+            }
+            acc[group.category].push(group);
+            return acc;
+        }, {});
+    }, [parentVariantGroups]);
+
+    useEffect(() => {
+        setSelectedVariantByGroup((prev) => {
+            if (parentVariantGroups.length === 0) {
+                return Object.keys(prev).length === 0 ? prev : {};
+            }
+
+            const next: Record<string, number> = {};
+
+            for (const group of parentVariantGroups) {
+                const selectedId = prev[group.key];
+                const selectedVariant = group.variants.find((variant) => variant.id === selectedId);
+                next[group.key] = selectedVariant?.id ?? group.variants[0].id;
+            }
+
+            const prevKeys = Object.keys(prev);
+            const nextKeys = Object.keys(next);
+            if (prevKeys.length !== nextKeys.length) {
+                return next;
+            }
+
+            for (const key of nextKeys) {
+                if (prev[key] !== next[key]) {
+                    return next;
+                }
+            }
+
+            return prev;
+        });
+    }, [parentVariantGroups]);
+
+    const getSelectedVariant = useCallback((group: ParentVariantGroup) => {
+        const selectedId = selectedVariantByGroup[group.key];
+        return group.variants.find((variant) => variant.id === selectedId) ?? group.variants[0];
+    }, [selectedVariantByGroup]);
+
+    const handleProductDetailVariantChange = useCallback((groupKey: string, variantId: number) => {
+        setSelectedProductId(variantId);
+        setSelectedVariantByGroup((prev) => {
+            if (prev[groupKey] === variantId) {
+                return prev;
+            }
+
+            return {
+                ...prev,
+                [groupKey]: variantId,
+            };
+        });
+    }, []);
+
+    const selectedProductGroup = useMemo(() => {
+        if (selectedProductId === null) {
+            return null;
+        }
+
+        return parentVariantGroups.find((group) => group.variants.some((variant) => variant.id === selectedProductId)) ?? null;
+    }, [parentVariantGroups, selectedProductId]);
+
+    const shouldShowProductsLoading = productsLoading;
+
+    // Static featured-card config — each card maps to a filter (or category for Master Inventory tiles)
+    const FEATURED_CARDS = [
+        {
+            title: 'Master Inventory',
+            filter: 'all' as ProductFilter,
+            tag: 'Master Ledger',
+            items: [
+                { name: 'Mods', img: '/images/devices/smok-nord-4-kit.jpg', category: 'Mods' },
+                { name: 'Disposables', img: '/images/devices/elf-bar-bc5000.png', category: 'Disposables' },
+                { name: 'Accessories', img: '/images/accessories/cotton-bacon-prime.jpg', category: 'Accessories' },
+                { name: 'Glass', img: '/images/glass/ash-catcher-14mm.jpeg', category: 'Glass' },
+            ],
+        },
+        {
+            title: 'Peak Performance',
+            filter: 'bestsellers' as ProductFilter,
+            tag: 'Performance Tier',
+            items: [
+                { name: 'Puffco Plus', img: '/images/devices/puffco-plus-pen.jpeg', category: undefined },
+                { name: 'Uwell Caliburn', img: '/images/devices/uwell-caliburn-g2.webp', category: undefined },
+                { name: 'Vaporesso XROS 3', img: '/images/devices/vaporesso-xros-3.png', category: undefined },
+                { name: 'Vuse Alto', img: '/images/devices/vuse-alto-kit.jpg', category: undefined },
+            ],
+        },
+        {
+            title: 'Current Drops',
+            filter: 'newarrivals' as ProductFilter,
+            tag: 'Recent Shipments',
+            items: [
+                { name: 'Straight Tube', img: '/images/glass/straight-tube-bong.jpg', category: 'Glass' },
+                { name: 'Sherlock Pipe', img: '/images/glass/sherlock-pipe-glass.webp', category: 'Glass' },
+                { name: 'Spoon Pipe', img: '/images/glass/spoon-pipe-color.jpg', category: 'Glass' },
+                { name: 'Gravity Bong', img: '/images/glass/gravity-bong-glass.webp', category: 'Glass' },
+            ],
+        },
+        {
+            title: 'Express Logistics',
+            filter: 'express' as ProductFilter,
+            tag: 'Supply Chain',
+            items: [
+                { name: 'Same-day', img: '/images/sameday_delivery_1773423053852.png', category: undefined },
+                { name: 'Local', img: '/images/sameday_delivery_1773423053852.png', category: undefined },
+                { name: 'Subscription', img: '/images/subscription_box_1773423072371.png', category: undefined },
+                { name: 'Bulk', img: '/images/bulk_deals_1773423095884.png', category: undefined },
+            ],
+        },
+    ];
 
     return (
         <div className="min-h-screen flex flex-col bg-slate-50">
@@ -444,9 +795,26 @@ export default function App() {
                 {showAuthModal && (
                     <AuthModal
                         onClose={() => setShowAuthModal(false)}
-                        onAuthSuccess={(user, token) => {
+                        onAuthSuccess={async (user, token) => {
                             setCurrentUser(user);
                             localStorage.setItem('vapeshub_token', token);
+                            // Push any pre-login local cart items to the DB, then sync
+                            const localCart = cart;
+                            const byProductId = new Map<number, number>();
+                            for (const item of localCart) {
+                                byProductId.set(item.id, (byProductId.get(item.id) || 0) + 1);
+                            }
+                            await Promise.all(
+                                Array.from(byProductId.entries()).map(([pid, qty]) =>
+                                    addCartItemApi(token, pid, qty).catch(() => { })
+                                )
+                            );
+                            const dbItems = await fetchCart(token);
+                            const expanded: Product[] = [];
+                            for (const item of dbItems) {
+                                for (let i = 0; i < item.quantity; i++) expanded.push(item.product);
+                            }
+                            setCart(expanded);
                         }}
                     />
                 )}
@@ -503,7 +871,7 @@ export default function App() {
                         {currentUser ? (
                             <div
                                 className="hidden md:flex items-center gap-4 cursor-pointer group"
-                                onClick={() => handleFeatureNotReady('User Profile')}
+                                onClick={handleProfileNavigation}
                             >
                                 <div className="w-10 h-10 bg-slate-900 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-all border-2 border-brand-primary/20">
                                     <UserIcon className="w-5 h-5 text-brand-primary" />
@@ -562,60 +930,64 @@ export default function App() {
                 </div>
 
                 {/* Sub Nav - Mobile Responsive */}
-                <div role="navigation" aria-label="Marketplace quick links" className="bg-slate-900 text-white px-6 md:px-10 py-5 flex items-center gap-6 md:gap-10 text-[10px] font-black uppercase tracking-[0.2em] overflow-x-auto scrollbar-hide border-t border-white/5 shadow-inner">
-                    <button
-                        type="button"
-                        onClick={() => navigateToProducts()}
-                        className={`flex items-center gap-3 cursor-pointer hover:text-brand-primary transition-all whitespace-nowrap ${activeFilter === 'all' ? 'text-brand-primary' : 'text-slate-400'}`}
-                    >
-                        <Menu className="w-4 h-4" />
-                        <span className="tracking-[0.3em]">Master Inventory</span>
-                    </button>
-                    <button
-                        type="button"
-                        onClick={() => navigateToProducts({ tag: 'bestseller' })}
-                        className={`cursor-pointer hover:text-brand-primary transition-all whitespace-nowrap ${activeFilter === 'bestsellers' ? 'text-brand-primary' : 'text-slate-400'}`}
-                    >
-                        Peak Performance
-                    </button>
-                    <button
-                        type="button"
-                        onClick={() => navigateToProducts({ tag: 'newarrivals' })}
-                        className={`cursor-pointer hover:text-brand-primary transition-all whitespace-nowrap ${activeFilter === 'newarrivals' ? 'text-brand-primary' : 'text-slate-400'}`}
-                    >
-                        Current Drops
-                    </button>
-                    <button
-                        type="button"
-                        onClick={scrollToFlavorExplorer}
-                        className="cursor-pointer hover:text-brand-primary transition-all whitespace-nowrap text-slate-400"
-                    >
-                        Flavor DNA Engine
-                    </button>
-                    <button
-                        type="button"
-                        onClick={() => navigateToProducts({ quickDelivery: true })}
-                        className={`hidden md:block cursor-pointer hover:text-brand-primary transition-all whitespace-nowrap ${activeFilter === 'express' ? 'text-brand-primary' : 'text-slate-400'}`}
-                    >
-                        Express Logistics
-                    </button>
-                    <div className="flex-1" />
-                    <div
-                        onClick={handleVendorTabClick}
-                        className="flex items-center gap-3 text-brand-accent cursor-pointer hover:text-white transition-all whitespace-nowrap bg-white/5 px-4 py-2 rounded-xl border border-white/5 hover:bg-brand-accent/20"
-                    >
-                        <div className="w-2 h-2 bg-brand-accent rounded-full animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
-                        <span className="tracking-[0.3em]">Retailer OS</span>
-                    </div>
-                    {currentUser?.role === 'admin' && (
-                        <div
-                            onClick={() => setActiveTab('admin')}
-                            className="flex items-center gap-3 text-rose-400 cursor-pointer hover:text-white transition-all whitespace-nowrap ml-4 pl-6 border-l border-white/10"
+                <div role="navigation" aria-label="Marketplace quick links" className="bg-gradient-to-r from-sky-900 via-blue-900 to-indigo-900 text-white px-4 md:px-8 py-3 border-t border-white/10 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
+                    <div className="flex items-center gap-2 md:gap-3 overflow-x-auto scrollbar-hide">
+                        <button
+                            type="button"
+                            onClick={() => focusMarketplaceSection({ filter: 'all', sectionId: 'featured-categories-section' })}
+                            className={`group relative shrink-0 flex items-center gap-2 rounded-xl px-4 py-2.5 text-[10px] font-black uppercase tracking-[0.2em] transition-all duration-300 ${activeFilter === 'all' ? 'text-white bg-white/15 ring-1 ring-white/30' : 'text-sky-100/80 hover:text-white hover:bg-white/10'}`}
                         >
-                            <ShieldCheck className="w-4 h-4 shadow-[0_0_8px_rgba(251,113,133,0.3)]" />
-                            <span className="tracking-[0.3em]">Admin Layer</span>
-                        </div>
-                    )}
+                            <Menu className="w-4 h-4 transition-transform group-hover:scale-110" />
+                            <span>Master Inventory</span>
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => focusMarketplaceSection({ filter: 'bestsellers', sectionId: 'inventory-stream-section' })}
+                            className={`group relative shrink-0 rounded-xl px-4 py-2.5 text-[10px] font-black uppercase tracking-[0.2em] transition-all duration-300 ${activeFilter === 'bestsellers' ? 'text-white bg-white/15 ring-1 ring-white/30' : 'text-sky-100/80 hover:text-white hover:bg-white/10'}`}
+                        >
+                            Peak Performance
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => focusMarketplaceSection({ filter: 'newarrivals', sectionId: 'inventory-stream-section' })}
+                            className={`group relative shrink-0 rounded-xl px-4 py-2.5 text-[10px] font-black uppercase tracking-[0.2em] transition-all duration-300 ${activeFilter === 'newarrivals' ? 'text-white bg-white/15 ring-1 ring-white/30' : 'text-sky-100/80 hover:text-white hover:bg-white/10'}`}
+                        >
+                            Current Drops
+                        </button>
+                        <button
+                            type="button"
+                            onClick={scrollToFlavorExplorer}
+                            className="group relative shrink-0 rounded-xl px-4 py-2.5 text-[10px] font-black uppercase tracking-[0.2em] text-sky-100/80 hover:text-white hover:bg-white/10 transition-all duration-300"
+                        >
+                            Flavor DNA Engine
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => focusMarketplaceSection({ filter: 'express', sectionId: 'shipping-logistics-section' })}
+                            className={`group relative shrink-0 rounded-xl px-4 py-2.5 text-[10px] font-black uppercase tracking-[0.2em] transition-all duration-300 ${activeFilter === 'express' ? 'text-white bg-white/15 ring-1 ring-white/30' : 'text-sky-100/80 hover:text-white hover:bg-white/10'}`}
+                        >
+                            Express Logistics
+                        </button>
+                        <div className="h-7 w-px bg-white/20 mx-1 shrink-0" />
+                        <button
+                            type="button"
+                            onClick={handleVendorTabClick}
+                            className="group shrink-0 flex items-center gap-2 rounded-xl px-4 py-2.5 text-[10px] font-black uppercase tracking-[0.2em] text-emerald-200 bg-emerald-500/10 border border-emerald-300/25 hover:bg-emerald-400/20 hover:text-white transition-all duration-300"
+                        >
+                            <span className="w-2 h-2 bg-emerald-300 rounded-full shadow-[0_0_8px_rgba(16,185,129,0.7)] group-hover:scale-110 transition-transform" />
+                            Retailer OS
+                        </button>
+                        {currentUser?.role === 'admin' && (
+                            <button
+                                type="button"
+                                onClick={handleProfileNavigation}
+                                className="group shrink-0 flex items-center gap-2 rounded-xl px-4 py-2.5 text-[10px] font-black uppercase tracking-[0.2em] text-rose-200 bg-rose-500/10 border border-rose-300/25 hover:bg-rose-400/20 hover:text-white transition-all duration-300"
+                            >
+                                <ShieldCheck className="w-4 h-4 transition-transform group-hover:scale-110" />
+                                Admin Layer
+                            </button>
+                        )}
+                    </div>
                 </div>
             </header>
 
@@ -642,31 +1014,52 @@ export default function App() {
                             </div>
                         </section>
 
-                        {/* Product Grid - Premium Category Cards */}
-                        <div className="px-4 -mt-16 md:-mt-24 relative z-20 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-                            {/* Featured Categories */}
-                            {[
-                                { title: 'Master Inventory', filter: 'all', tag: 'Master Ledger', items: [{ name: 'Mods', img: '/images/devices/smok-nord-4-kit.jpg' }, { name: 'Disposables', img: '/images/devices/elf-bar-bc5000.png' }, { name: 'Accessories', img: '/images/accessories/cotton-bacon-prime.jpg' }, { name: 'Glass', img: '/images/glass/ash-catcher-14mm.jpeg' }] },
-                                { title: 'Peak Performance', filter: 'bestsellers', tag: 'Performance Tier', items: [{ name: 'Puffco Plus', img: '/images/devices/puffco-plus-pen.jpeg' }, { name: 'Uwell Caliburn', img: '/images/devices/uwell-caliburn-g2.webp' }, { name: 'Vaporesso XROS 3', img: '/images/devices/vaporesso-xros-3.png' }, { name: 'Vuse Alto', img: '/images/devices/vuse-alto-kit.jpg' }] },
-                                { title: 'Current Drops', filter: 'newarrivals', tag: 'Recent Shipments', items: [{ name: 'Straight Tube', img: '/images/glass/straight-tube-bong.jpg' }, { name: 'Sherlock Pipe', img: '/images/glass/sherlock-pipe-glass.webp' }, { name: 'Spoon Pipe', img: '/images/glass/spoon-pipe-color.jpg' }, { name: 'Gravity Bong', img: '/images/glass/gravity-bong-glass.webp' }] },
-                                { title: 'Express Logistics', filter: 'express', tag: 'Supply Chain', items: [{ name: 'Same-day', img: '/images/sameday_delivery_1773423053852.png' }, { name: 'Local', img: '/images/sameday_delivery_1773423053852.png' }, { name: 'Subscription', img: '/images/subscription_box_1773423072371.png' }, { name: 'Bulk', img: '/images/bulk_deals_1773423095884.png' }] },
-                            ].map((cat, i) => (
-                                <div key={i} onClick={() => { setActiveTab('marketplace'); setActiveFilter(cat.filter as any); }} className="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-xl shadow-slate-900/5 flex flex-col h-full group hover:border-brand-primary/30 transition-all duration-500 cursor-pointer">
+                        {/* Product Grid - Featured Category Cards */}
+                        <div id="featured-categories-section" className="px-4 -mt-16 md:-mt-24 relative z-20 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                            {FEATURED_CARDS.map((card) => (
+                                <div
+                                    key={card.title}
+                                    onClick={() => focusMarketplaceSection({ filter: card.filter, sectionId: 'inventory-stream-section' })}
+                                    className="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-xl shadow-slate-900/5 flex flex-col h-full group hover:border-brand-primary/30 transition-all duration-500 cursor-pointer"
+                                >
                                     <div className="flex flex-col mb-8">
-                                        <span className="text-brand-primary text-[9px] font-black uppercase tracking-widest mb-1">{cat.tag}</span>
-                                        <h3 className="text-base font-black uppercase tracking-tighter text-slate-900 transition-colors">{cat.title}</h3>
+                                        <span className="text-brand-primary text-[9px] font-black uppercase tracking-widest mb-1">{card.tag}</span>
+                                        <h3 className="text-base font-black uppercase tracking-tighter text-slate-900 group-hover:text-brand-primary transition-colors">{card.title}</h3>
                                     </div>
                                     <div className="grid grid-cols-2 gap-4 flex-1">
-                                        {cat.items.map((item, j) => (
-                                            <div key={j} className="space-y-3 group/item text-center">
+                                        {card.items.map((item) => (
+                                            <button
+                                                type="button"
+                                                key={item.name}
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    if (item.category) {
+                                                        navigateToProducts({ category: item.category });
+                                                        return;
+                                                    }
+                                                    focusMarketplaceSection({
+                                                        filter: card.filter,
+                                                        category: item.category,
+                                                        sectionId: 'inventory-stream-section',
+                                                    });
+                                                }}
+                                                className="space-y-3 group/item text-center"
+                                            >
                                                 <div className="aspect-square bg-slate-50 border border-slate-100 rounded-2xl overflow-hidden flex items-center justify-center p-3 group-hover/item:border-brand-primary transition-all group-hover/item:bg-white shadow-sm">
                                                     <img src={item.img} alt={item.name} className="max-w-full max-h-full object-contain group-hover/item:scale-110 transition-transform duration-500" />
                                                 </div>
                                                 <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 group-hover/item:text-slate-900 transition-colors">{item.name}</span>
-                                            </div>
+                                            </button>
                                         ))}
                                     </div>
-                                    <button className="mt-8 pt-6 border-t border-slate-50 text-[10px] font-black uppercase tracking-widest text-slate-900 group-hover:text-brand-primary flex items-center gap-2 transition-colors">
+                                    <button
+                                        type="button"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            focusMarketplaceSection({ filter: card.filter, sectionId: 'inventory-stream-section' });
+                                        }}
+                                        className="mt-8 pt-6 border-t border-slate-50 text-[10px] font-black uppercase tracking-widest text-slate-900 group-hover:text-brand-primary flex items-center gap-2 transition-colors"
+                                    >
                                         Access Grid <ArrowRight className="w-4 h-4" />
                                     </button>
                                 </div>
@@ -674,7 +1067,7 @@ export default function App() {
                         </div>
 
                         {/* Horizontal Scroll Section - Master Inventory */}
-                        <section id="shipping-logistics-section" className="bg-white mx-4 p-8 md:p-12 border border-slate-100 rounded-[2.5rem] shadow-sm">
+                        <section id="inventory-stream-section" className="bg-white mx-4 p-8 md:p-12 border border-slate-100 rounded-[2.5rem] shadow-sm">
                             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
                                 <div className="flex items-center gap-4">
                                     <div className="w-12 h-12 bg-slate-900 rounded-2xl flex items-center justify-center shadow-xl shadow-slate-900/10">
@@ -700,40 +1093,69 @@ export default function App() {
                                 )}
                             </div>
                             <div className="flex gap-8 overflow-x-auto pb-8 scrollbar-hide px-2">
-                                {filteredProducts.length > 0 ? (
-                                    filteredProducts.map(product => (
-                                        <div key={product.id} onClick={() => setSelectedProductId(product.id)} className="min-w-[280px] max-w-[280px] flex flex-col gap-4 cursor-pointer group">
-                                            <div className="aspect-square bg-slate-50 rounded-3xl flex items-center justify-center p-8 border border-slate-100 group-hover:border-brand-primary/30 group-hover:bg-white transition-all duration-500 shadow-sm relative overflow-hidden">
-                                                <div className="absolute inset-0 bg-gradient-to-br from-brand-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                                                <img src={product.image} alt={product.name} className="max-w-full max-h-full object-contain group-hover:scale-110 transition-transform duration-700 relative z-10" />
-                                                {product.isExpressDelivery && (
-                                                    <div className="absolute top-4 right-4 bg-slate-900 border border-white/10 px-2 py-1 rounded-lg flex items-center gap-1.5 shadow-xl">
-                                                        <Zap className="w-3 h-3 text-brand-primary" />
-                                                        <span className="text-[9px] font-black uppercase tracking-widest text-white">Express</span>
+                                {shouldShowProductsLoading ? (
+                                    <div className="w-full py-20 text-center bg-slate-50 rounded-[2rem] border border-dashed border-slate-100 flex items-center justify-center gap-3">
+                                        <Loader2 className="w-5 h-5 animate-spin text-brand-primary" />
+                                        <span className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-500">Loading Products...</span>
+                                    </div>
+                                ) : parentVariantGroups.length > 0 ? (
+                                    parentVariantGroups.map(group => {
+                                        const selectedVariant = getSelectedVariant(group);
+
+                                        return (
+                                            <div key={group.key} onClick={() => setSelectedProductId(selectedVariant.id)} className="min-w-[300px] max-w-[300px] flex flex-col gap-4 cursor-pointer group">
+                                                <ProductCardImage imageUrl={selectedVariant.image} productName={group.parentName} brand={group.brand} category={group.category} isExpressDelivery={selectedVariant.isExpressDelivery} />
+                                                <div className="space-y-4 px-1 min-h-[260px] flex flex-col">
+                                                    <div className="flex flex-col">
+                                                        <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1">{group.category || 'Hardware'}</span>
+                                                        <h4 className="text-base font-black text-slate-900 line-clamp-2 group-hover:text-brand-primary transition-colors leading-tight uppercase tracking-tight">{group.parentName}</h4>
+                                                        <span className="text-[10px] font-black uppercase tracking-wider text-brand-primary mt-1 line-clamp-1">{selectedVariant.flavor} • {selectedVariant.nicotine}</span>
                                                     </div>
-                                                )}
-                                            </div>
-                                            <div className="space-y-3 px-1">
-                                                <div className="flex flex-col">
-                                                    <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1">{product.category || 'Hardware'}</span>
-                                                    <h4 className="text-sm font-black text-slate-900 line-clamp-2 group-hover:text-brand-primary transition-colors leading-tight uppercase tracking-tight">{product.name}</h4>
-                                                </div>
-                                                <div className="flex items-center gap-2">
-                                                    <div className="flex text-amber-400">
-                                                        {[...Array(5)].map((_, i) => (
-                                                            <Star key={i} className={`w-3 h-3 fill-current ${i < Math.floor(product.rating) ? '' : 'text-slate-200'}`} />
-                                                        ))}
+                                                    <div className="h-12 flex items-center gap-2 overflow-x-auto scrollbar-hide pr-1">
+                                                        {group.variants.map((variant) => {
+                                                            const isSelected = variant.id === selectedVariant.id;
+                                                            return (
+                                                                <button
+                                                                    key={variant.id}
+                                                                    type="button"
+                                                                    onClick={(event) => {
+                                                                        event.stopPropagation();
+                                                                        setSelectedVariantByGroup((prev) => ({ ...prev, [group.key]: variant.id }));
+                                                                    }}
+                                                                    className={`shrink-0 rounded-full border px-3 py-1 text-[9px] font-black uppercase tracking-widest transition-all ${isSelected ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 bg-slate-50 text-slate-500 hover:border-brand-primary hover:text-brand-primary'}`}
+                                                                >
+                                                                    {variant.flavor}
+                                                                </button>
+                                                            );
+                                                        })}
                                                     </div>
-                                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">({product.reviews})</span>
-                                                </div>
-                                                <div className="flex items-baseline gap-1 pt-1">
-                                                    <span className="text-xs font-black text-slate-900">$</span>
-                                                    <span className="text-2xl font-black text-slate-900 tracking-tighter">{Math.floor(product.price)}</span>
-                                                    <span className="text-[10px] font-black text-slate-500 align-top">.{(product.price % 1).toFixed(2).split('.')[1]}</span>
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="flex text-amber-400">
+                                                            {[...Array(5)].map((_, i) => (
+                                                                <Star key={i} className={`w-3 h-3 fill-current ${i < Math.floor(selectedVariant.rating) ? '' : 'text-slate-200'}`} />
+                                                            ))}
+                                                        </div>
+                                                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">({selectedVariant.reviews})</span>
+                                                    </div>
+                                                    <div className="flex items-baseline gap-1 pt-1">
+                                                        <span className="text-xs font-black text-slate-900">$</span>
+                                                        <span className="text-2xl font-black text-slate-900 tracking-tighter">{Math.floor(selectedVariant.price)}</span>
+                                                        <span className="text-[10px] font-black text-slate-500 align-top">.{(selectedVariant.price % 1).toFixed(2).split('.')[1]}</span>
+                                                    </div>
+                                                    <button
+                                                        type="button"
+                                                        onClick={(event) => {
+                                                            event.stopPropagation();
+                                                            addToCart(selectedVariant, 1, { flavor: selectedVariant.flavor, nicotine: selectedVariant.nicotine });
+                                                        }}
+                                                        className="mt-auto w-full py-3 bg-slate-100 hover:bg-slate-900 hover:text-white text-[10px] font-black uppercase tracking-[0.2em] rounded-xl transition-all duration-300 border border-slate-200 group-hover:border-slate-900"
+                                                    >
+                                                        Analyze Module
+                                                    </button>
                                                 </div>
                                             </div>
-                                        </div>
-                                    ))
+                                        );
+                                    })
                                 ) : (
                                     <div className="w-full py-20 text-center bg-slate-50 rounded-[2rem] border border-dashed border-slate-100">
                                         <span className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-400">No matching inventory identified</span>
@@ -741,6 +1163,8 @@ export default function App() {
                                 )}
                             </div>
                         </section>
+
+                        <div id="shipping-logistics-section" className="h-0 w-full" aria-hidden="true" />
 
                         {/* AI Flavor Explorer - Amazon Style Integration */}
                         <div className="mx-4" id="flavor-explorer-section">
@@ -767,42 +1191,78 @@ export default function App() {
                                     <span className="hover:text-brand-primary cursor-pointer transition-colors">By Price</span>
                                 </div>
                             </div>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-10">
-                                {filteredProducts.map(product => (
-                                    <div key={product.id} onClick={() => setSelectedProductId(product.id)} className="flex flex-col gap-5 group cursor-pointer">
-                                        <div className="aspect-square bg-slate-50 rounded-3xl p-8 relative overflow-hidden border border-slate-100 group-hover:bg-white group-hover:border-brand-primary/30 transition-all duration-500">
-                                            <div className="absolute inset-0 bg-gradient-to-tr from-brand-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                                            <img src={product.image} alt={product.name} className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-700 relative z-10" />
-                                            {product.isExpressDelivery && (
-                                                <div className="absolute top-4 right-4 bg-slate-900/90 backdrop-blur-md px-2 py-1 rounded-lg border border-white/10 flex items-center gap-1.5 shadow-xl z-20">
-                                                    <Zap className="w-3 h-3 text-brand-primary" />
-                                                    <span className="text-white font-black text-[9px] uppercase tracking-widest">Express</span>
-                                                </div>
-                                            )}
-                                        </div>
-                                        <div className="space-y-4 px-1">
-                                            <div className="flex flex-col">
-                                                <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1">{product.category || 'Hardware'}</span>
-                                                <h4 className="text-base font-black text-slate-900 line-clamp-2 group-hover:text-brand-primary transition-colors leading-tight uppercase tracking-tight">{product.name}</h4>
-                                            </div>
-                                            <div className="flex items-center justify-between pt-1">
-                                                <div className="flex items-baseline gap-1">
-                                                    <span className="text-xs font-black text-slate-900">$</span>
-                                                    <span className="text-2xl font-black text-slate-900 tracking-tighter">{Math.floor(product.price)}</span>
-                                                    <span className="text-[10px] font-black text-slate-500">.{(product.price % 1).toFixed(2).split('.')[1]}</span>
-                                                </div>
-                                                <div className="flex items-center gap-1.5">
-                                                    <div className="flex text-amber-400">
-                                                        <Star className="w-3.5 h-3.5 fill-current" />
-                                                    </div>
-                                                    <span className="text-[11px] font-black text-slate-900 uppercase tracking-tight">{product.rating}</span>
-                                                </div>
-                                            </div>
-                                            <button className="w-full py-3 bg-slate-100 hover:bg-slate-900 hover:text-white text-[10px] font-black uppercase tracking-[0.2em] rounded-xl transition-all duration-300 border border-slate-200 group-hover:border-slate-900">
-                                                Analyze Module
-                                            </button>
-                                        </div>
+                            <div className="space-y-12">
+                                {shouldShowProductsLoading ? (
+                                    <div className="w-full py-16 text-center bg-slate-50 rounded-[2rem] border border-dashed border-slate-100 flex items-center justify-center gap-3">
+                                        <Loader2 className="w-5 h-5 animate-spin text-brand-primary" />
+                                        <span className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-500">Loading Products...</span>
                                     </div>
+                                ) : Object.entries(groupedParentVariantProducts).map(([category, groups]) => (
+                                    <section key={category} className="space-y-6">
+                                        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                                            <h4 className="text-base md:text-lg font-black uppercase tracking-[0.18em] text-slate-900">{category}</h4>
+                                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">{groups.length} products</span>
+                                        </div>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-10">
+                                            {groups.map(group => {
+                                                const selectedVariant = getSelectedVariant(group);
+
+                                                return (
+                                                    <div key={group.key} onClick={() => setSelectedProductId(selectedVariant.id)} className="flex flex-col gap-5 group cursor-pointer">
+                                                        <ProductCardImage imageUrl={selectedVariant.image} productName={group.parentName} brand={group.brand} category={group.category} isExpressDelivery={selectedVariant.isExpressDelivery} />
+                                                        <div className="space-y-4 px-1 min-h-[260px] flex flex-col">
+                                                            <div className="flex flex-col">
+                                                                <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1">{group.category || 'Hardware'}</span>
+                                                                <h4 className="text-base font-black text-slate-900 line-clamp-2 group-hover:text-brand-primary transition-colors leading-tight uppercase tracking-tight">{group.parentName}</h4>
+                                                                <span className="text-[10px] font-black uppercase tracking-wider text-brand-primary mt-1 line-clamp-1">{selectedVariant.flavor} • {selectedVariant.nicotine}</span>
+                                                            </div>
+                                                            <div className="h-12 flex items-center gap-2 overflow-x-auto scrollbar-hide pr-1">
+                                                                {group.variants.map((variant) => {
+                                                                    const isSelected = variant.id === selectedVariant.id;
+                                                                    return (
+                                                                        <button
+                                                                            key={variant.id}
+                                                                            type="button"
+                                                                            onClick={(event) => {
+                                                                                event.stopPropagation();
+                                                                                setSelectedVariantByGroup((prev) => ({ ...prev, [group.key]: variant.id }));
+                                                                            }}
+                                                                            className={`shrink-0 rounded-full border px-3 py-1 text-[9px] font-black uppercase tracking-widest transition-all ${isSelected ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 bg-slate-50 text-slate-500 hover:border-brand-primary hover:text-brand-primary'}`}
+                                                                        >
+                                                                            {variant.flavor}
+                                                                        </button>
+                                                                    );
+                                                                })}
+                                                            </div>
+                                                            <div className="flex items-center justify-between pt-1">
+                                                                <div className="flex items-baseline gap-1">
+                                                                    <span className="text-xs font-black text-slate-900">$</span>
+                                                                    <span className="text-2xl font-black text-slate-900 tracking-tighter">{Math.floor(selectedVariant.price)}</span>
+                                                                    <span className="text-[10px] font-black text-slate-500">.{(selectedVariant.price % 1).toFixed(2).split('.')[1]}</span>
+                                                                </div>
+                                                                <div className="flex items-center gap-1.5">
+                                                                    <div className="flex text-amber-400">
+                                                                        <Star className="w-3.5 h-3.5 fill-current" />
+                                                                    </div>
+                                                                    <span className="text-[11px] font-black text-slate-900 uppercase tracking-tight">{selectedVariant.rating}</span>
+                                                                </div>
+                                                            </div>
+                                                            <button
+                                                                type="button"
+                                                                onClick={(event) => {
+                                                                    event.stopPropagation();
+                                                                    addToCart(selectedVariant, 1, { flavor: selectedVariant.flavor, nicotine: selectedVariant.nicotine });
+                                                                }}
+                                                                className="mt-auto w-full py-3 bg-slate-100 hover:bg-slate-900 hover:text-white text-[10px] font-black uppercase tracking-[0.2em] rounded-xl transition-all duration-300 border border-slate-200 group-hover:border-slate-900"
+                                                            >
+                                                                Analyze Module
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </section>
                                 ))}
                             </div>
                         </section>
@@ -811,8 +1271,10 @@ export default function App() {
 
                 {activeTab === 'marketplace' && selectedProductId && (
                     <ProductDetail
-                        productId={selectedProductId}
+                        group={selectedProductGroup}
+                        selectedVariantId={selectedProductId}
                         onBack={() => setSelectedProductId(null)}
+                        onVariantChange={handleProductDetailVariantChange}
                         onAddToCart={addToCart}
                     />
                 )}
@@ -1069,13 +1531,13 @@ export default function App() {
                                 <div className="space-y-6">
                                     <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-brand-primary">Operational Layers</h3>
                                     <ul className="space-y-5">
-                                        <li className="text-white font-black uppercase tracking-widest text-xs hover:text-brand-primary cursor-pointer transition-colors">User Profile</li>
+                                        <li onClick={handleProfileNavigation} className="text-white font-black uppercase tracking-widest text-xs hover:text-brand-primary cursor-pointer transition-colors">User Profile</li>
                                         <li onClick={() => { handleVendorTabClick(); setIsMenuOpen(false); }} className="text-brand-accent font-black uppercase tracking-widest text-xs hover:text-white cursor-pointer transition-colors flex items-center gap-2">
                                             <span className="w-1.5 h-1.5 bg-brand-accent rounded-full animate-pulse" />
                                             Retailer OS
                                         </li>
                                         {currentUser?.role === 'admin' && (
-                                            <li onClick={() => { setActiveTab('admin'); setIsMenuOpen(false); }} className="text-rose-400 font-black uppercase tracking-widest text-xs hover:text-white cursor-pointer transition-colors flex items-center gap-2">
+                                            <li onClick={handleProfileNavigation} className="text-rose-400 font-black uppercase tracking-widest text-xs hover:text-white cursor-pointer transition-colors flex items-center gap-2">
                                                 <ShieldCheck className="w-4 h-4" />
                                                 Admin Layer
                                             </li>

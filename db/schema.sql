@@ -67,7 +67,8 @@ CREATE TABLE IF NOT EXISTS cart_items (
   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   product_id INTEGER NOT NULL REFERENCES products(id) ON DELETE CASCADE,
   quantity INTEGER NOT NULL DEFAULT 1,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE (user_id, product_id)
 );
 
 CREATE TABLE IF NOT EXISTS orders (
@@ -89,7 +90,17 @@ CREATE TABLE IF NOT EXISTS order_items (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+CREATE TABLE IF NOT EXISTS email_otps (
+  id SERIAL PRIMARY KEY,
+  email TEXT NOT NULL,
+  code TEXT NOT NULL,
+  expires_at TIMESTAMPTZ NOT NULL,
+  used BOOLEAN NOT NULL DEFAULT FALSE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 CREATE INDEX IF NOT EXISTS idx_users_store_id ON users(store_id);
 CREATE INDEX IF NOT EXISTS idx_products_store_id ON products(store_id);
 CREATE INDEX IF NOT EXISTS idx_orders_store_id ON orders(store_id);
 CREATE INDEX IF NOT EXISTS idx_products_vendor_id ON products(vendor_id);
+CREATE INDEX IF NOT EXISTS idx_email_otps_email ON email_otps(email);

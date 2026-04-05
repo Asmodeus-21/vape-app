@@ -18,6 +18,14 @@ export interface Product {
     vendorId?: number | null;
 }
 
+export interface ParentVariantGroup {
+    key: string;
+    parentName: string;
+    brand: string;
+    category: string;
+    variants: Product[];
+}
+
 export interface Store {
     id: number;
     name: string;

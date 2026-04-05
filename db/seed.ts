@@ -1,3 +1,5 @@
+import { resolveCatalogImage } from '../shared/product-images.js';
+
 type SeedProduct = {
     name: string;
     brand: string;
@@ -16,8 +18,7 @@ type SeedProduct = {
 };
 
 const makePlaceholderImage = (brand: string, variant: string): string => {
-    const label = encodeURIComponent(`${brand} ${variant}`);
-    return `https://placehold.co/600x600/png?text=${label}`;
+    return resolveCatalogImage({ brand, name: `${brand} - ${variant}` });
 };
 
 const createProducts = (
@@ -52,7 +53,7 @@ const createProducts = (
         price,
         rating,
         reviews,
-        image: makePlaceholderImage(brand, flavor),
+        image: resolveCatalogImage({ image: makePlaceholderImage(brand, flavor), brand, category, name: `${brand} - ${flavor}` }),
         category,
         description: `${descriptionPrefix} ${brand} profile in ${flavor}.`,
         stock_qty: stockQty,

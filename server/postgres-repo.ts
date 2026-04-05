@@ -406,3 +406,88 @@ export async function deleteVendorProduct(sql: Sql, productId: number, storeId?:
 
     await sql`DELETE FROM products WHERE id = ${productId}`;
 }
+
+// ─── CART ─────────────────────────────────────────────────────────────────────
+
+export async function getCartItems(sql: Sql, userId: number) {
+    const rows = await sql<any[]>`
+        SELECT ci.id AS cart_item_id, ci.quantity, p.*
+        FROM cart_items ci
+        JOIN products p ON ci.product_id = p.id
+        WHERE ci.user_id = ${userId}
+        ORDER BY ci.created_at ASC
+    `;
+    return rows.map((row) => ({
+        cartItemId: row.cart_item_id,
+        quantity: Number(row.quantity),
+        product: mapProductRow(row),
+    }));
+}
+
+export async function upsertCartItem(sql: Sql, userId: number, productId: number, quantity: number) {
+    if (!Number.isInteger(quantity) || quantity < 1) {
+        throw new Error('Quantity must be a positive integer');
+    }
+    await sql`
+        INSERT INTO cart_items (user_id, product_id, quantity)
+        VALUES (${userId}, ${productId}, ${quantity})
+        ON CONFLICT (user_id, product_id)
+        DO UPDATE SET quantity = cart_items.quantity + EXCLUDED.quantity
+    `;
+}
+
+export async function setCartItemQuantity(sql: Sql, userId: number, productId: number, quantity: number) {
+    if (!Number.isInteger(quantity) || quantity < 1) {
+        throw new Error('Quantity must be a positive integer');
+    }
+    await sql`
+        UPDATE cart_items SET quantity = ${quantity}
+        WHERE user_id = ${userId} AND product_id = ${productId}
+    `;
+}
+
+export async function removeCartItem(sql: Sql, userId: number, productId: number) {
+    await sql`DELETE FROM cart_items WHERE user_id = ${userId} AND product_id = ${productId}`;
+}
+
+export async function clearUserCart(sql: Sql, userId: number) {
+    await sql`DELETE FROM cart_items WHERE user_id = ${userId}`;
+}
+
+// ─── OTP ──────────────────────────────────────────────────────────────────────
+
+export async function createOtp(sql: Sql, email: string, code: string, expiresAt: Date) {
+    // Invalidate any existing unused OTPs for this email first
+    await sql`UPDATE email_otps SET used = TRUE WHERE email = ${email} AND used = FALSE`;
+    await sql`
+        INSERT INTO email_otps (email, code, expires_at)
+        VALUES (${email}, ${code}, ${expiresAt.toISOString()})
+    `;
+}
+
+export async function getValidOtp(sql: Sql, email: string, code: string) {
+    const rows = await sql<any[]>`
+        SELECT id FROM email_otps
+        WHERE email = ${email}
+          AND code = ${code}
+          AND used = FALSE
+          AND expires_at > NOW()
+        LIMIT 1
+    `;
+    return rows[0] ?? null;
+}
+
+export async function markOtpUsed(sql: Sql, otpId: number) {
+    await sql`UPDATE email_otps SET used = TRUE WHERE id = ${otpId}`;
+}
+
+export async function getOrderWithUser(sql: Sql, orderId: number) {
+    const rows = await sql<any[]>`
+        SELECT o.id, o.total_amount, o.status, u.email, u.name
+        FROM orders o
+        JOIN users u ON o.user_id = u.id
+        WHERE o.id = ${orderId}
+        LIMIT 1
+    `;
+    return rows[0] ?? null;
+}

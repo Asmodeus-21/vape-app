@@ -1,5 +1,15 @@
 import { Product, Store } from '../types';
 
+/** Parse a fetch Response as JSON safely; returns {} on non-JSON bodies. */
+async function safeJson(res: Response): Promise<any> {
+    const text = await res.text();
+    try {
+        return JSON.parse(text);
+    } catch {
+        return {};
+    }
+}
+
 export async function fetchProducts(params?: {
     search?: string;
     filter?: 'all' | 'bestsellers' | 'newarrivals' | 'express';
@@ -52,7 +62,7 @@ export async function registerUser(
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
     });
-    const data = await res.json();
+    const data = await safeJson(res);
     if (!res.ok) throw new Error(data.error || 'Registration failed');
     return data as AuthResponse;
 }
@@ -63,7 +73,7 @@ export async function loginUser(email: string, password: string): Promise<AuthRe
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
     });
-    const data = await res.json();
+    const data = await safeJson(res);
     if (!res.ok) throw new Error(data.error || 'Login failed');
     return data as AuthResponse;
 }
@@ -97,7 +107,7 @@ export async function createOrder(token: string, items: { productId: number; qua
         },
         body: JSON.stringify({ items, shippingAddress }),
     });
-    const data = await res.json();
+    const data = await safeJson(res);
     if (!res.ok) throw new Error(data.error || 'Checkout failed');
     return data;
 }
@@ -148,7 +158,7 @@ export async function createVendorProduct(token: string, productData: any) {
         },
         body: JSON.stringify(productData),
     });
-    const data = await res.json();
+    const data = await safeJson(res);
     if (!res.ok) throw new Error(data.error || 'Failed to create product');
     return data;
 }

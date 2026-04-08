@@ -130,9 +130,9 @@ export async function createApp(options: { skipSeed?: boolean; skipVite?: boolea
         if (!process.env.JWT_SECRET?.trim()) {
             throw new Error("JWT_SECRET is required in production.");
         }
-        if (!process.env.CORS_ORIGIN?.trim()) {
-            throw new Error("CORS_ORIGIN is required in production.");
-        }
+        // CORS_ORIGIN is optional — on Vercel the frontend and API share the same
+        // domain (same-origin), so the browser never sends a CORS preflight.
+        // VERCEL_URL is used as an automatic fallback when present.
     }
 
     // ─── Init DB ───────────────────────────────────────────────────────────────
@@ -157,14 +157,16 @@ export async function createApp(options: { skipSeed?: boolean; skipVite?: boolea
 
     app.use(express.json());
 
-    const corsOrigin = process.env.CORS_ORIGIN?.trim();
+    // CORS_ORIGIN > VERCEL_URL auto-fallback > permissive in dev only
+    const corsOrigin = process.env.CORS_ORIGIN?.trim()
+        || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined);
     app.use(helmet({
         contentSecurityPolicy: process.env.NODE_ENV === "production"
             ? undefined
             : false,
     }));
     app.use(cors({
-        origin: corsOrigin || false,
+        origin: corsOrigin || (process.env.NODE_ENV !== "production"),
         credentials: Boolean(corsOrigin),
     }));
 

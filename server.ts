@@ -157,17 +157,37 @@ export async function createApp(options: { skipSeed?: boolean; skipVite?: boolea
 
     app.use(express.json());
 
-    // CORS_ORIGIN > VERCEL_URL auto-fallback > permissive in dev only
-    const corsOrigin = process.env.CORS_ORIGIN?.trim()
-        || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined);
+    // Build allowed origins list:
+    // 1. Explicit CORS_ORIGIN env var (comma-separated for multiple)
+    // 2. Vercel preview URL auto-injected by Vercel
+    // 3. Custom domain(s) from CORS_EXTRA_ORIGINS env var (comma-separated)
+    const rawOrigins = [
+        process.env.CORS_ORIGIN,
+        process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined,
+        process.env.CORS_EXTRA_ORIGINS,
+    ]
+        .filter(Boolean)
+        .join(',')
+        .split(',')
+        .map((o) => o.trim())
+        .filter(Boolean);
+
+    const allowedOrigins = rawOrigins.length > 0 ? rawOrigins : null;
+
     app.use(helmet({
         contentSecurityPolicy: process.env.NODE_ENV === "production"
             ? undefined
             : false,
     }));
     app.use(cors({
-        origin: corsOrigin || (process.env.NODE_ENV !== "production"),
-        credentials: Boolean(corsOrigin),
+        origin: allowedOrigins
+            ? (origin, cb) => {
+                // Allow same-origin requests (no Origin header) and listed origins
+                if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
+                cb(new Error(`CORS: ${origin} not allowed`));
+            }
+            : process.env.NODE_ENV !== 'production',
+        credentials: Boolean(allowedOrigins),
     }));
 
     const apiLimiter = rateLimit({

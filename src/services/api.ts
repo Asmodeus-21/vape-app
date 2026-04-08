@@ -1,11 +1,16 @@
 import { Product, Store } from '../types';
 
-/** Parse a fetch Response as JSON safely; returns {} on non-JSON bodies. */
+/** Parse a fetch Response as JSON safely; logs status + raw body on failure. */
 async function safeJson(res: Response): Promise<any> {
     const text = await res.text();
     try {
         return JSON.parse(text);
     } catch {
+        console.error(
+            `[api] Non-JSON response — status: ${res.status} ${res.statusText}`,
+            `url: ${res.url}`,
+            `body: ${text.slice(0, 300)}`
+        );
         return {};
     }
 }

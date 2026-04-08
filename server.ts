@@ -110,7 +110,7 @@ function parseProductInput(body: any, fallbackVendorId: number, storeId: number)
 
     return {
         name: body.name,
-        brand: body.brand || 'VapesHub Retailer',
+        brand: body.brand || 'BananaLeaf Retailer',
         flavor: body.flavor || 'N/A',
         nicotine: body.nicotine || 'N/A',
         price,
@@ -901,7 +901,7 @@ export async function startServer() {
     const port = Number.isInteger(parsedPort) && parsedPort > 0 && parsedPort < 65536 ? parsedPort : 3000;
 
     app.listen(port, "0.0.0.0", () => {
-        console.log(`\n🚀 VapesHub Server running on http://localhost:${port}`);
+        console.log(`\n🚀 BananaLeaf Server running on http://localhost:${port}`);
         console.log(`   Gemini AI: ${process.env.GEMINI_API_KEY ? '✅ Key loaded' : '⚠️  No API key found'}`);
         console.log(`   Database: ✅ Supabase/PostgreSQL ready\n`);
     });

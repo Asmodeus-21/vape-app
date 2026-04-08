@@ -1,14 +1,14 @@
 #!/usr/bin/env node
 
 /**
- * Sitemap Generator for VapesHub
+ * Sitemap Generator for BananaLeaf
  * Generates XML sitemap for SEO and QA testing
  */
 
 const fs = require('fs');
 const path = require('path');
 
-const BASE_URL = process.env.BASE_URL || 'https://vapeshub.vercel.app';
+const BASE_URL = process.env.BASE_URL || 'https://bananaleaf.vercel.app';
 const BUILD_DIR = path.join(__dirname, 'dist');
 
 // Static routes that should be included in sitemap
@@ -59,7 +59,7 @@ ${routes.map(route => `  <url>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VapesHub - Site Map</title>
+    <title>BananaLeaf - Site Map</title>
     <style>
         body { font-family: Arial, sans-serif; margin: 40px; }
         h1 { color: #2563eb; }
@@ -71,7 +71,7 @@ ${routes.map(route => `  <url>
     </style>
 </head>
 <body>
-    <h1>VapesHub Site Map</h1>
+    <h1>BananaLeaf Site Map</h1>
     <p>This is an automatically generated site map for QA testing and SEO purposes.</p>
     <ul>
 ${routes.map(route => `        <li><a href="${BASE_URL}${route}" target="_blank"><span class="route">${route}</span></a></li>`).join('\n')}

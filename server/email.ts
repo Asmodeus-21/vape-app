@@ -1,6 +1,6 @@
 import { Resend } from 'resend';
 
-const FROM_EMAIL = process.env.EMAIL_FROM || 'VapesHub <orders@vapeshub.com>';
+const FROM_EMAIL = process.env.EMAIL_FROM || 'BananaLeaf <orders@bananaleaf.com>';
 
 function isEmailConfigured(): boolean {
     return Boolean(process.env.RESEND_API_KEY?.trim());
@@ -24,14 +24,14 @@ export async function sendOrderConfirmation(to: string, orderId: number, total: 
         await resend.emails.send({
             from: FROM_EMAIL,
             to,
-            subject: `VapesHub — Order #${orderId} Confirmed`,
+            subject: `BananaLeaf — Order #${orderId} Confirmed`,
             html: `
 <!DOCTYPE html>
 <html>
 <body style="font-family: sans-serif; background: #f8fafc; padding: 32px;">
   <div style="max-width: 560px; margin: 0 auto; background: #fff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,0.08);">
     <div style="background: #0f172a; padding: 32px; text-align: center;">
-      <h1 style="color: #10b981; margin: 0; font-size: 28px; letter-spacing: -1px;">VapesHub<span style="color: #fff;">.</span></h1>
+      <h1 style="color: #10b981; margin: 0; font-size: 28px; letter-spacing: -1px;">BananaLeaf<span style="color: #fff;">.</span></h1>
       <p style="color: rgba(255,255,255,0.5); font-size: 11px; letter-spacing: 3px; text-transform: uppercase; margin: 8px 0 0;">Order Protocol Initiated</p>
     </div>
     <div style="padding: 40px 32px;">
@@ -68,14 +68,14 @@ export async function sendDeliveredNotification(to: string, orderId: number): Pr
         await resend.emails.send({
             from: FROM_EMAIL,
             to,
-            subject: `VapesHub — Order #${orderId} Delivered 🎉`,
+            subject: `BananaLeaf — Order #${orderId} Delivered 🎉`,
             html: `
 <!DOCTYPE html>
 <html>
 <body style="font-family: sans-serif; background: #f8fafc; padding: 32px;">
   <div style="max-width: 560px; margin: 0 auto; background: #fff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,0.08);">
     <div style="background: #0f172a; padding: 32px; text-align: center;">
-      <h1 style="color: #10b981; margin: 0; font-size: 28px; letter-spacing: -1px;">VapesHub<span style="color: #fff;">.</span></h1>
+      <h1 style="color: #10b981; margin: 0; font-size: 28px; letter-spacing: -1px;">BananaLeaf<span style="color: #fff;">.</span></h1>
       <p style="color: rgba(255,255,255,0.5); font-size: 11px; letter-spacing: 3px; text-transform: uppercase; margin: 8px 0 0;">Delivery Confirmed</p>
     </div>
     <div style="padding: 40px 32px; text-align: center;">
@@ -103,14 +103,14 @@ export async function sendOtpEmail(to: string, code: string): Promise<void> {
         await resend.emails.send({
             from: FROM_EMAIL,
             to,
-            subject: `VapesHub — Your Verification Code: ${code}`,
+            subject: `BananaLeaf — Your Verification Code: ${code}`,
             html: `
 <!DOCTYPE html>
 <html>
 <body style="font-family: sans-serif; background: #f8fafc; padding: 32px;">
   <div style="max-width: 560px; margin: 0 auto; background: #fff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,0.08);">
     <div style="background: #0f172a; padding: 32px; text-align: center;">
-      <h1 style="color: #10b981; margin: 0; font-size: 28px; letter-spacing: -1px;">VapesHub<span style="color: #fff;">.</span></h1>
+      <h1 style="color: #10b981; margin: 0; font-size: 28px; letter-spacing: -1px;">BananaLeaf<span style="color: #fff;">.</span></h1>
       <p style="color: rgba(255,255,255,0.5); font-size: 11px; letter-spacing: 3px; text-transform: uppercase; margin: 8px 0 0;">Identity Verification</p>
     </div>
     <div style="padding: 40px 32px; text-align: center;">

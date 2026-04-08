@@ -25,7 +25,7 @@ export async function seedPostgres(options?: { closeClient?: boolean }): Promise
 
     await sql`
         INSERT INTO stores (id, name, address)
-        VALUES (1, 'VapesHub Marketplace', 'Online Store')
+        VALUES (1, 'BananaLeaf Marketplace', 'Online Store')
         ON CONFLICT (id) DO UPDATE
         SET
             name = EXCLUDED.name,

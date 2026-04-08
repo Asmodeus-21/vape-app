@@ -1,4 +1,4 @@
--- VapesHub PostgreSQL Schema (Supabase)
+-- BananaLeaf PostgreSQL Schema (Supabase)
 
 CREATE TABLE IF NOT EXISTS stores (
   id SERIAL PRIMARY KEY,

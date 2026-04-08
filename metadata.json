@@ -1,7 +1,7 @@
 {
-  "name": "VapesHub",
-  "description": "A production-grade vape marketplace and retail operating system powered by VAPEOS AI.",
-  "requestFramePermissions": [
-    "geolocation"
-  ]
+    "name": "BananaLeaf",
+    "description": "A production-grade marketplace and retail operating system powered by BananaLeaf AI.",
+    "requestFramePermissions": [
+        "geolocation"
+    ]
 }

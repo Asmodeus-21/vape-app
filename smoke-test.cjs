@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * Smoke Test Suite for VapesHub
+ * Smoke Test Suite for BananaLeaf
  * Quick verification that core functionality works
  */
 
@@ -18,7 +18,7 @@ const TEST_SCENARIOS = [
         name: 'Homepage Load',
         url: '/',
         checks: [
-            { type: 'text', selector: 'body', text: 'VapesHub' },
+            { type: 'text', selector: 'body', text: 'BananaLeaf' },
             { type: 'text', selector: 'h3', text: 'Master Inventory' },
             { type: 'navigation', links: ['Legal Compliance', 'Retailer OS', 'User Profile'] }
         ]

@@ -118,7 +118,7 @@ export default function AuthModal({ onClose, onAuthSuccess }: AuthModalProps) {
         try {
             const { user, token } = await registerWithOtp(regEmail, regOtpCode, regName, regPassword, isVendor, storeName, storeAddress);
             localStorage.setItem('vapeshub_token', token);
-            toast.success(`Welcome to VapesHub, ${user.name}! 🎉`);
+            toast.success(`Welcome to BananaLeaf, ${user.name}! 🎉`);
             onAuthSuccess(user, token);
             onClose();
         } catch (err: any) {
@@ -152,7 +152,7 @@ export default function AuthModal({ onClose, onAuthSuccess }: AuthModalProps) {
                         <div className="bg-brand-primary p-2 rounded-xl shadow-lg shadow-brand-primary/20 rotate-3">
                             <Zap className="text-white w-5 h-5" />
                         </div>
-                        <span className="text-xl font-black text-white tracking-tighter uppercase italic">VapesHub<span className="text-brand-primary">.</span></span>
+                        <span className="text-xl font-black text-white tracking-tighter uppercase italic">BananaLeaf<span className="text-brand-primary">.</span></span>
                     </div>
                     <h2 className="text-3xl font-black text-white mb-2 uppercase tracking-tighter">
                         {tab === 'login' ? 'Authentication' : 'Registration'}

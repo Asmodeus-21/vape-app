@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * Uptime Monitoring Script for VapesHub
+ * Uptime Monitoring Script for BananaLeaf
  * Monitors site availability and response times
  */
 
@@ -10,7 +10,7 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 
-const BASE_URL = process.env.BASE_URL || 'https://vapeshub.vercel.app';
+const BASE_URL = process.env.BASE_URL || 'https://bananaleaf.vercel.app';
 const MONITOR_INTERVAL = 5 * 60 * 1000; // 5 minutes
 const LOGS_DIR = path.join(__dirname, 'logs');
 

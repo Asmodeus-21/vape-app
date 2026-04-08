@@ -71,7 +71,9 @@ export function getPostgresClient(): Sql {
             throw new Error('DATABASE_URL is required for Supabase/PostgreSQL runtime. Set it in .env or .env.local.');
         }
         _postgres = postgres(databaseUrl, {
-            ssl: 'require',
+            ssl: process.env.NODE_ENV === 'production'
+                ? { rejectUnauthorized: false }
+                : 'require',
             max: 10,
             idle_timeout: 20,
             connect_timeout: 15,

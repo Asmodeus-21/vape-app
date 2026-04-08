@@ -161,10 +161,17 @@ export async function createApp(options: { skipSeed?: boolean; skipVite?: boolea
     // 1. Explicit CORS_ORIGIN env var (comma-separated for multiple)
     // 2. Vercel preview URL auto-injected by Vercel
     // 3. Custom domain(s) from CORS_EXTRA_ORIGINS env var (comma-separated)
+    // 4. Known production domains (hardcoded as fallback)
+    const KNOWN_PRODUCTION_ORIGINS = [
+        'https://banana-leaf.store',
+        'https://www.banana-leaf.store',
+    ];
+
     const rawOrigins = [
         process.env.CORS_ORIGIN,
         process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined,
         process.env.CORS_EXTRA_ORIGINS,
+        ...KNOWN_PRODUCTION_ORIGINS,
     ]
         .filter(Boolean)
         .join(',')

@@ -123,7 +123,9 @@ function parseProductInput(body: any, fallbackVendorId: number, storeId: number)
     };
 }
 
-async function startServer() {
+export async function createApp(options: { skipSeed?: boolean; skipVite?: boolean } = {}) {
+    const { skipSeed = false, skipVite = false } = options;
+
     if (process.env.NODE_ENV === "production") {
         if (!process.env.JWT_SECRET?.trim()) {
             throw new Error("JWT_SECRET is required in production.");
@@ -140,7 +142,9 @@ async function startServer() {
 
     try {
         await initializeDatabase();
-        await seedPostgres();
+        if (!skipSeed) {
+            await seedPostgres();
+        }
         sql = getPostgresClient();
         isDatabaseConnected = true;
         console.log('[db] Supabase/PostgreSQL schema ensured from schema.sql during startup.');
@@ -150,8 +154,6 @@ async function startServer() {
     }
 
     const app = express();
-    const parsedPort = Number.parseInt(String(process.env.PORT ?? '3000').trim(), 10);
-    const PORT = Number.isInteger(parsedPort) && parsedPort > 0 && parsedPort < 65536 ? parsedPort : 3000;
 
     app.use(express.json());
 
@@ -875,7 +877,7 @@ async function startServer() {
     });
 
     // ─── Vite Middleware ───────────────────────────────────────────────────────
-    if (process.env.NODE_ENV !== "production") {
+    if (process.env.NODE_ENV !== "production" && !skipVite) {
         const vite = await createViteServer({
             server: { middlewareMode: true },
             appType: "spa",
@@ -888,11 +890,23 @@ async function startServer() {
         });
     }
 
-    app.listen(PORT, "0.0.0.0", () => {
-        console.log(`\n🚀 VapesHub Server running on http://localhost:${PORT}`);
+    return app;
+}
+
+export async function startServer() {
+    const app = await createApp();
+    const parsedPort = Number.parseInt(String(process.env.PORT ?? '3000').trim(), 10);
+    const port = Number.isInteger(parsedPort) && parsedPort > 0 && parsedPort < 65536 ? parsedPort : 3000;
+
+    app.listen(port, "0.0.0.0", () => {
+        console.log(`\n🚀 VapesHub Server running on http://localhost:${port}`);
         console.log(`   Gemini AI: ${process.env.GEMINI_API_KEY ? '✅ Key loaded' : '⚠️  No API key found'}`);
         console.log(`   Database: ✅ Supabase/PostgreSQL ready\n`);
     });
 }
 
-startServer();
+const isDirectExecution = process.argv[1] ? path.resolve(process.argv[1]) === __filename : false;
+
+if (isDirectExecution) {
+    startServer();
+}

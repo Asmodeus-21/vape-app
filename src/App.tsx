@@ -836,7 +836,7 @@ export default function App() {
             </AnimatePresence>
             {/* Premium Top Nav */}
             <header className="bg-white border-b border-slate-100 text-slate-900 sticky top-0 z-50">
-                <div className="max-w-[1500px] mx-auto px-6 h-20 md:h-24 flex items-center gap-6 md:gap-12">
+                <div className="max-w-[1500px] mx-auto px-4 md:px-6 h-20 md:h-28 flex items-center gap-4 md:gap-12">
                     {/* Logo */}
                     <div
                         onClick={() => { setActiveTab('marketplace'); setSelectedProductId(null); setSearchQuery(''); }}
@@ -845,7 +845,7 @@ export default function App() {
                         <img
                             src="/logo.png"
                             alt="Banana Leaf Store"
-                            className="h-16 md:h-20 w-auto object-contain py-1"
+                            className="h-16 md:h-24 w-auto max-w-[160px] md:max-w-[220px] object-contain"
                             onError={(e) => {
                                 const img = e.currentTarget;
                                 img.style.display = 'none';
@@ -908,6 +908,15 @@ export default function App() {
                                 </div>
                             </div>
                         )}
+
+                        {/* Mobile login/user button — visible on small screens */}
+                        <button
+                            className="md:hidden flex items-center justify-center w-9 h-9 rounded-xl bg-[#40E0D0] text-white shadow-sm active:scale-95 transition-all shrink-0"
+                            onClick={() => currentUser ? handleProfileNavigation() : setShowAuthModal(true)}
+                            aria-label={currentUser ? 'Profile' : 'Login'}
+                        >
+                            <UserIcon className="w-4 h-4" />
+                        </button>
 
                         {/* Cart */}
                         <div className="flex items-center gap-4 cursor-pointer group relative" onClick={() => setIsCartOpen(true)}>

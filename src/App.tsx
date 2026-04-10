@@ -267,9 +267,10 @@ export default function App() {
 
     useEffect(() => {
         // AI Pop-up after 5s — only once per browser session (survives refresh, clears on tab close)
+        // Flag is set immediately so a re-render/StrictMode double-invoke never queues a second popup
         if (sessionStorage.getItem('chatPopupShown')) return;
+        sessionStorage.setItem('chatPopupShown', 'true');
         const timer = setTimeout(() => {
-            sessionStorage.setItem('chatPopupShown', 'true');
             setAiChatOpen(true);
             setAiMessages((prev) => {
                 if (prev.length > 0) return prev;
@@ -844,7 +845,7 @@ export default function App() {
                         <img
                             src="/logo.png"
                             alt="Banana Leaf Store"
-                            className="h-10 md:h-12 w-auto object-contain"
+                            className="h-16 md:h-20 w-auto object-contain py-1"
                             onError={(e) => {
                                 const img = e.currentTarget;
                                 img.style.display = 'none';

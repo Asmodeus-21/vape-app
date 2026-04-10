@@ -1,6 +1,11 @@
 {
     "version": 2,
     "outputDirectory": "dist",
+    "functions": {
+        "api/[...path].ts": {
+            "excludeFiles": "dist/images/**"
+        }
+    },
     "rewrites": [
         {
             "source": "/api/(.*)",

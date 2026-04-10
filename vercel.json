@@ -2,14 +2,14 @@
     "version": 2,
     "outputDirectory": "dist",
     "functions": {
-        "api/[...path].ts": {
+        "api/index.ts": {
             "excludeFiles": "dist/images/**"
         }
     },
     "rewrites": [
         {
             "source": "/api/(.*)",
-            "destination": "/api/$1"
+            "destination": "/api/index"
         },
         {
             "source": "/(.*)",

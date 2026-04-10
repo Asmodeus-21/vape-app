@@ -744,10 +744,10 @@ export default function App() {
             filter: 'bestsellers' as ProductFilter,
             tag: 'Performance Tier',
             items: [
-                { name: 'Puffco Plus', img: '/images/devices/puffco-plus-pen.jpeg', category: undefined },
-                { name: 'Uwell Caliburn', img: '/images/devices/uwell-caliburn-g2.webp', category: undefined },
-                { name: 'Vaporesso XROS 3', img: '/images/devices/vaporesso-xros-3.png', category: undefined },
-                { name: 'Vuse Alto', img: '/images/devices/vuse-alto-kit.jpg', category: undefined },
+                { name: 'Puffco Plus', img: '/images/devices/puffco-plus-pen.jpeg', category: undefined as string | undefined, search: 'puffco' },
+                { name: 'Uwell Caliburn', img: '/images/devices/uwell-caliburn-g2.webp', category: undefined as string | undefined, search: 'uwell' },
+                { name: 'Vaporesso XROS 3', img: '/images/devices/vaporesso-xros-3.png', category: undefined as string | undefined, search: 'vaporesso' },
+                { name: 'Vuse Alto', img: '/images/devices/vuse-alto-kit.jpg', category: undefined as string | undefined, search: 'vuse' },
             ],
         },
         {
@@ -845,7 +845,7 @@ export default function App() {
                         <img
                             src="/logo.png"
                             alt="Banana Leaf Store"
-                            className="h-16 md:h-24 w-auto max-w-[160px] md:max-w-[220px] object-contain"
+                            className="h-[80px] md:h-[112px] w-auto max-w-[200px] md:max-w-[280px] object-contain"
                             onError={(e) => {
                                 const img = e.currentTarget;
                                 img.style.display = 'none';
@@ -1056,6 +1056,17 @@ export default function App() {
                                                         navigateToProducts({ category: item.category });
                                                         return;
                                                     }
+                                                    if ('search' in item && item.search) {
+                                                        setSearchQuery(item.search);
+                                                        setActiveTab('marketplace');
+                                                        setSelectedProductId(null);
+                                                        setActiveFilter('all');
+                                                        setActiveCategory(undefined);
+                                                        setPendingScrollTarget('inventory-stream-section');
+                                                        const q = new URLSearchParams({ search: item.search });
+                                                        window.history.pushState({}, '', `/products?${q.toString()}`);
+                                                        return;
+                                                    }
                                                     focusMarketplaceSection({
                                                         filter: card.filter,
                                                         category: item.category,
@@ -1176,8 +1187,25 @@ export default function App() {
                                         );
                                     })
                                 ) : (
-                                    <div className="w-full py-20 text-center bg-slate-50 rounded-[2rem] border border-dashed border-slate-100">
-                                        <span className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-400">No matching inventory identified</span>
+                                    <div className="w-full py-20 flex flex-col items-center justify-center gap-6 bg-slate-50 rounded-[2rem] border border-dashed border-slate-200">
+                                        <img src="/logo.png" alt="Banana Leaf Store" className="h-16 w-auto opacity-40" />
+                                        <div className="text-center space-y-2">
+                                            <p className="text-[10px] font-black uppercase tracking-[0.4em] text-brand-primary">Coming Soon</p>
+                                            <p className="text-xl font-black uppercase tracking-tighter text-slate-900">
+                                                {activeCategory ? activeCategory : 'No Results'}
+                                            </p>
+                                            <p className="text-xs font-medium text-slate-400 max-w-xs mx-auto">
+                                                {activeCategory
+                                                    ? `We're stocking up on ${activeCategory}. Check back soon or browse the full inventory.`
+                                                    : 'No products match your current filter. Try adjusting your search or category.'}
+                                            </p>
+                                        </div>
+                                        <button
+                                            onClick={() => { setActiveFilter('all'); setActiveCategory(undefined); setSearchQuery(''); window.history.pushState({}, '', '/products'); }}
+                                            className="px-6 py-3 bg-brand-secondary text-white text-[10px] font-black uppercase tracking-widest rounded-2xl hover:bg-brand-primary transition-all"
+                                        >
+                                            Browse All Inventory
+                                        </button>
                                     </div>
                                 )}
                             </div>

@@ -28,6 +28,7 @@ import {
 import { AnimatePresence, motion } from 'motion/react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast, Toaster } from 'react-hot-toast';
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { resolveCatalogImage } from '../shared/product-images';
 import AdminDashboard from './components/AdminDashboard';
 import AuthModal from './components/AuthModal';
@@ -57,6 +58,48 @@ interface ProductCardImageProps {
     brand: string;
     category: string;
     isExpressDelivery: boolean;
+}
+
+interface MarketplaceEmptyStateProps {
+    title: string;
+    description: string;
+    onReset: () => void;
+}
+
+interface ProductRouteParams {
+    tag?: string;
+    category?: string;
+    search?: string;
+    assistant?: 'flavor';
+    quickDelivery?: boolean;
+}
+
+function toCategoryParam(category: string): string {
+    return category.trim().toLowerCase();
+}
+
+function formatCategoryLabel(category: string): string {
+    return category
+        .trim()
+        .toLowerCase()
+        .split(/\s+/)
+        .map((part) => part.split('-').filter(Boolean).map((segment) => `${segment[0].toUpperCase()}${segment.slice(1)}`).join('-'))
+        .join(' ');
+}
+
+function buildProductsSearch(params?: ProductRouteParams): string {
+    const query = new URLSearchParams();
+    if (params?.tag) query.set('tag', params.tag);
+    if (params?.category) query.set('category', toCategoryParam(params.category));
+    if (params?.search) query.set('search', params.search);
+    if (params?.assistant) query.set('assistant', params.assistant);
+    if (params?.quickDelivery) query.set('quickDelivery', 'true');
+    return query.toString();
+}
+
+function buildProductsUrl(params?: ProductRouteParams): string {
+    const search = buildProductsSearch(params);
+    return `/products${search ? `?${search}` : ''}`;
 }
 
 function ProductCardImage({ imageUrl, productName, brand, category, isExpressDelivery }: ProductCardImageProps) {
@@ -93,7 +136,29 @@ function ProductCardImage({ imageUrl, productName, brand, category, isExpressDel
     );
 }
 
+function MarketplaceEmptyState({ title, description, onReset }: MarketplaceEmptyStateProps) {
+    return (
+        <div className="w-full py-20 flex flex-col items-center justify-center gap-6 bg-slate-50 rounded-[2rem] border border-dashed border-slate-200 px-6">
+            <img src="/logo.png" alt="Banana Leaf Store" className="h-16 w-auto opacity-40" />
+            <div className="text-center space-y-2">
+                <p className="text-[10px] font-black uppercase tracking-[0.4em] text-brand-primary">Coming Soon</p>
+                <p className="text-xl font-black uppercase tracking-tighter text-slate-900">{title}</p>
+                <p className="text-xs font-medium text-slate-400 max-w-sm mx-auto">{description}</p>
+            </div>
+            <button
+                onClick={onReset}
+                className="px-6 py-3 bg-brand-secondary text-white text-[10px] font-black uppercase tracking-widest rounded-2xl hover:bg-brand-primary transition-all"
+            >
+                Browse All Inventory
+            </button>
+        </div>
+    );
+}
+
 export default function App() {
+    const location = useLocation();
+    const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
     const [activeTab, setActiveTab] = useState<'marketplace' | 'vendor' | 'admin'>('marketplace');
     const [products, setProducts] = useState<Product[]>([]);
     const [productsLoading, setProductsLoading] = useState(true);
@@ -125,11 +190,12 @@ export default function App() {
         return 'all';
     }, []);
 
-    const applyMarketplaceStateFromUrl = useCallback((search: string) => {
-        const params = new URLSearchParams(search);
+    const applyMarketplaceStateFromUrl = useCallback((params: URLSearchParams) => {
         const filterFromQuery = params.get('filter') as ProductFilter | null;
         const tag = params.get('tag');
-        const category = params.get('category') || undefined;
+        const categoryParam = params.get('category');
+        const category = categoryParam ? formatCategoryLabel(categoryParam) : undefined;
+        const search = params.get('search') || '';
         const quickDelivery = params.get('quickDelivery') === 'true';
         const assistant = params.get('assistant');
 
@@ -143,6 +209,7 @@ export default function App() {
         setSelectedProductId(null);
         setActiveFilter(resolvedFilter);
         setActiveCategory(category);
+        setSearchQuery(search);
 
         if (assistant === 'flavor') {
             setAiChatOpen(true);
@@ -165,23 +232,6 @@ export default function App() {
             });
         }
     }, [mapTagToFilter]);
-
-    const navigateToProducts = useCallback((params?: {
-        tag?: string;
-        category?: string;
-        assistant?: 'flavor';
-        quickDelivery?: boolean;
-    }) => {
-        const query = new URLSearchParams();
-        if (params?.tag) query.set('tag', params.tag);
-        if (params?.category) query.set('category', params.category);
-        if (params?.assistant) query.set('assistant', params.assistant);
-        if (params?.quickDelivery) query.set('quickDelivery', 'true');
-
-        const nextUrl = `/products${query.toString() ? `?${query.toString()}` : ''}`;
-        window.history.pushState({}, '', nextUrl);
-        applyMarketplaceStateFromUrl(query.toString() ? `?${query.toString()}` : '');
-    }, [applyMarketplaceStateFromUrl]);
 
     const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
     const [showAuthModal, setShowAuthModal] = useState(false);
@@ -221,36 +271,28 @@ export default function App() {
     }, []);
 
     useEffect(() => {
-        const syncFromLocation = () => {
-            if (window.location.pathname === '/products') {
-                applyMarketplaceStateFromUrl(window.location.search);
-            }
-        };
-
-        syncFromLocation();
-        window.addEventListener('popstate', syncFromLocation);
-
-        return () => {
-            window.removeEventListener('popstate', syncFromLocation);
-        };
-    }, [applyMarketplaceStateFromUrl]);
+        if (location.pathname === '/products') {
+            applyMarketplaceStateFromUrl(searchParams);
+        }
+    }, [applyMarketplaceStateFromUrl, location.pathname, searchParams]);
 
     useEffect(() => {
-        if (activeTab !== 'marketplace' || window.location.pathname !== '/products') {
+        if (activeTab !== 'marketplace' || location.pathname !== '/products') {
             return;
         }
 
         const params = new URLSearchParams();
         if (activeFilter !== 'all') params.set('filter', activeFilter);
-        if (activeCategory) params.set('category', activeCategory);
+        if (activeCategory) params.set('category', toCategoryParam(activeCategory));
+        if (searchQuery.trim()) params.set('search', searchQuery.trim());
 
         const targetUrl = `/products${params.toString() ? `?${params.toString()}` : ''}`;
-        const currentUrl = `${window.location.pathname}${window.location.search}`;
+        const currentUrl = `${location.pathname}${location.search}`;
 
         if (targetUrl !== currentUrl) {
-            window.history.replaceState({}, '', targetUrl);
+            navigate(targetUrl, { replace: true });
         }
-    }, [activeTab, activeFilter, activeCategory]);
+    }, [activeTab, activeFilter, activeCategory, location.pathname, location.search, navigate, searchQuery]);
 
     // ── Products: fetch from API ───────────────────────────────────────
     const loadProducts = useCallback(async () => {
@@ -532,21 +574,42 @@ export default function App() {
         setSelectedProductId(null);
         setActiveFilter(options.filter);
         setActiveCategory(options.category);
+        setSearchQuery('');
         setPendingScrollTarget(options.sectionId);
 
-        const params = new URLSearchParams();
-        if (options.filter !== 'all') params.set('filter', options.filter);
-        if (options.category) params.set('category', options.category);
-        const nextUrl = `/products${params.toString() ? `?${params.toString()}` : ''}`;
-        const currentUrl = `${window.location.pathname}${window.location.search}`;
+        const nextUrl = buildProductsUrl({
+            category: options.category,
+            tag: options.filter !== 'all' ? options.filter : undefined,
+        });
+        const currentUrl = `${location.pathname}${location.search}`;
         if (nextUrl !== currentUrl) {
-            window.history.pushState({}, '', nextUrl);
+            navigate(nextUrl);
         }
 
         if (options.openAssistant) {
             setAiChatOpen(true);
         }
-    }, []);
+    }, [location.pathname, location.search, navigate]);
+
+    const resetMarketplaceFilters = useCallback(() => {
+        setActiveFilter('all');
+        setActiveCategory(undefined);
+        setSearchQuery('');
+        setPendingScrollTarget('inventory-stream-section');
+        navigate('/products');
+    }, [navigate]);
+
+    const emptyStateTitle = activeCategory
+        ? `${activeCategory} Collection`
+        : searchQuery.trim()
+            ? `No Results For ${searchQuery.trim()}`
+            : 'Collection Update In Progress';
+
+    const emptyStateDescription = activeCategory
+        ? `The Banana Leaf collection for ${activeCategory} is currently being curated. Check back soon for premium drops.`
+        : searchQuery.trim()
+            ? `The Banana Leaf collection matching ${searchQuery.trim()} is currently being curated. Check back soon for premium drops.`
+            : 'The Banana Leaf collection is currently being curated. Check back soon for premium drops.';
 
     useEffect(() => {
         if (!pendingScrollTarget) {
@@ -836,16 +899,16 @@ export default function App() {
             </AnimatePresence>
             {/* Premium Top Nav */}
             <header className="bg-white border-b border-slate-100 text-slate-900 sticky top-0 z-50">
-                <div className="max-w-[1500px] mx-auto px-4 md:px-6 h-20 md:h-28 flex items-center gap-4 md:gap-12">
+                <div className="max-w-[1500px] mx-auto px-4 md:px-6 h-16 sm:h-20 md:h-28 flex items-center gap-3 md:gap-12">
                     {/* Logo */}
                     <div
                         onClick={() => { setActiveTab('marketplace'); setSelectedProductId(null); setSearchQuery(''); }}
-                        className="flex items-center gap-3 cursor-pointer group shrink-0"
+                        className="flex items-center gap-3 cursor-pointer group shrink-0 overflow-hidden"
                     >
                         <img
                             src="/logo.png"
                             alt="Banana Leaf Store"
-                            className="h-[80px] md:h-[112px] w-auto max-w-[200px] md:max-w-[280px] object-contain"
+                            className="h-14 sm:h-16 md:h-[112px] w-auto max-w-[140px] sm:max-w-[180px] md:max-w-[280px] object-contain"
                             onError={(e) => {
                                 const img = e.currentTarget;
                                 img.style.display = 'none';
@@ -1046,41 +1109,57 @@ export default function App() {
                                         <h3 className="text-base font-black uppercase tracking-tighter text-slate-900 group-hover:text-brand-primary transition-colors">{card.title}</h3>
                                     </div>
                                     <div className="grid grid-cols-2 gap-4 flex-1">
-                                        {card.items.map((item) => (
-                                            <button
-                                                type="button"
-                                                key={item.name}
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    if (item.category) {
-                                                        navigateToProducts({ category: item.category });
-                                                        return;
-                                                    }
-                                                    if ('search' in item && item.search) {
-                                                        setSearchQuery(item.search);
-                                                        setActiveTab('marketplace');
-                                                        setSelectedProductId(null);
-                                                        setActiveFilter('all');
-                                                        setActiveCategory(undefined);
-                                                        setPendingScrollTarget('inventory-stream-section');
-                                                        const q = new URLSearchParams({ search: item.search });
-                                                        window.history.pushState({}, '', `/products?${q.toString()}`);
-                                                        return;
-                                                    }
-                                                    focusMarketplaceSection({
-                                                        filter: card.filter,
-                                                        category: item.category,
-                                                        sectionId: 'inventory-stream-section',
-                                                    });
-                                                }}
-                                                className="space-y-3 group/item text-center"
-                                            >
-                                                <div className="aspect-square bg-slate-50 border border-slate-100 rounded-2xl overflow-hidden flex items-center justify-center p-3 group-hover/item:border-brand-primary transition-all group-hover/item:bg-white shadow-sm">
-                                                    <img src={item.img} alt={item.name} className="max-w-full max-h-full object-contain group-hover/item:scale-110 transition-transform duration-500" />
-                                                </div>
-                                                <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 group-hover/item:text-slate-900 transition-colors">{item.name}</span>
-                                            </button>
-                                        ))}
+                                        {card.items.map((item) => {
+                                            const itemTo = item.category
+                                                ? buildProductsUrl({ category: item.category })
+                                                : 'search' in item && item.search
+                                                    ? buildProductsUrl({ search: item.search })
+                                                    : null;
+
+                                            const sharedClassName = 'space-y-3 group/item text-center block';
+                                            const sharedContent = (
+                                                <>
+                                                    <div className="aspect-square bg-slate-50 border border-slate-100 rounded-2xl overflow-hidden flex items-center justify-center p-3 group-hover/item:border-brand-primary transition-all group-hover/item:bg-white shadow-sm">
+                                                        <img src={item.img} alt={item.name} className="max-w-full max-h-full object-contain group-hover/item:scale-110 transition-transform duration-500" />
+                                                    </div>
+                                                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 group-hover/item:text-slate-900 transition-colors">{item.name}</span>
+                                                </>
+                                            );
+
+                                            if (itemTo) {
+                                                return (
+                                                    <Link
+                                                        key={item.name}
+                                                        to={itemTo}
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setPendingScrollTarget('inventory-stream-section');
+                                                        }}
+                                                        className={sharedClassName}
+                                                    >
+                                                        {sharedContent}
+                                                    </Link>
+                                                );
+                                            }
+
+                                            return (
+                                                <button
+                                                    type="button"
+                                                    key={item.name}
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        focusMarketplaceSection({
+                                                            filter: card.filter,
+                                                            category: item.category,
+                                                            sectionId: 'inventory-stream-section',
+                                                        });
+                                                    }}
+                                                    className={sharedClassName}
+                                                >
+                                                    {sharedContent}
+                                                </button>
+                                            );
+                                        })}
                                     </div>
                                     <button
                                         type="button"
@@ -1187,26 +1266,11 @@ export default function App() {
                                         );
                                     })
                                 ) : (
-                                    <div className="w-full py-20 flex flex-col items-center justify-center gap-6 bg-slate-50 rounded-[2rem] border border-dashed border-slate-200">
-                                        <img src="/logo.png" alt="Banana Leaf Store" className="h-16 w-auto opacity-40" />
-                                        <div className="text-center space-y-2">
-                                            <p className="text-[10px] font-black uppercase tracking-[0.4em] text-brand-primary">Coming Soon</p>
-                                            <p className="text-xl font-black uppercase tracking-tighter text-slate-900">
-                                                {activeCategory ? activeCategory : 'No Results'}
-                                            </p>
-                                            <p className="text-xs font-medium text-slate-400 max-w-xs mx-auto">
-                                                {activeCategory
-                                                    ? `We're stocking up on ${activeCategory}. Check back soon or browse the full inventory.`
-                                                    : 'No products match your current filter. Try adjusting your search or category.'}
-                                            </p>
-                                        </div>
-                                        <button
-                                            onClick={() => { setActiveFilter('all'); setActiveCategory(undefined); setSearchQuery(''); window.history.pushState({}, '', '/products'); }}
-                                            className="px-6 py-3 bg-brand-secondary text-white text-[10px] font-black uppercase tracking-widest rounded-2xl hover:bg-brand-primary transition-all"
-                                        >
-                                            Browse All Inventory
-                                        </button>
-                                    </div>
+                                    <MarketplaceEmptyState
+                                        title={emptyStateTitle}
+                                        description={emptyStateDescription}
+                                        onReset={resetMarketplaceFilters}
+                                    />
                                 )}
                             </div>
                         </section>
@@ -1244,6 +1308,12 @@ export default function App() {
                                         <Loader2 className="w-5 h-5 animate-spin text-brand-primary" />
                                         <span className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-500">Loading Products...</span>
                                     </div>
+                                ) : Object.keys(groupedParentVariantProducts).length === 0 ? (
+                                    <MarketplaceEmptyState
+                                        title={emptyStateTitle}
+                                        description={emptyStateDescription}
+                                        onReset={resetMarketplaceFilters}
+                                    />
                                 ) : Object.entries(groupedParentVariantProducts).map(([category, groups]) => (
                                     <section key={category} className="space-y-6">
                                         <div className="flex items-center justify-between border-b border-slate-100 pb-3">

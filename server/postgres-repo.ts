@@ -72,7 +72,7 @@ export async function listMarketplaceProducts(
 
     if (filters.category) {
         const categoryParam = addParam(values, filters.category);
-        clauses.push(`category = ${categoryParam}`);
+        clauses.push(`LOWER(category) = LOWER(${categoryParam})`);
     }
 
     if (filters.filter === 'bestsellers') {

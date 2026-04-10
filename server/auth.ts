@@ -10,7 +10,7 @@ function resolveJwtSecret(): string {
     if (process.env.NODE_ENV === 'production') {
         throw new Error('JWT_SECRET is required in production.');
     }
-    return 'vapeshub-dev-secret-change-in-prod';
+    return 'bananaleaf-dev-secret-change-in-prod';
 }
 
 const JWT_SECRET = resolveJwtSecret();

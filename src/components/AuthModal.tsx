@@ -234,7 +234,7 @@ export default function AuthModal({ onClose, onAuthSuccess }: AuthModalProps) {
                                 <button
                                     type="submit"
                                     disabled={loading}
-                                    className="w-full py-4 bg-slate-900 text-white font-black uppercase tracking-[0.2em] rounded-2xl shadow-2xl shadow-slate-900/20 hover:bg-brand-primary transition-all flex items-center justify-center gap-3 mt-8 active:scale-95"
+                                    className="w-full py-4 bg-[#40E0D0] text-white font-black uppercase tracking-[0.2em] rounded-2xl shadow-2xl shadow-[#40E0D0]/20 hover:bg-[#2bc7b8] transition-all flex items-center justify-center gap-3 mt-8 active:scale-95"
                                 >
                                     {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
                                     {loading ? 'Decrypting...' : 'Initialize Session'}

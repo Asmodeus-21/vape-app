@@ -144,7 +144,7 @@ export default function PrivacyPolicy({ onBack }: LegalPageProps) {
                             If you have any questions about this privacy policy or our data practices, please contact us at:
                         </p>
                         <div className="bg-slate-700 p-4 rounded-lg mt-3">
-                            <p className="text-slate-300">Email: privacy@vapeshub.com</p>
+                            <p className="text-slate-300">Email: privacy@banana-leaf.store</p>
                             <p className="text-slate-300">Phone: 1-800-VAPE-HUB</p>
                             <p className="text-slate-300">Address: 123 Vape Street, Cloud City, CC 12345</p>
                         </div>
@@ -156,7 +156,7 @@ export default function PrivacyPolicy({ onBack }: LegalPageProps) {
                             <span className="font-semibold">Important Notice</span>
                         </div>
                         <p className="text-sm text-slate-400">
-                            This privacy policy applies to VapesHub. By using our services, you agree to the collection and use of information in accordance with this policy.
+                            This privacy policy applies to Banana Leaf Store. By using our services, you agree to the collection and use of information in accordance with this policy.
                         </p>
                     </div>
                 </motion.div>

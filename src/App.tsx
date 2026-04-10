@@ -148,7 +148,7 @@ export default function App() {
             setAiChatOpen(true);
             setAiMessages((prev) => {
                 if (prev.length > 0) return prev;
-                return [{ role: 'ai', text: "Hey! I'm BananaLeaf AI — tell me what flavors you usually like and I'll recommend your best match." }];
+                return [{ role: 'ai', text: "Hey! I'm Banana Leaf AI — tell me what flavors you usually like and I'll recommend your best match." }];
             });
         }
 
@@ -273,7 +273,7 @@ export default function App() {
             setAiChatOpen(true);
             setAiMessages((prev) => {
                 if (prev.length > 0) return prev;
-                return [{ role: 'ai', text: "Hey! I'm BananaLeaf AI — tell me what you're looking for and I'll find the perfect match! 🌿" }];
+                return [{ role: 'ai', text: "Hey! I'm Banana Leaf AI — tell me what you're looking for and I'll find the perfect match! 🌿" }];
             });
         }, 5000);
         return () => clearTimeout(timer);
@@ -309,7 +309,7 @@ export default function App() {
     const sendTestNotification = () => {
         if ('serviceWorker' in navigator && Notification.permission === 'granted') {
             navigator.serviceWorker.ready.then(registration => {
-                registration.showNotification('BananaLeaf Live Alert', {
+                registration.showNotification('Banana Leaf Store Live Alert', {
                     body: 'You have a new high-priority order from Ukiah, CA!',
                     icon: '/icon-512.png',
                     vibrate: [200, 100, 200]
@@ -841,12 +841,20 @@ export default function App() {
                         onClick={() => { setActiveTab('marketplace'); setSelectedProductId(null); setSearchQuery(''); }}
                         className="flex items-center gap-3 cursor-pointer group shrink-0"
                     >
-                        <div className="w-10 h-10 md:w-12 md:h-12 bg-slate-900 rounded-2xl flex items-center justify-center shadow-xl rotate-3 group-hover:rotate-12 transition-all">
-                            <Zap className="text-brand-primary w-6 h-6 md:w-7 md:h-7" />
-                        </div>
-                        <div className="flex flex-col">
-                            <span className="text-xl md:text-2xl font-black tracking-tighter uppercase italic leading-none">BananaLeaf<span className="text-brand-primary">.</span></span>
-                            <span className="text-[8px] font-black uppercase tracking-[0.3em] text-slate-400 mt-1">Industrial Market</span>
+                        <img
+                            src="/logo.png"
+                            alt="Banana Leaf Store"
+                            className="h-10 md:h-12 w-auto object-contain"
+                            onError={(e) => {
+                                const img = e.currentTarget;
+                                img.style.display = 'none';
+                                const fallback = img.nextElementSibling as HTMLElement | null;
+                                if (fallback) fallback.style.display = 'flex';
+                            }}
+                        />
+                        <div className="hidden flex-col">
+                            <span className="text-xl md:text-2xl font-black tracking-tighter uppercase italic leading-none">Banana Leaf<span className="text-brand-primary">.</span></span>
+                            <span className="text-[8px] font-black uppercase tracking-[0.3em] text-slate-400 mt-1">Store</span>
                         </div>
                     </div>
 
@@ -1331,7 +1339,7 @@ export default function App() {
                             ))}
                         </div>
 
-                        {/* BananaLeaf Intelligence Center - Multiple AI Bots */}
+                        {/* Banana Leaf Intelligence Center - Multiple AI Bots */}
                         <div className="bg-white p-8 md:p-12 premium-card">
                             <div className="flex items-center gap-6 mb-12">
                                 <div className="w-16 h-16 bg-brand-primary rounded-2xl flex items-center justify-center shadow-2xl shadow-brand-primary/20 rotate-3">
@@ -1407,7 +1415,7 @@ export default function App() {
 
                             <div className="mt-8 p-6 bg-brand-secondary text-white rounded-2xl flex flex-col md:flex-row items-center justify-between gap-6">
                                 <div className="space-y-2 text-center md:text-left">
-                                    <h4 className="text-lg font-black uppercase tracking-widest">Ask BananaLeaf Intelligence</h4>
+                                    <h4 className="text-lg font-black uppercase tracking-widest">Ask Banana Leaf Intelligence</h4>
                                     <p className="text-sm text-gray-300">Get custom reports or business advice from our AI network.</p>
                                 </div>
                                 <form onSubmit={handleVendorAiQuery} className="flex w-full md:w-auto gap-3">
@@ -1549,8 +1557,18 @@ export default function App() {
                             </div>
                             <div className="p-8 border-t border-white/5 bg-slate-950/50">
                                 <div className="flex items-center gap-3">
-                                    <Zap className="text-brand-primary w-5 h-5" />
-                                    <span className="text-lg font-black tracking-tighter text-white uppercase italic">BananaLeaf<span className="text-brand-primary">.</span></span>
+                                    <img
+                                        src="/logo.png"
+                                        alt="Banana Leaf Store"
+                                        className="h-8 w-auto object-contain brightness-0 invert"
+                                        onError={(e) => {
+                                            const img = e.currentTarget;
+                                            img.style.display = 'none';
+                                            const fallback = img.nextElementSibling as HTMLElement | null;
+                                            if (fallback) fallback.style.display = 'inline';
+                                        }}
+                                    />
+                                    <span className="hidden text-lg font-black tracking-tighter text-white uppercase italic">Banana Leaf<span className="text-brand-primary">.</span></span>
                                 </div>
                             </div>
                         </motion.div>
@@ -1684,7 +1702,7 @@ export default function App() {
                                         <Sparkles className="text-white w-5 h-5" />
                                     </div>
                                     <div className="flex flex-col">
-                                        <span className="text-white font-black uppercase tracking-tighter">BananaLeaf AI</span>
+                                        <span className="text-white font-black uppercase tracking-tighter">Banana Leaf AI</span>
                                         <div className="flex items-center gap-1.5">
                                             <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
                                             <span className="text-[9px] font-black uppercase tracking-widest text-slate-500">Neural Link Active</span>
@@ -1794,17 +1812,25 @@ export default function App() {
 
                 <div className="border-t border-white/5 py-16 flex flex-col items-center gap-8 bg-slate-950/50">
                     <div className="flex items-center gap-4 group cursor-pointer">
-                        <div className="w-12 h-12 bg-brand-primary rounded-2xl flex items-center justify-center shadow-2xl shadow-brand-primary/20 group-hover:rotate-12 transition-all">
-                            <Zap className="text-white w-7 h-7" />
-                        </div>
-                        <span className="text-3xl font-black tracking-tighter uppercase italic">BananaLeaf<span className="text-brand-primary">.</span></span>
+                        <img
+                            src="/logo.png"
+                            alt="Banana Leaf Store"
+                            className="h-12 w-auto object-contain brightness-0 invert"
+                            onError={(e) => {
+                                const img = e.currentTarget;
+                                img.style.display = 'none';
+                                const fallback = img.nextElementSibling as HTMLElement | null;
+                                if (fallback) fallback.style.display = 'inline';
+                            }}
+                        />
+                        <span className="hidden text-3xl font-black tracking-tighter uppercase italic">Banana Leaf<span className="text-brand-primary">.</span></span>
                     </div>
                     <div className="flex flex-wrap justify-center gap-10 text-[9px] font-black uppercase tracking-[0.3em] text-slate-500">
                         <span className="hover:text-white cursor-pointer transition-colors">Compliance Standards</span>
                         <span className="hover:text-white cursor-pointer transition-colors">Privacy Protocol</span>
                         <span className="hover:text-white cursor-pointer transition-colors">Ad-Synthesis</span>
                     </div>
-                    <p className="text-[9px] text-slate-600 font-black uppercase tracking-widest">© 2026, BANANALEAF.COM — BIOMETRIC AGE VERIFICATION ENFORCED.</p>
+                    <p className="text-[9px] text-slate-600 font-black uppercase tracking-widest">© 2026, BANANA-LEAF.STORE — BIOMETRIC AGE VERIFICATION ENFORCED.</p>
                 </div>
             </footer>
 

@@ -22,7 +22,7 @@
     /* Muted Gray */
     --color-price-red: #B12704;
     --color-star-gold: #FFA41C;
-    --color-link-blue: #007185;
+    --color-link-blue: #2D6A4F;
     --color-border: #E2E8F0;
 }
 
@@ -60,7 +60,7 @@
 }
 
 .amazon-button-primary {
-    @apply bg-brand-primary hover:bg-[#F3A847] text-text-primary font-black uppercase tracking-widest text-[10px] py-4 px-8 rounded-2xl border border-[#A88734] shadow-sm hover:translate-y-[-1px] active:translate-y-[0px] transition-all duration-300;
+    @apply bg-brand-primary hover:bg-[#74C69D] text-text-primary font-black uppercase tracking-widest text-[10px] py-4 px-8 rounded-2xl border border-[#2D6A4F] shadow-sm hover:translate-y-[-1px] active:translate-y-[0px] transition-all duration-300;
 }
 
 .amazon-button-secondary {

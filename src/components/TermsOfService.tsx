@@ -37,7 +37,7 @@ export default function TermsOfService({ onBack }: LegalPageProps) {
                     <section>
                         <h2 className="text-xl font-semibold mb-4">1. Acceptance of Terms</h2>
                         <p className="text-slate-300 leading-relaxed">
-                            By accessing and using VapesHub, you accept and agree to be bound by the terms and provision of this agreement.
+                            By accessing and using Banana Leaf Store, you accept and agree to be bound by the terms and provision of this agreement.
                             If you do not agree to abide by the above, please do not use this service.
                         </p>
                     </section>
@@ -45,7 +45,7 @@ export default function TermsOfService({ onBack }: LegalPageProps) {
                     <section>
                         <h2 className="text-xl font-semibold mb-4">2. Age Restrictions</h2>
                         <p className="text-slate-300 leading-relaxed">
-                            You must be at least 21 years old to use this service. VapesHub is committed to preventing underage access
+                            You must be at least 21 years old to use this service. Banana Leaf Store is committed to preventing underage access
                             to tobacco and vaping products. By using our service, you certify that you are of legal age in your jurisdiction.
                         </p>
                     </section>
@@ -94,7 +94,7 @@ export default function TermsOfService({ onBack }: LegalPageProps) {
                     <section>
                         <h2 className="text-xl font-semibold mb-4">8. Limitation of Liability</h2>
                         <p className="text-slate-300 leading-relaxed">
-                            VapesHub shall not be liable for any indirect, incidental, special, or consequential damages arising out of
+                            Banana Leaf Store shall not be liable for any indirect, incidental, special, or consequential damages arising out of
                             or in connection with your use of our service.
                         </p>
                     </section>
@@ -103,7 +103,7 @@ export default function TermsOfService({ onBack }: LegalPageProps) {
                         <h2 className="text-xl font-semibold mb-4">9. Governing Law</h2>
                         <p className="text-slate-300 leading-relaxed">
                             These terms shall be governed by and construed in accordance with the laws of the jurisdiction in which
-                            VapesHub operates, without regard to conflict of law provisions.
+                            Banana Leaf Store operates, without regard to conflict of law provisions.
                         </p>
                     </section>
 
@@ -117,7 +117,7 @@ export default function TermsOfService({ onBack }: LegalPageProps) {
 
                     <div className="mt-8 p-4 bg-slate-700 rounded-lg">
                         <p className="text-sm text-slate-400">
-                            For questions about these terms, please contact us at legal@vapeshub.com
+                            For questions about these terms, please contact us at legal@banana-leaf.store
                         </p>
                     </div>
                 </motion.div>

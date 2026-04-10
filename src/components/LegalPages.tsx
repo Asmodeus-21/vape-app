@@ -59,7 +59,7 @@ export default function LegalPages({ onBack }: LegalPagesProps) {
                             <h3 className="text-xl font-semibold">Terms of Service</h3>
                         </div>
                         <p className="text-slate-400 text-sm leading-relaxed">
-                            Our terms and conditions for using VapesHub services, including user responsibilities and service limitations.
+                            Our terms and conditions for using Banana Leaf Store services, including user responsibilities and service limitations.
                         </p>
                     </div>
 
@@ -98,7 +98,7 @@ export default function LegalPages({ onBack }: LegalPagesProps) {
                             If you have questions about our policies or need assistance, please contact us:
                         </p>
                         <div className="text-sm text-slate-300 space-y-1">
-                            <p>Email: legal@vapeshub.com</p>
+                            <p>Email: legal@banana-leaf.store</p>
                             <p>Phone: 1-800-VAPE-HUB</p>
                             <p>Hours: Monday-Friday, 9 AM - 6 PM PST</p>
                         </div>

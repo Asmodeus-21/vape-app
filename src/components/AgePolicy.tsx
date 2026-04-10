@@ -108,7 +108,7 @@ export default function AgePolicy({ onBack }: LegalPageProps) {
                     <section>
                         <h2 className="text-xl font-semibold mb-4">Legal Compliance</h2>
                         <p className="text-slate-300 leading-relaxed mb-3">
-                            VapesHub complies with all applicable laws and regulations regarding age-restricted sales:
+                            Banana Leaf Store complies with all applicable laws and regulations regarding age-restricted sales:
                         </p>
                         <ul className="list-disc list-inside text-slate-300 space-y-2">
                             <li>Federal Tobacco Control Act</li>
@@ -122,7 +122,7 @@ export default function AgePolicy({ onBack }: LegalPageProps) {
                         <h2 className="text-xl font-semibold mb-4">Reporting Violations</h2>
                         <p className="text-slate-300 leading-relaxed">
                             If you suspect that a minor is attempting to access or purchase age-restricted products,
-                            please report this immediately to our compliance team at compliance@vapeshub.com or call 1-800-VAPE-HUB.
+                            please report this immediately to our compliance team at compliance@banana-leaf.store or call 1-800-BANANA-1.
                         </p>
                     </section>
 
@@ -149,15 +149,15 @@ export default function AgePolicy({ onBack }: LegalPageProps) {
                             <span className="font-semibold">Contact Information</span>
                         </div>
                         <div className="text-sm text-slate-400 space-y-1">
-                            <p>For age verification questions: age-check@vapeshub.com</p>
-                            <p>For compliance reports: compliance@vapeshub.com</p>
-                            <p>Emergency hotline: 1-800-VAPE-HUB</p>
+                            <p>For age verification questions: age-check@banana-leaf.store</p>
+                            <p>For compliance reports: compliance@banana-leaf.store</p>
+                            <p>Emergency hotline: 1-800-BANANA-1</p>
                         </div>
                     </div>
 
                     <div className="mt-6 p-4 bg-green-500/10 border border-green-500/20 rounded-lg">
                         <p className="text-green-400 text-sm">
-                            By continuing to use VapesHub, you certify that you are 21 years of age or older and agree to comply with all age verification requirements.
+                            By continuing to use Banana Leaf Store, you certify that you are 21 years of age or older and agree to comply with all age verification requirements.
                         </p>
                     </div>
                 </motion.div>

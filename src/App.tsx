@@ -33,7 +33,6 @@ import { resolveCatalogImage } from '../shared/product-images';
 import AdminDashboard from './components/AdminDashboard';
 import AuthModal from './components/AuthModal';
 import CheckoutOverlay from './components/CheckoutOverlay';
-import FlavorExplorer from './components/FlavorExplorer';
 import ProductDetail from './components/ProductDetail';
 import VendorOrders from './components/VendorOrders';
 import VendorProductForm from './components/VendorProductForm';
@@ -82,39 +81,6 @@ interface MarketplaceEmptyStateProps {
     title: string;
     description: string;
     onReset: () => void;
-}
-
-interface CollectionPreviewTileProps {
-    label: string;
-    imageUrl: string;
-    meta?: string;
-    compact?: boolean;
-    displayMode?: 'image' | 'swatch';
-    gradientClassName?: string;
-    watermark?: string;
-}
-
-interface CollectionPreviewItem {
-    label: string;
-    imageUrl: string;
-    meta?: string;
-    displayMode: 'image' | 'swatch';
-    gradientClassName: string;
-    watermark: string;
-}
-
-const PREVIEW_GRADIENTS = [
-    'from-[#ff9a3d] via-[#ffc363] to-[#2b1706]',
-    'from-[#7dd3fc] via-[#2563eb] to-[#0f172a]',
-    'from-[#6ee7b7] via-[#0f766e] to-[#07141a]',
-    'from-[#f9a8d4] via-[#7c3aed] to-[#14091f]',
-    'from-[#facc15] via-[#ea580c] to-[#1c0f07]',
-    'from-[#c4b5fd] via-[#4f46e5] to-[#111827]',
-];
-
-function getPreviewGradient(seed: string): string {
-    const hash = Array.from(seed).reduce((total, char, index) => total + char.charCodeAt(0) * (index + 1), 0);
-    return PREVIEW_GRADIENTS[hash % PREVIEW_GRADIENTS.length];
 }
 
 const FALLBACK_DISCOUNT_PERCENT = {
@@ -302,135 +268,6 @@ function MarketplaceProductCard({ group, selectedVariant, onOpenProduct, onSelec
         </article>
     );
 }
-
-function CollectionPreviewTile({
-    label,
-    imageUrl,
-    meta,
-    compact = false,
-    displayMode = 'image',
-    gradientClassName,
-    watermark,
-}: CollectionPreviewTileProps) {
-    return (
-        <div className={`rounded-[1.5rem] border border-slate-200 bg-slate-50 p-3 transition-colors ${compact ? 'space-y-3' : 'space-y-4 bg-white'}`}>
-            {displayMode === 'swatch' ? (
-                <div className={`relative overflow-hidden rounded-[1.25rem] border border-white/10 bg-slate-900 ${compact ? 'aspect-square p-3' : 'aspect-[4/3] p-4'}`}>
-                    <div className={`absolute inset-0 bg-gradient-to-br ${gradientClassName ?? getPreviewGradient(label)}`} />
-                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.22),_transparent_42%)]" />
-                    <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.08) 1px, transparent 1px)', backgroundSize: '24px 24px' }} />
-                    <div className="relative flex h-full flex-col justify-between">
-                        <span className="text-[9px] font-black uppercase tracking-[0.3em] text-white/70">Curated Tone</span>
-                        <span className={`max-w-[80%] font-black uppercase tracking-[-0.04em] text-white/90 ${compact ? 'text-lg leading-none' : 'text-2xl leading-[0.9]'}`}>{watermark ?? label}</span>
-                    </div>
-                </div>
-            ) : (
-                <div className={`overflow-hidden rounded-[1.25rem] border border-slate-100 bg-white ${compact ? 'aspect-square p-3' : 'aspect-[4/3] p-4'}`}>
-                    <img src={imageUrl} alt={label} className="h-full w-full object-contain" loading="lazy" />
-                </div>
-            )}
-            <div className="space-y-1">
-                <p className={`font-black uppercase tracking-[0.14em] text-slate-900 ${compact ? 'text-[10px]' : 'text-[11px]'}`}>{label}</p>
-                {meta && <p className="text-[9px] font-black uppercase tracking-[0.18em] text-slate-400">{meta}</p>}
-            </div>
-        </div>
-    );
-}
-
-function normalizeCatalogValue(value: string): string {
-    return value
-        .toLowerCase()
-        .replace(/fcking/g, 'fucking')
-        .replace(/[^a-z0-9]+/g, '');
-}
-
-function tokenizeCatalogValue(value: string): string[] {
-    return value
-        .toLowerCase()
-        .replace(/fcking/g, 'fucking')
-        .split(/[^a-z0-9]+/)
-        .filter(Boolean);
-}
-
-function catalogBrandMatches(productBrand: string, requestedBrand: string): boolean {
-    const normalizedProductBrand = normalizeCatalogValue(productBrand);
-    const normalizedRequestedBrand = normalizeCatalogValue(requestedBrand);
-    return normalizedProductBrand.includes(normalizedRequestedBrand) || normalizedRequestedBrand.includes(normalizedProductBrand);
-}
-
-function catalogFlavorMatches(productFlavor: string, requestedFlavor: string): boolean {
-    const productTokens = new Set(tokenizeCatalogValue(productFlavor));
-    const requestedTokens = tokenizeCatalogValue(requestedFlavor);
-    return requestedTokens.every((token) => productTokens.has(token));
-}
-
-const FEATURED_SERIES = [
-    {
-        index: '01',
-        label: 'GEEKBAR // PULSE X',
-        brand: 'Geekbar Pulse X',
-        category: 'Disposables',
-        title: 'PULSE X SERIES',
-        description: 'The pinnacle of performance. Clean lines, deep flavor.',
-        featured: ['Miami Mint', 'Sour Fcking Fab', 'Strawberry B Burst'],
-        selection: ['Blackberry B Burst', 'Blue Rancher', 'Blue Razz Ice', 'Cool Mint', 'Strawberry Kiwi Ice', 'Pink Berry Lemonade', 'Pair of Thieves', 'Sour Straws', 'Orange Fcking Fab', 'Raspberry Jam', 'Blueberry Jam'],
-        search: 'Geekbar Pulse X',
-    },
-    {
-        index: '02',
-        label: 'FOGER // THE KITS',
-        brand: 'Foger Pods',
-        category: 'Disposables',
-        title: 'THE KITS',
-        description: 'Modular. Intuitive. Versatile.',
-        featured: ['Red Velvet Cupcake', 'Pineapple Coconut', 'Blue Ranger Blowup'],
-        selection: ['Sour Blue Dust', 'Miami Mint', 'OMG Blow Pop', 'Watermelon Bubblegum', 'Frozen Lemon', 'Gummy Bear', 'White Gummy', 'Triple Berry', 'Sour Apple Ice', 'Watermelon Ice', 'Kiwi Dragon Berry', 'Blueberry Watermelon', 'Gum Mint', 'Cool Mint'],
-        search: 'Foger Pods',
-    },
-    {
-        index: '03',
-        label: 'UTBAR // THE ORIGINALS',
-        brand: 'Utbar',
-        category: 'Disposables',
-        title: 'THE ORIGINALS',
-        description: 'Artisanal blends for the daily routine.',
-        featured: ['Root Vanilla Soda', 'Banana Smoothie Strawberry', 'Aloe Watermelon'],
-        selection: ['Cool Mint', 'Miami Mint', 'Mango Strawberry', 'Blue Red Ice', 'White Peach Lemon Head', 'Blue Razz Lemonade', 'Wildberry Drop', 'Passion Kiwi Pineapple', 'Watermelon Blow Pop', 'Blue Rancher Lemonade'],
-        search: 'Utbar',
-    },
-    {
-        index: '04',
-        label: 'FLUM MELLO // CLOUD SERIES',
-        brand: 'Flum Mello',
-        category: 'Disposables',
-        title: 'CLOUD SERIES',
-        description: 'Light. Vibrant. Effortless.',
-        featured: [],
-        selection: ['Watermelon Icy', 'Sour Apple Icy', 'Sour Mango Pineapple', 'Straw Melon', 'Watermelon Peach Lime', 'White Gummy', 'Cool Mint', 'Miami Mint'],
-        search: 'Flum Mello',
-    },
-] as const;
-
-const ESSENTIAL_SERIES = [
-    {
-        label: 'HYDROXIE // PRECISION SERIES',
-        brand: 'Hydroxie',
-        category: 'Supplements',
-        description: 'Calibrated for focus.',
-        rangeLabel: 'Available',
-        values: ['10-15mg', '10-30mg', '5-15mg', '5-30mg', '5-60mg'],
-        search: 'Hydroxie',
-    },
-    {
-        label: 'BLUES // STRENGTH SERIES',
-        brand: 'Blues',
-        category: 'Supplements',
-        description: 'Consistent quality in every concentration.',
-        rangeLabel: 'Range',
-        values: ['35mg', '55mg', '75mg', '100mg', '120mg'],
-        search: 'Blues',
-    },
-] as const;
 
 const FEATURE_BANNERS: readonly FeatureBanner[] = [
     {
@@ -1045,8 +882,7 @@ export default function App() {
     const scrollToFlavorExplorer = () => {
         focusMarketplaceSection({
             filter: activeFilter,
-            sectionId: 'flavor-explorer-section',
-            openAssistant: true,
+            sectionId: 'inventory-stream-section',
         });
     };
 
@@ -1100,16 +936,6 @@ export default function App() {
                 return aRank !== bRank ? aRank - bRank : a.parentName.localeCompare(b.parentName);
             });
     }, [sortedFilteredProducts, categoryOrder]);
-
-    const groupedParentVariantProducts = useMemo(() => {
-        return parentVariantGroups.reduce<Record<string, ParentVariantGroup[]>>((acc, group) => {
-            if (!acc[group.category]) {
-                acc[group.category] = [];
-            }
-            acc[group.category].push(group);
-            return acc;
-        }, {});
-    }, [parentVariantGroups]);
 
     useEffect(() => {
         setSelectedVariantByGroup((prev) => {
@@ -1169,54 +995,6 @@ export default function App() {
     }, [parentVariantGroups, selectedProductId]);
 
     const shouldShowProductsLoading = productsLoading;
-
-    const resolveCollectionPreviewItems = useCallback((brand: string, category: string, labels: string[]): CollectionPreviewItem[] => {
-        const seenImages = new Set<string>();
-
-        return labels.map((label) => {
-            const matchedProduct = products.find((product) => {
-                return catalogBrandMatches(product.brand, brand) && catalogFlavorMatches(product.flavor, label);
-            });
-
-            const imageUrl = resolveCatalogImage({
-                image: matchedProduct?.image,
-                brand: matchedProduct?.brand ?? brand,
-                category: matchedProduct?.category ?? category,
-                name: `${brand} ${label}`,
-            });
-
-            const gradientClassName = getPreviewGradient(`${brand}-${label}-${category}`);
-            const shouldUseSwatch = !matchedProduct || seenImages.has(imageUrl);
-
-            if (!shouldUseSwatch) {
-                seenImages.add(imageUrl);
-            }
-
-            return {
-                label,
-                meta: matchedProduct?.nicotine,
-                imageUrl,
-                displayMode: shouldUseSwatch ? 'swatch' : 'image',
-                gradientClassName,
-                watermark: label,
-            };
-        });
-    }, [products]);
-
-    const featuredSeriesWithImages = useMemo(() => {
-        return FEATURED_SERIES.map((card) => ({
-            ...card,
-            featuredItems: resolveCollectionPreviewItems(card.brand, card.category, [...card.featured]),
-            selectionItems: resolveCollectionPreviewItems(card.brand, card.category, [...card.selection]),
-        }));
-    }, [resolveCollectionPreviewItems]);
-
-    const essentialSeriesWithImages = useMemo(() => {
-        return ESSENTIAL_SERIES.map((series) => ({
-            ...series,
-            previewItems: resolveCollectionPreviewItems(series.brand, series.category, [...series.values]),
-        }));
-    }, [resolveCollectionPreviewItems]);
 
     return (
         <div className="min-h-screen flex flex-col bg-slate-50">
@@ -1336,7 +1114,7 @@ export default function App() {
                                     <button
                                         type="button"
                                         role="menuitem"
-                                        onClick={() => focusMarketplaceSection({ filter: 'all', sectionId: 'featured-series-section' })}
+                                        onClick={() => focusMarketplaceSection({ filter: 'all', sectionId: 'brand-showcase-section' })}
                                         className="flex w-full items-center justify-between rounded-[1.25rem] px-4 py-3 text-left text-[10px] font-black uppercase tracking-[0.22em] text-slate-900 transition-colors hover:bg-slate-100"
                                     >
                                         Shop The Collection
@@ -1409,7 +1187,7 @@ export default function App() {
                             </button>
                             {isCollectionMenuOpen && (
                                 <div role="menu" className="absolute right-0 top-full z-[70] mt-3 w-[270px] overflow-hidden rounded-[1.5rem] border border-slate-200 bg-white p-2 shadow-2xl shadow-slate-900/10">
-                                    <button type="button" role="menuitem" onClick={() => focusMarketplaceSection({ filter: 'all', sectionId: 'featured-series-section' })} className="flex w-full items-center justify-between rounded-xl px-4 py-3 text-left text-[10px] font-black uppercase tracking-[0.22em] text-slate-900 hover:bg-slate-100 transition-colors">Shop The Collection<ArrowRight className="h-4 w-4 text-slate-300" /></button>
+                                    <button type="button" role="menuitem" onClick={() => focusMarketplaceSection({ filter: 'all', sectionId: 'brand-showcase-section' })} className="flex w-full items-center justify-between rounded-xl px-4 py-3 text-left text-[10px] font-black uppercase tracking-[0.22em] text-slate-900 hover:bg-slate-100 transition-colors">Shop The Collection<ArrowRight className="h-4 w-4 text-slate-300" /></button>
                                     <button type="button" role="menuitem" onClick={() => focusMarketplaceSection({ filter: 'all', search: 'Geekbar Pulse X', sectionId: 'inventory-stream-section' })} className="flex w-full items-center justify-between rounded-xl px-4 py-3 text-left text-[10px] font-black uppercase tracking-[0.22em] text-slate-900 hover:bg-slate-100 transition-colors">Pulse X Series<ArrowRight className="h-4 w-4 text-slate-300" /></button>
                                     <button type="button" role="menuitem" onClick={scrollToFlavorExplorer} className="flex w-full items-center justify-between rounded-xl px-4 py-3 text-left text-[10px] font-black uppercase tracking-[0.22em] text-slate-900 hover:bg-slate-100 transition-colors">Start Your Session<ArrowRight className="h-4 w-4 text-slate-300" /></button>
                                     <button type="button" role="menuitem" onClick={() => focusMarketplaceSection({ filter: 'express', sectionId: 'shipping-logistics-section' })} className="flex w-full items-center justify-between rounded-xl px-4 py-3 text-left text-[10px] font-black uppercase tracking-[0.22em] text-slate-900 hover:bg-slate-100 transition-colors">Seamless Delivery<ArrowRight className="h-4 w-4 text-slate-300" /></button>
@@ -1495,219 +1273,28 @@ export default function App() {
                 </div>
             </header>
 
-            {activeTab === 'marketplace' && !selectedProductId && (
-                <section className="relative overflow-hidden bg-slate-950">
-                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(255,166,77,0.18),_transparent_32%),radial-gradient(circle_at_20%_80%,_rgba(14,165,233,0.14),_transparent_24%),radial-gradient(circle_at_80%_25%,_rgba(255,255,255,0.08),_transparent_18%)]" />
-                    <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.04)_0%,transparent_24%,transparent_76%,rgba(255,255,255,0.04)_100%)]" />
-                    <div className="relative mx-auto flex max-w-[1500px] flex-col items-center px-6 py-24 text-center md:px-10 md:py-32 lg:py-40">
-                        <span className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-5 py-2 text-[10px] font-black uppercase tracking-[0.42em] text-brand-primary">
-                            Banana Leaf Curated Collection
-                        </span>
-                        <div className="mt-8 max-w-5xl space-y-6 md:space-y-8">
-                            <h1 className="font-display text-5xl font-black uppercase tracking-[-0.08em] text-white md:text-7xl lg:text-[7rem] leading-[0.9]">
-                                Flavor, refined.
-                            </h1>
-                            <p className="mx-auto max-w-2xl text-sm font-medium leading-7 text-slate-300 md:text-xl md:leading-9">
-                                A tighter edit of premium disposables, modular kits, and everyday essentials chosen for clean finish, strong identity, and repeat-worthy flavor.
-                            </p>
-                        </div>
-                        <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
-                            <button
-                                onClick={() => focusMarketplaceSection({ filter: 'all', sectionId: 'featured-series-section' })}
-                                className="rounded-2xl bg-brand-primary px-8 py-4 text-[10px] font-black uppercase tracking-[0.35em] text-slate-950 shadow-xl shadow-brand-primary/20 transition-all hover:bg-white"
-                            >
-                                Shop The Collection
-                            </button>
-                            <button
-                                onClick={scrollToFlavorExplorer}
-                                className="rounded-2xl border border-white/10 bg-white/5 px-8 py-4 text-[10px] font-black uppercase tracking-[0.35em] text-white backdrop-blur-md transition-all hover:bg-white/10"
-                            >
-                                Start Your Session
-                            </button>
-                        </div>
-                        <div className="mt-14 grid w-full max-w-4xl grid-cols-1 gap-3 text-left md:grid-cols-3">
-                            {[
-                                { label: 'Pulse X', value: 'Layered mint, candy, and citrus signatures.' },
-                                { label: 'The Kits', value: 'Modular formats with a cleaner silhouette.' },
-                                { label: 'Ukiah Delivery', value: 'Local same-day flow for express orders.' },
-                            ].map((item) => (
-                                <div key={item.label} className="rounded-[1.75rem] border border-white/10 bg-white/5 px-5 py-5 backdrop-blur-md">
-                                    <p className="text-[10px] font-black uppercase tracking-[0.3em] text-brand-primary">{item.label}</p>
-                                    <p className="mt-3 text-sm leading-6 text-slate-300">{item.value}</p>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                </section>
-            )}
-
             {/* Main Content */}
             <main className="flex-1 max-w-[1500px] mx-auto w-full pb-12">
                 {activeTab === 'marketplace' && !selectedProductId && (
                     <div className="space-y-6">
-                        <section id="featured-series-section" className="px-4 pt-10 md:pt-14 space-y-8">
-                            <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-                                <div className="space-y-3 max-w-2xl">
-                                    <span className="text-brand-primary text-[10px] font-black uppercase tracking-[0.35em]">The Featured Series</span>
-                                    <h2 className="font-display text-3xl font-black tracking-[-0.06em] text-slate-900 md:text-5xl">An editorial cut of the flavors people come back for.</h2>
-                                </div>
-                                <button
-                                    type="button"
-                                    onClick={() => focusMarketplaceSection({ filter: 'all', sectionId: 'inventory-stream-section' })}
-                                    className="self-start md:self-auto px-5 py-3 bg-white border border-slate-200 text-slate-900 text-[10px] font-black uppercase tracking-[0.28em] rounded-2xl hover:border-brand-primary hover:text-brand-primary transition-all"
-                                >
-                                    Shop The Collection
-                                </button>
-                            </div>
-                            <div className="grid grid-cols-1 gap-6 xl:grid-cols-12">
-                                {featuredSeriesWithImages.map((card, index) => {
-                                    const featuredItems = card.featuredItems.slice(0, 3);
-                                    const selectionItems = card.selectionItems.slice(0, index === 0 ? 4 : 6);
-                                    const cardClassName = index === 0
-                                        ? 'xl:col-span-7 bg-slate-950 text-white border-white/10'
-                                        : index === 1
-                                            ? 'xl:col-span-5 bg-white text-slate-900 border-slate-200'
-                                            : index === 2
-                                                ? 'xl:col-span-5 bg-white text-slate-900 border-slate-200'
-                                                : 'xl:col-span-7 bg-[#111827] text-white border-white/10';
-                                    const isDarkCard = cardClassName.includes('text-white');
-
-                                    return (
-                                        <div
-                                            key={card.label}
-                                            onClick={() => focusMarketplaceSection({ filter: 'all', search: card.search, sectionId: 'inventory-stream-section' })}
-                                            className={`group relative flex h-full cursor-pointer flex-col gap-8 overflow-hidden rounded-[2.25rem] border p-8 shadow-xl shadow-slate-900/5 transition-all duration-500 hover:-translate-y-1 hover:border-brand-primary/30 md:p-10 ${cardClassName}`}
-                                        >
-                                            <div className={`absolute inset-0 ${isDarkCard ? 'bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.08),_transparent_30%)]' : 'bg-[radial-gradient(circle_at_top_right,_rgba(255,153,0,0.12),_transparent_32%)]'}`} />
-                                            <div className="relative space-y-6">
-                                                <div className="flex items-start justify-between gap-6">
-                                                    <div className="space-y-3">
-                                                        <span className="text-brand-primary text-[10px] font-black uppercase tracking-[0.32em]">{card.index}. {card.label}</span>
-                                                        <div className="space-y-3">
-                                                            <h3 className={`font-display text-2xl font-black uppercase tracking-[-0.05em] transition-colors md:text-4xl ${isDarkCard ? 'text-white group-hover:text-brand-primary' : 'text-slate-900 group-hover:text-brand-primary'}`}>{card.title}</h3>
-                                                            <p className={`max-w-xl text-sm leading-relaxed ${isDarkCard ? 'text-slate-300' : 'text-slate-500'}`}>{card.description}</p>
-                                                        </div>
-                                                    </div>
-                                                    <ArrowRight className={`h-5 w-5 shrink-0 transition-all group-hover:translate-x-1 group-hover:text-brand-primary ${isDarkCard ? 'text-white/40' : 'text-slate-300'}`} />
-                                                </div>
-                                                <div className="grid gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(240px,0.8fr)]">
-                                                    <div className="space-y-4">
-                                                        {featuredItems.length > 0 && (
-                                                            <>
-                                                                <p className={`text-[10px] font-black uppercase tracking-[0.28em] ${isDarkCard ? 'text-white/45' : 'text-slate-400'}`}>Featured</p>
-                                                                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                                                                    {featuredItems.map((item) => (
-                                                                        <CollectionPreviewTile
-                                                                            key={`${card.label}-${item.label}`}
-                                                                            label={item.label}
-                                                                            imageUrl={item.imageUrl}
-                                                                            meta={item.meta}
-                                                                            displayMode={item.displayMode}
-                                                                            gradientClassName={item.gradientClassName}
-                                                                            watermark={item.watermark}
-                                                                        />
-                                                                    ))}
-                                                                </div>
-                                                            </>
-                                                        )}
-                                                    </div>
-                                                    <div className={`rounded-[1.75rem] border p-5 ${isDarkCard ? 'border-white/10 bg-white/5' : 'border-slate-200 bg-slate-50'}`}>
-                                                        <div className="flex items-center justify-between">
-                                                            <p className={`text-[10px] font-black uppercase tracking-[0.28em] ${isDarkCard ? 'text-white/45' : 'text-slate-400'}`}>Selection</p>
-                                                            <span className={`text-[10px] font-black uppercase tracking-[0.2em] ${isDarkCard ? 'text-white/45' : 'text-slate-400'}`}>{selectionItems.length} tones</span>
-                                                        </div>
-                                                        <div className="mt-4 grid grid-cols-2 gap-3">
-                                                            {selectionItems.map((item) => (
-                                                                <CollectionPreviewTile
-                                                                    key={`${card.label}-${item.label}`}
-                                                                    label={item.label}
-                                                                    imageUrl={item.imageUrl}
-                                                                    meta={item.meta}
-                                                                    displayMode={item.displayMode}
-                                                                    gradientClassName={item.gradientClassName}
-                                                                    watermark={item.watermark}
-                                                                    compact
-                                                                />
-                                                            ))}
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <button
-                                                type="button"
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    focusMarketplaceSection({ filter: 'all', search: card.search, sectionId: 'inventory-stream-section' });
-                                                }}
-                                                className={`relative flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.28em] transition-colors ${isDarkCard ? 'text-white group-hover:text-brand-primary' : 'text-slate-900 group-hover:text-brand-primary'}`}
-                                            >
-                                                Shop {card.title} <ArrowRight className="w-4 h-4" />
-                                            </button>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        </section>
-
-                        <section className="mx-4 rounded-[2.25rem] border border-slate-200 bg-white p-8 shadow-sm space-y-8 md:p-10">
-                            <div className="space-y-3 md:max-w-3xl">
-                                <span className="text-brand-primary text-[10px] font-black uppercase tracking-[0.35em]">The Essentials</span>
-                                <h2 className="font-display text-3xl font-black tracking-[-0.06em] text-slate-900 md:text-4xl">Daily concentration, reduced to the cleanest formats.</h2>
-                            </div>
-                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                                {essentialSeriesWithImages.map((series) => (
-                                    <button
-                                        key={series.label}
-                                        type="button"
-                                        onClick={() => focusMarketplaceSection({ filter: 'all', search: series.search, sectionId: 'inventory-stream-section' })}
-                                        className="text-left rounded-[2rem] border border-slate-200 bg-slate-50 p-8 hover:bg-white hover:border-brand-primary/30 transition-all"
-                                    >
-                                        <div className="space-y-4">
-                                            <div className="space-y-2">
-                                                <p className="text-brand-primary text-[10px] font-black uppercase tracking-[0.3em]">{series.label}</p>
-                                                <p className="text-base text-slate-600 leading-relaxed">{series.description}</p>
-                                            </div>
-                                            <div className="space-y-3">
-                                                <p className="text-[10px] font-black uppercase tracking-[0.28em] text-slate-400">{series.rangeLabel}</p>
-                                                <div className="grid grid-cols-2 sm:grid-cols-2 xl:grid-cols-4 gap-3">
-                                                    {series.previewItems.slice(0, 4).map((item) => (
-                                                        <CollectionPreviewTile
-                                                            key={`${series.label}-${item.label}`}
-                                                            label={item.label}
-                                                            imageUrl={item.imageUrl}
-                                                            meta={item.meta}
-                                                            displayMode={item.displayMode}
-                                                            gradientClassName={item.gradientClassName}
-                                                            watermark={item.watermark}
-                                                            compact
-                                                        />
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </button>
-                                ))}
-                            </div>
-                        </section>
-
-                        <section className="mx-4 space-y-4">
+                        <section id="brand-showcase-section" className="mx-4 space-y-3 pt-3 md:pt-4">
                             {FEATURE_BANNERS.map((banner) => (
                                 <article
                                     key={banner.brand}
-                                    className="relative overflow-hidden rounded-[2rem] border border-slate-200 shadow-[0_14px_40px_rgba(15,23,42,0.08)]"
+                                    className="relative overflow-hidden rounded-[1.9rem] border border-slate-200 shadow-[0_16px_42px_rgba(15,23,42,0.1)]"
                                 >
                                     <div
                                         className="absolute inset-0 bg-cover bg-center"
                                         style={{
-                                            backgroundImage: `linear-gradient(90deg, rgba(15,23,42,0.92) 0%, rgba(15,23,42,0.78) 48%, rgba(15,23,42,0.38) 100%), url(${banner.backgroundImageUrl})`,
+                                            backgroundImage: `linear-gradient(92deg, rgba(15,23,42,0.96) 0%, rgba(15,23,42,0.84) 44%, rgba(15,23,42,0.48) 72%, rgba(15,23,42,0.24) 100%), url(${banner.backgroundImageUrl})`,
                                         }}
                                     />
-                                    <div className="relative grid gap-8 px-8 py-8 md:grid-cols-[minmax(0,1.1fr)_minmax(220px,0.9fr)] md:items-center md:px-10">
-                                        <div className="space-y-4 text-white">
-                                            <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[#8bd1ff]">{banner.brand}</p>
-                                            <div className="space-y-3">
-                                                <h3 className="text-3xl font-black tracking-[-0.05em] md:text-4xl">{banner.headline}</h3>
-                                                <p className="max-w-xl text-sm leading-7 text-slate-200 md:text-base">{banner.description}</p>
+                                    <div className="relative grid min-h-[268px] gap-6 px-6 py-6 sm:px-7 md:min-h-[296px] md:grid-cols-[minmax(0,1.08fr)_minmax(240px,0.92fr)] md:items-center md:px-10 md:py-8 lg:min-h-[320px] lg:px-12">
+                                        <div className="space-y-3 text-white md:max-w-[35rem]">
+                                            <p className="text-[10px] font-black uppercase tracking-[0.34em] text-[#8bd1ff]">{banner.brand}</p>
+                                            <div className="space-y-2.5">
+                                                <h3 className="max-w-[11ch] text-[2.05rem] font-black leading-[0.92] tracking-[-0.07em] text-white md:text-[2.6rem] lg:text-[3.1rem]">{banner.headline}</h3>
+                                                <p className="max-w-[34rem] text-[0.92rem] leading-6 text-slate-200 md:text-[0.98rem] md:leading-7">{banner.description}</p>
                                             </div>
                                             <button
                                                 type="button"
@@ -1717,18 +1304,18 @@ export default function App() {
                                                     category: banner.category,
                                                     sectionId: 'inventory-stream-section',
                                                 })}
-                                                className="juicefly-action-button"
+                                                className="inline-flex h-11 items-center justify-center rounded-[0.9rem] bg-[#4AB1F4] px-5 text-[11px] font-black uppercase tracking-[0.18em] text-white transition-colors hover:bg-[#2f9ce5]"
                                             >
                                                 Claim Deal
                                             </button>
                                         </div>
 
-                                        <div className="flex justify-center md:justify-end">
-                                            <div className="rounded-[1.5rem] bg-white/8 p-4 backdrop-blur-sm">
+                                        <div className="flex items-center justify-center md:justify-end">
+                                            <div className="flex h-[184px] w-[184px] items-center justify-center rounded-[1.55rem] border border-slate-100 bg-white p-4 shadow-[0_20px_50px_rgba(15,23,42,0.22)] md:h-[216px] md:w-[216px] md:p-5 lg:h-[236px] lg:w-[236px]">
                                                 <img
                                                     src={banner.imageUrl}
                                                     alt={`${banner.brand} promotional device`}
-                                                    className="h-[170px] w-[170px] object-contain md:h-[210px] md:w-[210px]"
+                                                    className="h-full w-full object-contain"
                                                     loading="lazy"
                                                 />
                                             </div>
@@ -1745,9 +1332,9 @@ export default function App() {
                                         <TrendingUp className="text-brand-primary w-6 h-6" />
                                     </div>
                                     <div className="flex flex-col">
-                                        <span className="text-brand-primary text-[10px] font-black uppercase tracking-[0.3em] mb-1">Shop The Collection</span>
+                                        <span className="text-brand-primary text-[10px] font-black uppercase tracking-[0.3em] mb-1">Most Popular</span>
                                         <h3 className="text-2xl md:text-3xl font-black uppercase tracking-tighter text-slate-900">
-                                            {activeFilter === 'all' ? (searchQuery.trim() ? `${searchQuery.trim()} Collection` : 'All Series') :
+                                            {activeFilter === 'all' ? (searchQuery.trim() ? `${searchQuery.trim()} Collection` : 'Most Popular') :
                                                 activeFilter === 'bestsellers' ? 'Bestsellers' :
                                                     activeFilter === 'newarrivals' ? 'New Arrivals' :
                                                         'Seamless Delivery'}
@@ -1763,9 +1350,9 @@ export default function App() {
                                     </button>
                                 )}
                             </div>
-                            <div className="flex gap-8 overflow-x-auto pb-8 scrollbar-hide px-2">
+                            <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                                 {shouldShowProductsLoading ? (
-                                    <div className="w-full py-20 text-center bg-slate-50 rounded-[2rem] border border-dashed border-slate-100 flex items-center justify-center gap-3">
+                                    <div className="col-span-full w-full py-20 text-center bg-slate-50 rounded-[2rem] border border-dashed border-slate-100 flex items-center justify-center gap-3">
                                         <Loader2 className="w-5 h-5 animate-spin text-brand-primary" />
                                         <span className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-500">Loading Collection...</span>
                                     </div>
@@ -1774,7 +1361,7 @@ export default function App() {
                                         const selectedVariant = getSelectedVariant(group);
 
                                         return (
-                                            <div key={group.key} className="min-w-[290px] max-w-[290px]">
+                                            <div key={group.key}>
                                                 <MarketplaceProductCard
                                                     group={group}
                                                     selectedVariant={selectedVariant}
@@ -1795,68 +1382,6 @@ export default function App() {
                         </section>
 
                         <div id="shipping-logistics-section" className="h-0 w-full" aria-hidden="true" />
-
-                        {/* AI Flavor Explorer - Amazon Style Integration */}
-                        <div className="mx-4" id="flavor-explorer-section">
-                            <FlavorExplorer />
-                        </div>
-
-                        <section className="bg-white mx-4 p-10 border border-slate-100 rounded-[2.5rem] shadow-sm">
-                            <div className="flex items-center justify-between mb-12">
-                                <div className="flex items-center gap-4">
-                                    <div className="w-12 h-12 bg-brand-primary rounded-2xl flex items-center justify-center shadow-lg shadow-brand-primary/20">
-                                        <Sparkles className="text-white w-6 h-6" />
-                                    </div>
-                                    <div className="flex flex-col">
-                                        <span className="text-brand-primary text-[10px] font-black uppercase tracking-[0.3em] mb-1">Curated Picks</span>
-                                        <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tighter">
-                                            {activeFilter === 'all' ? 'More To Explore' : 'Related Flavors'}
-                                        </h3>
-                                    </div>
-                                </div>
-                                <div className="hidden md:flex items-center gap-8 text-[10px] font-black uppercase tracking-widest text-slate-400">
-                                    <span className="hover:text-brand-primary cursor-pointer transition-colors">By Brand</span>
-                                    <span className="hover:text-brand-primary cursor-pointer transition-colors">By Rating</span>
-                                    <span className="hover:text-brand-primary cursor-pointer transition-colors">By Flavor</span>
-                                </div>
-                            </div>
-                            <div className="space-y-12">
-                                {shouldShowProductsLoading ? (
-                                    <div className="w-full py-16 text-center bg-slate-50 rounded-[2rem] border border-dashed border-slate-100 flex items-center justify-center gap-3">
-                                        <Loader2 className="w-5 h-5 animate-spin text-brand-primary" />
-                                        <span className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-500">Loading Collection...</span>
-                                    </div>
-                                ) : Object.keys(groupedParentVariantProducts).length === 0 ? (
-                                    <MarketplaceEmptyState
-                                        title={emptyStateTitle}
-                                        description={emptyStateDescription}
-                                        onReset={resetMarketplaceFilters}
-                                    />
-                                ) : Object.entries(groupedParentVariantProducts).map(([category, groups]) => (
-                                    <section key={category} className="space-y-6">
-                                        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                                            <h4 className="text-base md:text-lg font-black uppercase tracking-[0.18em] text-slate-900">{category}</h4>
-                                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">{groups.length} products</span>
-                                        </div>
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-10">
-                                            {groups.map(group => {
-                                                const selectedVariant = getSelectedVariant(group);
-
-                                                return (
-                                                    <MarketplaceProductCard
-                                                        key={group.key}
-                                                        group={group}
-                                                        selectedVariant={selectedVariant}
-                                                        onOpenProduct={() => setSelectedProductId(selectedVariant.id)}
-                                                        onSelectVariant={(variantId) => setSelectedVariantByGroup((prev) => ({ ...prev, [group.key]: variantId }))}
-                                                    />
-                                                );
-                                            })}
-                                        </div>
-                                    </section>
-                                ))}
-                            </div>
-                        </section>
                     </div>
                 )}
 
@@ -2108,7 +1633,7 @@ export default function App() {
                                 <div className="space-y-6">
                                     <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-brand-primary">Explore</h3>
                                     <ul className="space-y-5">
-                                        <li className="flex items-center justify-between text-white font-black uppercase tracking-widest text-xs hover:text-brand-primary cursor-pointer transition-colors" onClick={() => { focusMarketplaceSection({ filter: 'all', sectionId: 'featured-series-section' }); setIsMenuOpen(false); }}>
+                                        <li className="flex items-center justify-between text-white font-black uppercase tracking-widest text-xs hover:text-brand-primary cursor-pointer transition-colors" onClick={() => { focusMarketplaceSection({ filter: 'all', sectionId: 'brand-showcase-section' }); setIsMenuOpen(false); }}>
                                             Shop The Collection <ChevronRight className="w-4 h-4 text-slate-500" />
                                         </li>
                                         <li className="flex items-center justify-between text-white font-black uppercase tracking-widest text-xs hover:text-brand-primary cursor-pointer transition-colors" onClick={() => { focusMarketplaceSection({ filter: 'express', sectionId: 'shipping-logistics-section' }); setIsMenuOpen(false); }}>

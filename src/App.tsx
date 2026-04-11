@@ -58,6 +58,24 @@ interface ProductCardImageProps {
     brand: string;
     category: string;
     isExpressDelivery: boolean;
+    salePercent?: number;
+}
+
+interface MarketplaceProductCardProps {
+    group: ParentVariantGroup;
+    selectedVariant: Product;
+    onOpenProduct: () => void;
+    onSelectVariant: (variantId: number) => void;
+}
+
+interface FeatureBanner {
+    brand: string;
+    headline: string;
+    description: string;
+    imageUrl: string;
+    backgroundImageUrl: string;
+    search?: string;
+    category?: string;
 }
 
 interface MarketplaceEmptyStateProps {
@@ -99,6 +117,13 @@ function getPreviewGradient(seed: string): string {
     return PREVIEW_GRADIENTS[hash % PREVIEW_GRADIENTS.length];
 }
 
+const FALLBACK_DISCOUNT_PERCENT = {
+    bestSeller: 17,
+    newArrival: 15,
+    expressDelivery: 12,
+    standard: 10,
+} as const;
+
 interface ProductRouteParams {
     tag?: string;
     category?: string;
@@ -135,7 +160,7 @@ function buildProductsUrl(params?: ProductRouteParams): string {
     return `/products${search ? `?${search}` : ''}`;
 }
 
-function ProductCardImage({ imageUrl, productName, brand, category, isExpressDelivery }: ProductCardImageProps) {
+function ProductCardImage({ imageUrl, productName, brand, category, isExpressDelivery, salePercent = 0 }: ProductCardImageProps) {
     const resolvedCatalogImage = useMemo(() => resolveCatalogImage({ image: imageUrl, name: productName, brand, category }), [imageUrl, productName, brand, category]);
     const [currentImageUrl, setCurrentImageUrl] = useState(resolvedCatalogImage);
 
@@ -144,9 +169,8 @@ function ProductCardImage({ imageUrl, productName, brand, category, isExpressDel
     }, [resolvedCatalogImage]);
 
     return (
-        <div className="aspect-[1/1] bg-slate-50 rounded-3xl border border-slate-100 group-hover:border-brand-primary/30 group-hover:bg-white transition-all duration-500 shadow-sm relative isolate overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-br from-brand-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-            <div className="absolute inset-0 flex items-center justify-center p-8">
+        <div className="relative isolate overflow-hidden rounded-[1.25rem] border border-[#ebedf0] bg-white shadow-sm">
+            <div className="aspect-square flex items-center justify-center p-6">
                 <img
                     src={currentImageUrl}
                     alt={productName}
@@ -156,16 +180,126 @@ function ProductCardImage({ imageUrl, productName, brand, category, isExpressDel
                             setCurrentImageUrl(resolvedCatalogImage);
                         }
                     }}
-                    className="h-full w-full object-contain group-hover:scale-110 transition-transform duration-700 relative z-10"
+                    className="h-full w-full object-contain transition-transform duration-500 group-hover:scale-105"
                 />
             </div>
+            {salePercent > 0 && (
+                <div className="absolute left-3 top-3 z-20 rounded-full bg-emerald-500 px-2.5 py-1 text-[10px] font-black text-white shadow-sm" aria-label={`Sale: ${salePercent}% off`}>
+                    -{salePercent}%
+                </div>
+            )}
             {isExpressDelivery && (
-                <div className="absolute top-2 right-2 z-30 bg-slate-900/95 border border-white/10 px-2 py-1 rounded-lg flex items-center gap-1.5 shadow-xl">
-                    <Zap className="w-3 h-3 text-brand-primary" />
-                    <span className="text-[9px] font-black uppercase tracking-widest text-white">Express</span>
+                <div className="absolute right-3 top-3 z-20 flex items-center gap-1.5 rounded-full border border-slate-200 bg-white/95 px-2.5 py-1 shadow-sm">
+                    <Zap className="w-3 h-3 text-[#4AB1F4]" />
+                    <span className="text-[9px] font-black uppercase tracking-[0.14em] text-slate-700">Express</span>
                 </div>
             )}
         </div>
+    );
+}
+
+function getDisplayOriginalPrice(product: Product): number {
+    if (typeof product.originalPrice === 'number' && product.originalPrice > product.price) {
+        return Number(product.originalPrice.toFixed(2));
+    }
+
+    const fallbackDiscount = product.isBestSeller
+        ? FALLBACK_DISCOUNT_PERCENT.bestSeller
+        : product.isNewArrival
+            ? FALLBACK_DISCOUNT_PERCENT.newArrival
+            : product.isExpressDelivery
+                ? FALLBACK_DISCOUNT_PERCENT.expressDelivery
+                : FALLBACK_DISCOUNT_PERCENT.standard;
+
+    return Number((product.price / (1 - fallbackDiscount / 100)).toFixed(2));
+}
+
+function getSalePercentage(product: Product): number {
+    const originalPrice = getDisplayOriginalPrice(product);
+    return Math.max(0, Math.round(((originalPrice - product.price) / originalPrice) * 100));
+}
+
+function isHighDemandProduct(product: Product): boolean {
+    return Boolean(product.isBestSeller || product.isNewArrival || product.stockQty <= 150);
+}
+
+function MarketplaceProductCard({ group, selectedVariant, onOpenProduct, onSelectVariant }: MarketplaceProductCardProps) {
+    const originalPrice = getDisplayOriginalPrice(selectedVariant);
+    const salePercentage = getSalePercentage(selectedVariant);
+    const flavorCategoryLabel = `${selectedVariant.flavor} ${group.category || 'Vapes'}`.trim().toUpperCase();
+
+    return (
+        <article
+            onClick={onOpenProduct}
+            className="group flex min-h-full cursor-pointer flex-col gap-4 rounded-[1.5rem] border border-[#e8ebef] bg-white p-4 shadow-[0_10px_30px_rgba(15,23,42,0.05)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_18px_42px_rgba(15,23,42,0.08)]"
+        >
+            <ProductCardImage
+                imageUrl={selectedVariant.image}
+                productName={group.parentName}
+                brand={group.brand}
+                category={group.category}
+                isExpressDelivery={selectedVariant.isExpressDelivery}
+                salePercent={salePercentage}
+            />
+
+            <div className="flex min-h-[250px] flex-col gap-4">
+                <div className="space-y-2">
+                    <p className="line-clamp-1 text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">{flavorCategoryLabel}</p>
+                    <h4 className="line-clamp-2 text-base font-bold leading-6 text-slate-950">{group.parentName}</h4>
+                    {isHighDemandProduct(selectedVariant) && (
+                        <span className="juicefly-stock-pill" role="status" aria-live="polite">Limited Stock!</span>
+                    )}
+                </div>
+
+                <div className="flex min-h-[44px] items-center gap-2 overflow-x-auto pr-1 scrollbar-hide">
+                    {group.variants.map((variant) => {
+                        const isSelected = variant.id === selectedVariant.id;
+                        return (
+                            <button
+                                key={variant.id}
+                                type="button"
+                                onClick={(event) => {
+                                    event.stopPropagation();
+                                    onSelectVariant(variant.id);
+                                }}
+                                className={`shrink-0 rounded-full border px-3 py-1 text-[9px] font-black uppercase tracking-[0.14em] transition-all ${isSelected ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 bg-slate-50 text-slate-500 hover:border-[#4AB1F4] hover:text-[#4AB1F4]'}`}
+                            >
+                                {variant.flavor}
+                            </button>
+                        );
+                    })}
+                </div>
+
+                <div className="flex items-center gap-2">
+                    <div className="flex text-[#FFA41C]" aria-label={`Rated ${selectedVariant.rating} out of 5 stars`}>
+                        {[...Array(5)].map((_, index) => (
+                            <Star
+                                key={index}
+                                aria-hidden="true"
+                                className={`h-3.5 w-3.5 fill-current ${index < Math.round(selectedVariant.rating) ? '' : 'text-slate-200'}`}
+                            />
+                        ))}
+                    </div>
+                    <span className="text-[11px] font-semibold text-slate-500">({selectedVariant.reviews})</span>
+                </div>
+
+                <div className="flex items-baseline gap-2.5">
+                    <span className="text-sm font-semibold text-slate-400 line-through">${originalPrice.toFixed(2)}</span>
+                    <span className="text-2xl font-black tracking-tight text-[#4AB1F4]">${selectedVariant.price.toFixed(2)}</span>
+                </div>
+
+                <button
+                    type="button"
+                    onClick={(event) => {
+                        event.stopPropagation();
+                        onOpenProduct();
+                    }}
+                    className="juicefly-action-button mt-auto w-full justify-center"
+                >
+                    Select Options
+                </button>
+            </div>
+        </article>
     );
 }
 
@@ -295,6 +429,33 @@ const ESSENTIAL_SERIES = [
         rangeLabel: 'Range',
         values: ['35mg', '55mg', '75mg', '100mg', '120mg'],
         search: 'Blues',
+    },
+] as const;
+
+const FEATURE_BANNERS: readonly FeatureBanner[] = [
+    {
+        brand: 'Geek Bar',
+        headline: 'Geek Bar from $21.90',
+        description: 'Layered mint, candy, and citrus profiles with a premium disposable finish.',
+        imageUrl: '/images/geek-bar-pulse-x-25000-clear.jpg',
+        backgroundImageUrl: '/images/geek-bar-pulse-x-25000-clear.jpg',
+        search: 'Geekbar Pulse X',
+    },
+    {
+        brand: 'Flum',
+        headline: 'Flum from $19.92',
+        description: 'Bright, fruit-forward all-day picks with the soft silhouette customers recognize.',
+        imageUrl: '/images/devices/elf-bar-bc5000.png',
+        backgroundImageUrl: '/images/devices/elf-bar-bc5000.png',
+        search: 'Flum Mello',
+    },
+    {
+        brand: 'RAZ',
+        headline: 'RAZ from $22.50',
+        description: 'A moody, modern disposable edit styled for high-conversion deal framing.',
+        imageUrl: '/images/devices/pngtree-a-sleek-vaping-device-with-transparent-tank-glowing-orange-light-and-png-image_15912369.png',
+        backgroundImageUrl: '/images/devices/geekvape-aegis-legend.jpg',
+        category: 'Disposables',
     },
 ] as const;
 
@@ -1529,6 +1690,54 @@ export default function App() {
                             </div>
                         </section>
 
+                        <section className="mx-4 space-y-4">
+                            {FEATURE_BANNERS.map((banner) => (
+                                <article
+                                    key={banner.brand}
+                                    className="relative overflow-hidden rounded-[2rem] border border-slate-200 shadow-[0_14px_40px_rgba(15,23,42,0.08)]"
+                                >
+                                    <div
+                                        className="absolute inset-0 bg-cover bg-center"
+                                        style={{
+                                            backgroundImage: `linear-gradient(90deg, rgba(15,23,42,0.92) 0%, rgba(15,23,42,0.78) 48%, rgba(15,23,42,0.38) 100%), url(${banner.backgroundImageUrl})`,
+                                        }}
+                                    />
+                                    <div className="relative grid gap-8 px-8 py-8 md:grid-cols-[minmax(0,1.1fr)_minmax(220px,0.9fr)] md:items-center md:px-10">
+                                        <div className="space-y-4 text-white">
+                                            <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[#8bd1ff]">{banner.brand}</p>
+                                            <div className="space-y-3">
+                                                <h3 className="text-3xl font-black tracking-[-0.05em] md:text-4xl">{banner.headline}</h3>
+                                                <p className="max-w-xl text-sm leading-7 text-slate-200 md:text-base">{banner.description}</p>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => focusMarketplaceSection({
+                                                    filter: 'all',
+                                                    search: banner.search,
+                                                    category: banner.category,
+                                                    sectionId: 'inventory-stream-section',
+                                                })}
+                                                className="juicefly-action-button"
+                                            >
+                                                Claim Deal
+                                            </button>
+                                        </div>
+
+                                        <div className="flex justify-center md:justify-end">
+                                            <div className="rounded-[1.5rem] bg-white/8 p-4 backdrop-blur-sm">
+                                                <img
+                                                    src={banner.imageUrl}
+                                                    alt={`${banner.brand} promotional device`}
+                                                    className="h-[170px] w-[170px] object-contain md:h-[210px] md:w-[210px]"
+                                                    loading="lazy"
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </article>
+                            ))}
+                        </section>
+
                         <section id="inventory-stream-section" className="bg-white mx-4 p-8 md:p-12 border border-slate-100 rounded-[2.5rem] shadow-sm">
                             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
                                 <div className="flex items-center gap-4">
@@ -1565,56 +1774,13 @@ export default function App() {
                                         const selectedVariant = getSelectedVariant(group);
 
                                         return (
-                                            <div key={group.key} onClick={() => setSelectedProductId(selectedVariant.id)} className="min-w-[300px] max-w-[300px] flex flex-col gap-4 cursor-pointer group">
-                                                <ProductCardImage imageUrl={selectedVariant.image} productName={group.parentName} brand={group.brand} category={group.category} isExpressDelivery={selectedVariant.isExpressDelivery} />
-                                                <div className="space-y-4 px-1 min-h-[260px] flex flex-col">
-                                                    <div className="flex flex-col">
-                                                        <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1">{group.category || 'Hardware'}</span>
-                                                        <h4 className="text-base font-black text-slate-900 line-clamp-2 group-hover:text-brand-primary transition-colors leading-tight uppercase tracking-tight">{group.parentName}</h4>
-                                                        <span className="text-[10px] font-black uppercase tracking-wider text-brand-primary mt-1 line-clamp-1">{selectedVariant.flavor} • {selectedVariant.nicotine}</span>
-                                                    </div>
-                                                    <div className="h-12 flex items-center gap-2 overflow-x-auto scrollbar-hide pr-1">
-                                                        {group.variants.map((variant) => {
-                                                            const isSelected = variant.id === selectedVariant.id;
-                                                            return (
-                                                                <button
-                                                                    key={variant.id}
-                                                                    type="button"
-                                                                    onClick={(event) => {
-                                                                        event.stopPropagation();
-                                                                        setSelectedVariantByGroup((prev) => ({ ...prev, [group.key]: variant.id }));
-                                                                    }}
-                                                                    className={`shrink-0 rounded-full border px-3 py-1 text-[9px] font-black uppercase tracking-widest transition-all ${isSelected ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 bg-slate-50 text-slate-500 hover:border-brand-primary hover:text-brand-primary'}`}
-                                                                >
-                                                                    {variant.flavor}
-                                                                </button>
-                                                            );
-                                                        })}
-                                                    </div>
-                                                    <div className="flex items-center gap-2">
-                                                        <div className="flex text-amber-400">
-                                                            {[...Array(5)].map((_, i) => (
-                                                                <Star key={i} className={`w-3 h-3 fill-current ${i < Math.floor(selectedVariant.rating) ? '' : 'text-slate-200'}`} />
-                                                            ))}
-                                                        </div>
-                                                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">({selectedVariant.reviews})</span>
-                                                    </div>
-                                                    <div className="flex items-baseline gap-1 pt-1">
-                                                        <span className="text-xs font-black text-slate-900">$</span>
-                                                        <span className="text-2xl font-black text-slate-900 tracking-tighter">{Math.floor(selectedVariant.price)}</span>
-                                                        <span className="text-[10px] font-black text-slate-500 align-top">.{(selectedVariant.price % 1).toFixed(2).split('.')[1]}</span>
-                                                    </div>
-                                                    <button
-                                                        type="button"
-                                                        onClick={(event) => {
-                                                            event.stopPropagation();
-                                                            addToCart(selectedVariant, 1, { flavor: selectedVariant.flavor, nicotine: selectedVariant.nicotine });
-                                                        }}
-                                                        className="mt-auto w-full py-3 bg-slate-100 hover:bg-slate-900 hover:text-white text-[10px] font-black uppercase tracking-[0.2em] rounded-xl transition-all duration-300 border border-slate-200 group-hover:border-slate-900"
-                                                    >
-                                                        Add To Bag
-                                                    </button>
-                                                </div>
+                                            <div key={group.key} className="min-w-[290px] max-w-[290px]">
+                                                <MarketplaceProductCard
+                                                    group={group}
+                                                    selectedVariant={selectedVariant}
+                                                    onOpenProduct={() => setSelectedProductId(selectedVariant.id)}
+                                                    onSelectVariant={(variantId) => setSelectedVariantByGroup((prev) => ({ ...prev, [group.key]: variantId }))}
+                                                />
                                             </div>
                                         );
                                     })
@@ -1677,57 +1843,13 @@ export default function App() {
                                                 const selectedVariant = getSelectedVariant(group);
 
                                                 return (
-                                                    <div key={group.key} onClick={() => setSelectedProductId(selectedVariant.id)} className="flex flex-col gap-5 group cursor-pointer">
-                                                        <ProductCardImage imageUrl={selectedVariant.image} productName={group.parentName} brand={group.brand} category={group.category} isExpressDelivery={selectedVariant.isExpressDelivery} />
-                                                        <div className="space-y-4 px-1 min-h-[260px] flex flex-col">
-                                                            <div className="flex flex-col">
-                                                                <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1">{group.category || 'Hardware'}</span>
-                                                                <h4 className="text-base font-black text-slate-900 line-clamp-2 group-hover:text-brand-primary transition-colors leading-tight uppercase tracking-tight">{group.parentName}</h4>
-                                                                <span className="text-[10px] font-black uppercase tracking-wider text-brand-primary mt-1 line-clamp-1">{selectedVariant.flavor} • {selectedVariant.nicotine}</span>
-                                                            </div>
-                                                            <div className="h-12 flex items-center gap-2 overflow-x-auto scrollbar-hide pr-1">
-                                                                {group.variants.map((variant) => {
-                                                                    const isSelected = variant.id === selectedVariant.id;
-                                                                    return (
-                                                                        <button
-                                                                            key={variant.id}
-                                                                            type="button"
-                                                                            onClick={(event) => {
-                                                                                event.stopPropagation();
-                                                                                setSelectedVariantByGroup((prev) => ({ ...prev, [group.key]: variant.id }));
-                                                                            }}
-                                                                            className={`shrink-0 rounded-full border px-3 py-1 text-[9px] font-black uppercase tracking-widest transition-all ${isSelected ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 bg-slate-50 text-slate-500 hover:border-brand-primary hover:text-brand-primary'}`}
-                                                                        >
-                                                                            {variant.flavor}
-                                                                        </button>
-                                                                    );
-                                                                })}
-                                                            </div>
-                                                            <div className="flex items-center justify-between pt-1">
-                                                                <div className="flex items-baseline gap-1">
-                                                                    <span className="text-xs font-black text-slate-900">$</span>
-                                                                    <span className="text-2xl font-black text-slate-900 tracking-tighter">{Math.floor(selectedVariant.price)}</span>
-                                                                    <span className="text-[10px] font-black text-slate-500">.{(selectedVariant.price % 1).toFixed(2).split('.')[1]}</span>
-                                                                </div>
-                                                                <div className="flex items-center gap-1.5">
-                                                                    <div className="flex text-amber-400">
-                                                                        <Star className="w-3.5 h-3.5 fill-current" />
-                                                                    </div>
-                                                                    <span className="text-[11px] font-black text-slate-900 uppercase tracking-tight">{selectedVariant.rating}</span>
-                                                                </div>
-                                                            </div>
-                                                            <button
-                                                                type="button"
-                                                                onClick={(event) => {
-                                                                    event.stopPropagation();
-                                                                    addToCart(selectedVariant, 1, { flavor: selectedVariant.flavor, nicotine: selectedVariant.nicotine });
-                                                                }}
-                                                                className="mt-auto w-full py-3 bg-slate-100 hover:bg-slate-900 hover:text-white text-[10px] font-black uppercase tracking-[0.2em] rounded-xl transition-all duration-300 border border-slate-200 group-hover:border-slate-900"
-                                                            >
-                                                                Add To Bag
-                                                            </button>
-                                                        </div>
-                                                    </div>
+                                                    <MarketplaceProductCard
+                                                        key={group.key}
+                                                        group={group}
+                                                        selectedVariant={selectedVariant}
+                                                        onOpenProduct={() => setSelectedProductId(selectedVariant.id)}
+                                                        onSelectVariant={(variantId) => setSelectedVariantByGroup((prev) => ({ ...prev, [group.key]: variantId }))}
+                                                    />
                                                 );
                                             })}
                                         </div>
@@ -2213,15 +2335,9 @@ export default function App() {
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.9 }}
                     onClick={() => setAiChatOpen(!aiChatOpen)}
-                    className="bg-slate-900 text-white p-5 md:p-6 rounded-[2rem] shadow-2xl shadow-slate-950/40 pointer-events-auto flex items-center justify-center group relative border border-white/10 hover:border-brand-primary/50 transition-all"
+                    className="bg-[#4AB1F4] text-white p-5 md:p-6 rounded-[2rem] shadow-2xl shadow-[#4AB1F4]/30 pointer-events-auto flex items-center justify-center group relative transition-all hover:bg-[#2f9ce5]"
                 >
-                    {aiChatOpen ? <X className="w-6 h-6 md:w-7 md:h-7" /> : <MessageSquare className="w-6 h-6 md:w-7 md:h-7 text-brand-primary" />}
-                    {!aiChatOpen && (
-                        <div className="absolute right-full mr-6 py-3 px-5 bg-slate-900 backdrop-blur-xl rounded-2xl border border-white/10 shadow-3xl opacity-0 group-hover:opacity-100 transition-all hidden md:flex items-center gap-3">
-                            <div className="w-2 h-2 bg-brand-primary rounded-full animate-pulse" />
-                            <span className="text-white text-[10px] font-black uppercase tracking-[0.3em] whitespace-nowrap">Neural Link Standby</span>
-                        </div>
-                    )}
+                    {aiChatOpen ? <X className="w-6 h-6 md:w-7 md:h-7" /> : <MessageSquare className="w-6 h-6 md:w-7 md:h-7 text-white" />}
                 </motion.button>
             </div>
 

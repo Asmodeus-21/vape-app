@@ -5,6 +5,7 @@ export interface Product {
     flavor: string;
     nicotine: string;
     price: number;
+    originalPrice?: number;
     rating: number;
     reviews: number;
     image: string;

@@ -6,6 +6,7 @@
     --font-mono: "JetBrains Mono", monospace;
 
     --color-brand-primary: #FF9900;
+    --color-action-blue: #4AB1F4;
     /* Vibrant Amazon Orange */
     --color-brand-secondary: #00457C;
     /* Deep Navy Blue */
@@ -22,7 +23,7 @@
     /* Muted Gray */
     --color-price-red: #B12704;
     --color-star-gold: #FFA41C;
-    --color-link-blue: #2D6A4F;
+    --color-link-blue: #4AB1F4;
     --color-border: #E2E8F0;
 }
 
@@ -100,4 +101,18 @@
 .hero-display {
     font-family: var(--font-display);
     letter-spacing: -0.08em;
+}
+
+.juicefly-action-button {
+    @apply inline-flex items-center gap-2 rounded-xl px-5 py-3 text-[11px] font-black uppercase tracking-[0.18em] text-white transition-all duration-200;
+    background-color: var(--color-action-blue);
+}
+
+.juicefly-action-button:hover {
+    background-color: #2f9ce5;
+}
+
+.juicefly-stock-pill {
+    @apply inline-flex items-center rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-white;
+    background-color: var(--color-action-blue);
 }

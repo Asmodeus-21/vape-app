@@ -9,27 +9,27 @@ Welcome to the finalized VapesHub platform. This guide provides everything you n
 ---
 
 ## 🔑 Demo Access Credentials
-Use these pre-configured credentials to test different operational layers of the platform.
+Use these seeded credentials to test the three operational layers of the platform. They are recreated by the normal PostgreSQL seed on startup.
 
 ### 1. Consumer / Buyer Layer
-*   **Email**: `customer@vapeshub.com`
-*   **Password**: `password123`
+*   **Email**: `customer@bananaleaf.com`
+*   **Password**: `BananaLeafDemo!2026`
 *   **Features to check**:
     *   Browse **Master Inventory** and **Peak Performance**.
     *   Use the **Flavor DNA Engine** (AI-powered recommendations).
     *   Add items to cart and complete the **Secure Protocol Checkout** (Simulation).
 
 ### 2. Retailer / Vendor OS
-*   **Email**: `vendor@vapeshub.com`
-*   **Password**: `password123`
+*   **Email**: `vendor@bananaleaf.com`
+*   **Password**: `BananaLeafDemo!2026`
 *   **Features to check**:
     *   **Intelligence Nexus**: View AI-driven business insights (Inventory Pulse, Sentiment Engine).
     *   **Inventory Ledger**: Add, edit, or remove your hardware/liquid listings.
     *   **Market Stream**: Track and fulfill incoming orders in real-time.
 
 ### 3. Platform Admin Layer
-*   **Email**: `admin@vapeshub.com`
-*   **Password**: `password123`
+*   **Email**: `admin@bananaleaf.com`
+*   **Password**: `BananaLeafDemo!2026`
 *   **Features to check**:
     *   **Global Volume**: Monitor platform-wide sales and user counts.
     *   **Compliance Control**: Verify or reject pending vendor applications.
@@ -51,9 +51,9 @@ Add this variable in the **Environment Variables** section:
 *   **Value**: `(Your Gemini Pro API Key)`
 
 ### Step 3: Database Initialization
-Because Vercel uses a "read-only" serverless environment, the local `vapes.db` will not save orders permanently. 
-*   **For 100% Persistence**: Connect a **Turso** or **Neon** database URI in the environment variables.
-*   **Current State**: The repo is configured to auto-initialize the database on launch for demo purposes.
+The canonical app now uses PostgreSQL for runtime data and deterministic demo-user seeding.
+*   **For production**: Provide a working PostgreSQL `DATABASE_URL` and `JWT_SECRET`.
+*   **For local verification**: Copy `.env.local.example` to `.env.local`, start a local PostgreSQL server on port `54329`, and launch the app.
 
 ---
 

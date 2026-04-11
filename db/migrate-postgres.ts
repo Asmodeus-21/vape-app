@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import { getPostgresClient, initializePostgresSchema } from './index.js';
 
 async function runMigration(): Promise<void> {

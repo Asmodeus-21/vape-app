@@ -18,23 +18,23 @@ The server is configured with these published defaults:
 The product dataset uses Juicy Fly pricing (Foger, Utbar, Flum Mello, Hydroxie, Blues, Zyns, etc.) and is seeded automatically from `db/seed.ts` during startup. The `/api/products` path supports full listing, search, filter, paging, and sort.
 
 
-## 3. Demo Logins (pre-created accounts)
+## 3. Demo Logins (normal seeded accounts)
 
 ### Admin user
-- Email: admin@vapeshub.test
-- Password: `Admin@1234`
+- Email: admin@bananaleaf.com
+- Password: `BananaLeafDemo!2026`
 - Role: `admin`
 - Access: `/admin`, `/api/admin/*`, any vendor management and price update tool
 
 ### Vendor user
-- Email: vendor@vapeshub.test
-- Password: `Vendor@1234`
+- Email: vendor@bananaleaf.com
+- Password: `BananaLeafDemo!2026`
 - Role: `vendor`
 - Access: `/vendor`, `/api/vendor/*`, product add/edit/delete
 
 ### Customer user
-- Email: customer@vapeshub.test
-- Password: `Customer@1234`
+- Email: customer@bananaleaf.com
+- Password: `BananaLeafDemo!2026`
 - Role: `customer`
 - Access: browsing, checkout, profile, order history
 
@@ -94,7 +94,7 @@ For client demos, use short-lived credentials and rotate them after the walkthro
 ### Ready To Share
 1. Replace placeholder domain with actual Vercel URL.
 2. Paste this as the email delivery content.
-3. Confirm the admin/vendor/customer users exist in the production DB.
+3. Confirm the admin/vendor/customer users exist in the production DB, or run the standard PostgreSQL seed to recreate them.
 4. Add the `GEMINI_API_KEY` value in Vercel environment settings if AI chat is required.
 
 ---

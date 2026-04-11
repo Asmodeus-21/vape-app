@@ -63,6 +63,8 @@ async function callGemini(prompt: string, systemInstruction: string): Promise<st
     }
 }
 
+const AI_MAINTENANCE_MESSAGE = 'Maintenance Mode: AI assistance is temporarily unavailable while the data layer is offline. Please try again shortly.';
+
 function isStoreManagerRole(role?: string): boolean {
     return role === 'vendor' || role === 'store_manager';
 }
@@ -138,7 +140,7 @@ export async function createApp(options: { skipSeed?: boolean; skipVite?: boolea
     // ─── Init DB ───────────────────────────────────────────────────────────────
     let sql!: ReturnType<typeof getPostgresClient>;
     let isDatabaseConnected = false;
-    const databaseWarningMessage = '⚠️ DATABASE NOT CONNECTED. Add DATABASE_URL to .env or .env.local and restart the server.';
+    const databaseWarningMessage = '⚠️ DATABASE NOT CONNECTED. Add DATABASE_URL to the environment, .env.production, .env.local, or .env and restart the server.';
 
     try {
         await initializeDatabase();
@@ -154,6 +156,7 @@ export async function createApp(options: { skipSeed?: boolean; skipVite?: boolea
     }
 
     const app = express();
+    app.locals.isDatabaseConnected = isDatabaseConnected;
 
     app.use(express.json());
 
@@ -167,11 +170,21 @@ export async function createApp(options: { skipSeed?: boolean; skipVite?: boolea
         'https://www.banana-leaf.store',
     ];
 
+    const LOCAL_DEVELOPMENT_ORIGINS = [
+        'http://localhost:3000',
+        'http://localhost:3001',
+        'http://127.0.0.1:3000',
+        'http://127.0.0.1:3001',
+        'http://localhost:5173',
+        'http://127.0.0.1:5173',
+    ];
+
     const rawOrigins = [
         process.env.CORS_ORIGIN,
         process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined,
         process.env.CORS_EXTRA_ORIGINS,
         ...KNOWN_PRODUCTION_ORIGINS,
+        ...LOCAL_DEVELOPMENT_ORIGINS,
     ]
         .filter(Boolean)
         .join(',')
@@ -245,6 +258,15 @@ export async function createApp(options: { skipSeed?: boolean; skipVite?: boolea
             next();
             return;
         }
+
+        if (req.path === '/ai/chat') {
+            res.json({
+                text: AI_MAINTENANCE_MESSAGE,
+                maintenanceMode: true,
+            });
+            return;
+        }
+
         res.status(503).json({ error: databaseWarningMessage });
     });
 
@@ -570,6 +592,14 @@ export async function createApp(options: { skipSeed?: boolean; skipVite?: boolea
 
     // ─── AI PROXY (keeps API key server-side) ─────────────────────────────────
     app.post("/api/ai/chat", authMiddleware, aiLimiter, async (req, res) => {
+        if (!isDatabaseConnected) {
+            res.json({
+                text: AI_MAINTENANCE_MESSAGE,
+                maintenanceMode: true,
+            });
+            return;
+        }
+
         const { prompt, systemInstruction } = req.body;
         if (!prompt || !systemInstruction) {
             res.status(400).json({ error: "prompt and systemInstruction are required." });
@@ -928,9 +958,10 @@ export async function startServer() {
     const port = Number.isInteger(parsedPort) && parsedPort > 0 && parsedPort < 65536 ? parsedPort : 3000;
 
     app.listen(port, "0.0.0.0", () => {
+        const isDatabaseConnected = Boolean(app.locals.isDatabaseConnected);
         console.log(`\n🚀 BananaLeaf Server running on http://localhost:${port}`);
         console.log(`   Gemini AI: ${process.env.GEMINI_API_KEY ? '✅ Key loaded' : '⚠️  No API key found'}`);
-        console.log(`   Database: ✅ Supabase/PostgreSQL ready\n`);
+        console.log(`   Database: ${isDatabaseConnected ? '✅ Supabase/PostgreSQL ready' : '⚠️  Maintenance mode (database offline)'}\n`);
     });
 }
 

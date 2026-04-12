@@ -38,7 +38,7 @@ import VendorOrders from './components/VendorOrders';
 import VendorProductForm from './components/VendorProductForm';
 import VendorProductList from './components/VendorProductList';
 import { getSmartAiResponse, SYSTEM_INSTRUCTIONS, vapeosAI } from './services/aiService';
-import { addCartItemApi, fetchAdminStats, fetchCart, fetchCurrentUser, fetchProducts, fetchVendorStats, removeCartItemApi, updateCartItemApi } from './services/api';
+import { addCartItemApi, fetchAdminStats, fetchCart, fetchCurrentUser, fetchHomepageMasterListings, fetchProducts, fetchVendorStats, removeCartItemApi, updateCartItemApi } from './services/api';
 import { ParentVariantGroup, Product } from './types';
 
 interface AuthUser {
@@ -65,6 +65,7 @@ interface MarketplaceProductCardProps {
     selectedVariant: Product;
     onOpenProduct: () => void;
     onSelectVariant: (variantId: number) => void;
+    cardMode?: 'standard' | 'master';
 }
 
 interface FeatureBanner {
@@ -228,11 +229,13 @@ function isHighDemandProduct(product: Product): boolean {
     return Boolean(product.isBestSeller || product.isNewArrival || product.stockQty <= 150);
 }
 
-function MarketplaceProductCard({ group, selectedVariant, onOpenProduct, onSelectVariant }: MarketplaceProductCardProps) {
+function MarketplaceProductCard({ group, selectedVariant, onOpenProduct, onSelectVariant, cardMode = 'standard' }: MarketplaceProductCardProps) {
     const originalPrice = getDisplayOriginalPrice(selectedVariant);
     const salePercentage = getSalePercentage(selectedVariant);
     const categoryLabel = (selectedVariant.category || group.category || 'Vapes').trim().toUpperCase();
     const placeholderMetrics = getPlaceholderCardMetrics(selectedVariant.id);
+    const lowestPrice = Math.min(...group.variants.map((variant) => variant.price));
+    const isMasterCard = cardMode === 'master';
 
     return (
         <article
@@ -252,12 +255,15 @@ function MarketplaceProductCard({ group, selectedVariant, onOpenProduct, onSelec
                 <div className="space-y-2">
                     <p className="line-clamp-1 text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">{categoryLabel}</p>
                     <h4 className="line-clamp-2 text-base font-bold leading-6 text-slate-950">{group.parentName}</h4>
+                    {isMasterCard && (
+                        <p className="text-[11px] font-semibold text-slate-500">{group.variants.length} Flavors available</p>
+                    )}
                     {isHighDemandProduct(selectedVariant) && (
                         <span className="juicefly-stock-pill" role="status" aria-live="polite">Limited Stock!</span>
                     )}
                 </div>
 
-                {group.variants.length > 1 && (
+                {!isMasterCard && group.variants.length > 1 && (
                     <div className="flex min-h-[44px] items-center gap-2 overflow-x-auto pr-1 scrollbar-hide">
                         {group.variants.map((variant) => {
                             const isSelected = variant.id === selectedVariant.id;
@@ -292,8 +298,14 @@ function MarketplaceProductCard({ group, selectedVariant, onOpenProduct, onSelec
                 </div>
 
                 <div className="flex items-baseline gap-2.5">
-                    <span className="text-sm font-semibold text-slate-400 line-through">${originalPrice.toFixed(2)}</span>
-                    <span className="text-2xl font-black tracking-tight text-[#4AB1F4]">${selectedVariant.price.toFixed(2)}</span>
+                    {isMasterCard ? (
+                        <span className="text-2xl font-black tracking-tight text-[#4AB1F4]">From ${lowestPrice.toFixed(2)}</span>
+                    ) : (
+                        <>
+                            <span className="text-sm font-semibold text-slate-400 line-through">${originalPrice.toFixed(2)}</span>
+                            <span className="text-2xl font-black tracking-tight text-[#4AB1F4]">${selectedVariant.price.toFixed(2)}</span>
+                        </>
+                    )}
                 </div>
 
                 <button
@@ -357,13 +369,105 @@ function MarketplaceEmptyState({ title, description, onReset }: MarketplaceEmpty
     );
 }
 
+// ─── Fallback mock data shown when DB is unreachable ─────────────────────────
+const MOCK_PRODUCT_BASE = {
+    rating: 4.8, reviews: 0, image: '', isExpressDelivery: true, isBestSeller: true,
+    description: 'Premium quality product.', stockQty: 50,
+    originalPrice: undefined, discountPercentage: undefined, isNewArrival: undefined,
+    storeId: null, vendorId: null,
+} as const;
+
+const HOMEPAGE_FALLBACK_GROUPS: ParentVariantGroup[] = [
+    {
+        key: 'mock-geekbar-pulse',
+        parentName: 'Geekbar Pulse X 25000',
+        brand: 'Geekbar',
+        category: 'Disposables',
+        variants: [
+            { ...MOCK_PRODUCT_BASE, id: 9001, name: 'Geekbar Pulse X 25000 - Watermelon Ice', flavor: 'Watermelon Ice', nicotine: '5%', price: 24.99, category: 'Disposables', brand: 'Geekbar' },
+            { ...MOCK_PRODUCT_BASE, id: 9002, name: 'Geekbar Pulse X 25000 - Blue Razz Lemon', flavor: 'Blue Razz', nicotine: '5%', price: 24.99, category: 'Disposables', brand: 'Geekbar' },
+            { ...MOCK_PRODUCT_BASE, id: 9003, name: 'Geekbar Pulse X 25000 - Strawberry Kiwi', flavor: 'Strawberry Kiwi', nicotine: '5%', price: 24.99, category: 'Disposables', brand: 'Geekbar' },
+        ],
+    },
+    {
+        key: 'mock-foger-ultra',
+        parentName: 'Foger Ultra 15000',
+        brand: 'Foger',
+        category: 'Disposables',
+        variants: [
+            { ...MOCK_PRODUCT_BASE, id: 9004, name: 'Foger Ultra 15000 - Mango Peach', flavor: 'Mango Peach', nicotine: '5%', price: 19.99, category: 'Disposables', brand: 'Foger' },
+            { ...MOCK_PRODUCT_BASE, id: 9005, name: 'Foger Ultra 15000 - Berry Blast', flavor: 'Berry Blast', nicotine: '5%', price: 19.99, category: 'Disposables', brand: 'Foger' },
+            { ...MOCK_PRODUCT_BASE, id: 9006, name: 'Foger Ultra 15000 - Kiwi Passionfruit', flavor: 'Kiwi Passionfruit', nicotine: '5%', price: 19.99, category: 'Disposables', brand: 'Foger' },
+        ],
+    },
+    {
+        key: 'mock-utbar-5500',
+        parentName: 'Utbar 5500',
+        brand: 'Utbar',
+        category: 'Disposables',
+        variants: [
+            { ...MOCK_PRODUCT_BASE, id: 9007, name: 'Utbar 5500 - Lychee Mint', flavor: 'Lychee Mint', nicotine: '5%', price: 12.99, category: 'Disposables', brand: 'Utbar' },
+            { ...MOCK_PRODUCT_BASE, id: 9008, name: 'Utbar 5500 - Tropical Mix', flavor: 'Tropical Mix', nicotine: '5%', price: 12.99, category: 'Disposables', brand: 'Utbar' },
+        ],
+    },
+    {
+        key: 'mock-flum-mello',
+        parentName: 'Flum Mello 20000',
+        brand: 'Flum',
+        category: 'Disposables',
+        variants: [
+            { ...MOCK_PRODUCT_BASE, id: 9009, name: 'Flum Mello 20000 - Peach Lemonade', flavor: 'Peach Lemonade', nicotine: '5%', price: 22.99, category: 'Disposables', brand: 'Flum' },
+            { ...MOCK_PRODUCT_BASE, id: 9010, name: 'Flum Mello 20000 - Strawberry Ice', flavor: 'Strawberry Ice', nicotine: '5%', price: 22.99, category: 'Disposables', brand: 'Flum' },
+        ],
+    },
+    {
+        key: 'mock-zyns',
+        parentName: 'Zyns Nicotine Pouches',
+        brand: 'Zyns',
+        category: 'Nicotine Pouches',
+        variants: [
+            { ...MOCK_PRODUCT_BASE, id: 9011, name: 'Zyns Nicotine Pouches - Cool Mint 3mg', flavor: 'Cool Mint', nicotine: '3mg', price: 7.99, category: 'Nicotine Pouches', brand: 'Zyns' },
+            { ...MOCK_PRODUCT_BASE, id: 9012, name: 'Zyns Nicotine Pouches - Citrus 6mg', flavor: 'Citrus', nicotine: '6mg', price: 7.99, category: 'Nicotine Pouches', brand: 'Zyns' },
+        ],
+    },
+    {
+        key: 'mock-hydroxie',
+        parentName: 'Hydroxie Recovery Shots',
+        brand: 'Hydroxie',
+        category: 'Supplements',
+        variants: [
+            { ...MOCK_PRODUCT_BASE, id: 9013, name: 'Hydroxie Recovery Shots - Citrus Burst', flavor: 'Citrus Burst', nicotine: '0mg', price: 4.99, category: 'Supplements', brand: 'Hydroxie' },
+            { ...MOCK_PRODUCT_BASE, id: 9014, name: 'Hydroxie Recovery Shots - Berry Acai', flavor: 'Berry Acai', nicotine: '0mg', price: 4.99, category: 'Supplements', brand: 'Hydroxie' },
+        ],
+    },
+    {
+        key: 'mock-blues',
+        parentName: 'Blues Supplement Shots',
+        brand: 'Blues',
+        category: 'Supplements',
+        variants: [
+            { ...MOCK_PRODUCT_BASE, id: 9015, name: 'Blues Supplement Shots - Arctic Mint', flavor: 'Arctic Mint', nicotine: '0mg', price: 3.99, category: 'Supplements', brand: 'Blues' },
+        ],
+    },
+    {
+        key: 'mock-foger-pods',
+        parentName: 'Foger Pods Refillable',
+        brand: 'Foger',
+        category: 'Disposables',
+        variants: [
+            { ...MOCK_PRODUCT_BASE, id: 9016, name: 'Foger Pods Refillable - Clear', flavor: 'Clear', nicotine: '5%', price: 16.99, category: 'Disposables', brand: 'Foger' },
+            { ...MOCK_PRODUCT_BASE, id: 9017, name: 'Foger Pods Refillable - Tobacco', flavor: 'Tobacco', nicotine: '5%', price: 16.99, category: 'Disposables', brand: 'Foger' },
+        ],
+    },
+];
+
 export default function App() {
     const location = useLocation();
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
     const [activeTab, setActiveTab] = useState<'marketplace' | 'vendor' | 'admin'>('marketplace');
     const [products, setProducts] = useState<Product[]>([]);
-    const [homepageGridProducts, setHomepageGridProducts] = useState<Product[]>([]);
+    const [homepageGridGroups, setHomepageGridGroups] = useState<ParentVariantGroup[]>([]);
     const [productsLoading, setProductsLoading] = useState(true);
     const [homepageGridLoading, setHomepageGridLoading] = useState(true);
     const [selectedProductId, setSelectedProductId] = useState<number | null>(null);
@@ -548,9 +652,12 @@ export default function App() {
     // ── Products: fetch from API ───────────────────────────────────────
     const loadProducts = useCallback(async () => {
         setProductsLoading(true);
-        const data = await fetchProducts({ filter: activeFilter, search: searchQuery, category: activeCategory });
-        setProducts(data);
-        setProductsLoading(false);
+        try {
+            const data = await fetchProducts({ filter: activeFilter, search: searchQuery, category: activeCategory });
+            setProducts(data);
+        } finally {
+            setProductsLoading(false);
+        }
     }, [activeFilter, searchQuery, activeCategory]);
 
     useEffect(() => {
@@ -563,10 +670,19 @@ export default function App() {
 
         const loadHomepageGridProducts = async () => {
             setHomepageGridLoading(true);
-            const data = await fetchProducts({ limit: 8 });
-            if (!isCancelled) {
-                setHomepageGridProducts(data.slice(0, 8));
-                setHomepageGridLoading(false);
+            try {
+                const data = await fetchHomepageMasterListings(8);
+                if (!isCancelled) {
+                    setHomepageGridGroups(data.length > 0 ? data : HOMEPAGE_FALLBACK_GROUPS);
+                }
+            } catch {
+                if (!isCancelled) {
+                    setHomepageGridGroups(HOMEPAGE_FALLBACK_GROUPS);
+                }
+            } finally {
+                if (!isCancelled) {
+                    setHomepageGridLoading(false);
+                }
             }
         };
 
@@ -1071,15 +1187,12 @@ export default function App() {
         return parentVariantGroups.find((group) => group.variants.some((variant) => variant.id === selectedProductId)) ?? null;
     }, [parentVariantGroups, selectedProductId]);
 
-    const homepageGridGroups = useMemo<ParentVariantGroup[]>(() => {
-        return homepageGridProducts.map((product) => ({
-            key: `homepage-${product.id}`,
-            parentName: product.name,
-            brand: product.brand,
-            category: product.category,
-            variants: [product],
-        }));
-    }, [homepageGridProducts]);
+    useEffect(() => {
+        const isLocalDebug = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        if (isLocalDebug) {
+            console.log(homepageGridGroups);
+        }
+    }, [homepageGridGroups]);
 
     const openProductDetailPage = useCallback((productId: number) => {
         setSelectedProductId(productId);
@@ -1440,6 +1553,7 @@ export default function App() {
                                                     selectedVariant={selectedVariant}
                                                     onOpenProduct={() => openProductDetailPage(selectedVariant.id)}
                                                     onSelectVariant={() => { }}
+                                                    cardMode="master"
                                                 />
                                             </div>
                                         );

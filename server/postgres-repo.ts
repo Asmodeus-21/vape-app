@@ -128,6 +128,75 @@ export async function listMarketplaceProducts(
     return rows.map(mapProductRow);
 }
 
+export async function listHomepageMasterListings(sql: Sql, limit = 8) {
+    const parsedLimit = Number(limit);
+    const safeLimit = Number.isInteger(parsedLimit) && parsedLimit > 0
+        ? Math.min(parsedLimit, 24)
+        : 8;
+
+    const rows = await sql<any[]>`
+        WITH ranked_groups AS (
+            SELECT
+                brand,
+                category,
+                COALESCE(NULLIF(TRIM(SPLIT_PART(name, ' - ', 1)), ''), name) AS parent_name,
+                COUNT(*)::int AS flavor_count,
+                MAX(rating)::float AS top_rating,
+                SUM(reviews)::int AS total_reviews
+            FROM products
+            WHERE stock_qty > 0
+            GROUP BY brand, category, COALESCE(NULLIF(TRIM(SPLIT_PART(name, ' - ', 1)), ''), name)
+            ORDER BY flavor_count DESC, top_rating DESC, total_reviews DESC, parent_name ASC
+            LIMIT ${safeLimit}
+        )
+        SELECT p.*, rg.parent_name
+        FROM products p
+        INNER JOIN ranked_groups rg
+            ON rg.brand = p.brand
+            AND rg.category = p.category
+            AND rg.parent_name = COALESCE(NULLIF(TRIM(SPLIT_PART(p.name, ' - ', 1)), ''), p.name)
+        ORDER BY rg.flavor_count DESC, rg.top_rating DESC, rg.total_reviews DESC, rg.parent_name ASC, p.price ASC, p.rating DESC, p.reviews DESC
+    `;
+
+    const groupMap = new Map<string, {
+        key: string;
+        parentName: string;
+        brand: string;
+        category: string;
+        variants: ReturnType<typeof mapProductRow>[];
+    }>();
+
+    for (const row of rows) {
+        const parentName = typeof row.parent_name === 'string' && row.parent_name.trim()
+            ? row.parent_name.trim()
+            : (typeof row.name === 'string' ? row.name.trim() : 'Unnamed Product');
+        const key = `${String(row.category || '').toLowerCase()}::${String(row.brand || '').toLowerCase()}::${parentName.toLowerCase()}`;
+        const mappedVariant = mapProductRow(row);
+        const existing = groupMap.get(key);
+
+        if (!existing) {
+            groupMap.set(key, {
+                key,
+                parentName,
+                brand: row.brand,
+                category: row.category,
+                variants: [mappedVariant],
+            });
+            continue;
+        }
+
+        groupMap.set(key, {
+            ...existing,
+            variants: [...existing.variants, mappedVariant],
+        });
+    }
+
+    return Array.from(groupMap.values()).map((group) => ({
+        ...group,
+        variants: [...group.variants].sort((a, b) => a.price - b.price),
+    }));
+}
+
 export async function getProductById(sql: Sql, productId: number) {
     const rows = await sql<any[]>`SELECT * FROM products WHERE id = ${productId} LIMIT 1`;
     return rows[0] ? mapProductRow(rows[0]) : null;

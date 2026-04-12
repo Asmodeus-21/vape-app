@@ -1,4 +1,4 @@
-import { Product, Store } from '../types';
+import { ParentVariantGroup, Product, Store } from '../types';
 
 const MAX_PRODUCTS_LIMIT = 1000;
 
@@ -44,6 +44,19 @@ export async function fetchProducts(params?: {
         return await res.json() as Product[];
     } catch (err) {
         console.error('[api] fetchProducts failed:', err);
+        return [];
+    }
+}
+
+export async function fetchHomepageMasterListings(limit: number = 8): Promise<ParentVariantGroup[]> {
+    const safeLimit = Number.isInteger(limit) && limit > 0 ? Math.min(limit, 24) : 8;
+
+    try {
+        const res = await fetch(`/api/products/master-listings?limit=${safeLimit}`);
+        if (!res.ok) throw new Error(`Master listings API error: ${res.status}`);
+        return await res.json() as ParentVariantGroup[];
+    } catch (err) {
+        console.error('[api] fetchHomepageMasterListings failed:', err);
         return [];
     }
 }

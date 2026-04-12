@@ -29,6 +29,7 @@ import {
     listAdminProducts,
     listAdminStores,
     listAdminUsers,
+    listHomepageMasterListings,
     listMarketplaceProducts,
     listVendorOrders,
     listVendorProducts,
@@ -279,6 +280,17 @@ export async function createApp(options: { skipSeed?: boolean; skipVite?: boolea
             res.json(await listMarketplaceProducts(sql, { search, filter, category, limit: resolvedLimit }));
         } catch (err: any) {
             sendSafeError(res, err, "Failed to fetch products");
+        }
+    });
+
+    app.get("/api/products/master-listings", async (req, res) => {
+        try {
+            const { limit = "8" } = req.query as Record<string, string>;
+            const parsedLimit = Number(limit);
+            const resolvedLimit = Number.isInteger(parsedLimit) && parsedLimit > 0 ? parsedLimit : 8;
+            res.json(await listHomepageMasterListings(sql, resolvedLimit));
+        } catch (err: any) {
+            sendSafeError(res, err, "Failed to fetch homepage master listings");
         }
     });
 

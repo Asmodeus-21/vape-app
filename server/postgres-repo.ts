@@ -142,11 +142,15 @@ export async function listHomepageMasterListings(sql: Sql, limit = 8) {
                 COALESCE(NULLIF(TRIM(SPLIT_PART(name, ' - ', 1)), ''), name) AS parent_name,
                 COUNT(*)::int AS flavor_count,
                 MAX(rating)::float AS top_rating,
-                SUM(reviews)::int AS total_reviews
+                SUM(reviews)::int AS total_reviews,
+                CASE
+                    WHEN LOWER(brand) IN ('blues', 'zyns', 'hydroxie (7-oh)') THEN 0
+                    ELSE 1
+                END AS homepage_priority
             FROM products
             WHERE stock_qty > 0
             GROUP BY brand, category, COALESCE(NULLIF(TRIM(SPLIT_PART(name, ' - ', 1)), ''), name)
-            ORDER BY flavor_count DESC, top_rating DESC, total_reviews DESC, parent_name ASC
+            ORDER BY homepage_priority ASC, flavor_count DESC, top_rating DESC, total_reviews DESC, parent_name ASC
             LIMIT ${safeLimit}
         )
         SELECT p.*, rg.parent_name
@@ -155,7 +159,7 @@ export async function listHomepageMasterListings(sql: Sql, limit = 8) {
             ON rg.brand = p.brand
             AND rg.category = p.category
             AND rg.parent_name = COALESCE(NULLIF(TRIM(SPLIT_PART(p.name, ' - ', 1)), ''), p.name)
-        ORDER BY rg.flavor_count DESC, rg.top_rating DESC, rg.total_reviews DESC, rg.parent_name ASC, p.price ASC, p.rating DESC, p.reviews DESC
+        ORDER BY rg.homepage_priority ASC, rg.flavor_count DESC, rg.top_rating DESC, rg.total_reviews DESC, rg.parent_name ASC, p.price ASC, p.rating DESC, p.reviews DESC
     `;
 
     const groupMap = new Map<string, {

@@ -28,7 +28,7 @@ import {
 import { AnimatePresence, motion } from 'motion/react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast, Toaster } from 'react-hot-toast';
-import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { resolveCatalogImage } from '../shared/product-images';
 import AdminDashboard from './components/AdminDashboard';
 import AuthModal from './components/AuthModal';
@@ -37,6 +37,14 @@ import ProductDetail from './components/ProductDetail';
 import VendorOrders from './components/VendorOrders';
 import VendorProductForm from './components/VendorProductForm';
 import VendorProductList from './components/VendorProductList';
+import Authenticity from './pages/Authenticity';
+import Contact from './pages/Contact';
+import Dashboard from './pages/Dashboard';
+import HelpCenter from './pages/HelpCenter';
+import OurStory from './pages/OurStory';
+import Press from './pages/Press';
+import ReturnsPolicy from './pages/ReturnsPolicy';
+import ShippingPolicy from './pages/ShippingPolicy';
 import { getSmartAiResponse, SYSTEM_INSTRUCTIONS, vapeosAI } from './services/aiService';
 import { addCartItemApi, fetchAdminStats, fetchCart, fetchCurrentUser, fetchHomepageMasterListings, fetchProducts, fetchVendorStats, removeCartItemApi, updateCartItemApi } from './services/api';
 import { ParentVariantGroup, Product } from './types';
@@ -439,27 +447,27 @@ const HOMEPAGE_FALLBACK_GROUPS: ParentVariantGroup[] = [
         brand: 'Zyns',
         category: 'Nicotine Pouches',
         variants: [
-            { ...MOCK_PRODUCT_BASE, id: 9011, name: 'Zyns Nicotine Pouches - Cool Mint 3mg', flavor: 'Cool Mint', nicotine: '3mg', price: 7.99, category: 'Nicotine Pouches', brand: 'Zyns' },
-            { ...MOCK_PRODUCT_BASE, id: 9012, name: 'Zyns Nicotine Pouches - Citrus 6mg', flavor: 'Citrus', nicotine: '6mg', price: 7.99, category: 'Nicotine Pouches', brand: 'Zyns' },
+            { ...MOCK_PRODUCT_BASE, id: 9011, name: 'Zyns - Wintergreen', flavor: 'Wintergreen', nicotine: '6mg', price: 7.99, category: 'Nicotine Pouches', brand: 'Zyns' },
+            { ...MOCK_PRODUCT_BASE, id: 9012, name: 'Zyns - Cool Mint', flavor: 'Cool Mint', nicotine: '6mg', price: 7.99, category: 'Nicotine Pouches', brand: 'Zyns' },
         ],
     },
     {
         key: 'mock-hydroxie',
-        parentName: 'Hydroxie Recovery Shots',
-        brand: 'Hydroxie',
+        parentName: 'Hydroxie (7-OH)',
+        brand: 'Hydroxie (7-OH)',
         category: 'Supplements',
         variants: [
-            { ...MOCK_PRODUCT_BASE, id: 9013, name: 'Hydroxie Recovery Shots - Citrus Burst', flavor: 'Citrus Burst', nicotine: '0mg', price: 4.99, category: 'Supplements', brand: 'Hydroxie' },
-            { ...MOCK_PRODUCT_BASE, id: 9014, name: 'Hydroxie Recovery Shots - Berry Acai', flavor: 'Berry Acai', nicotine: '0mg', price: 4.99, category: 'Supplements', brand: 'Hydroxie' },
+            { ...MOCK_PRODUCT_BASE, id: 9013, name: 'Hydroxie (7-OH) - 10-15mg', flavor: '10-15mg', nicotine: '7-OH', price: 14.99, category: 'Supplements', brand: 'Hydroxie (7-OH)' },
+            { ...MOCK_PRODUCT_BASE, id: 9014, name: 'Hydroxie (7-OH) - 10-30mg', flavor: '10-30mg', nicotine: '7-OH', price: 24.99, category: 'Supplements', brand: 'Hydroxie (7-OH)' },
         ],
     },
     {
         key: 'mock-blues',
-        parentName: 'Blues Supplement Shots',
+        parentName: 'Blues',
         brand: 'Blues',
         category: 'Supplements',
         variants: [
-            { ...MOCK_PRODUCT_BASE, id: 9015, name: 'Blues Supplement Shots - Arctic Mint', flavor: 'Arctic Mint', nicotine: '0mg', price: 3.99, category: 'Supplements', brand: 'Blues' },
+            { ...MOCK_PRODUCT_BASE, id: 9015, name: 'Blues - 35mg', flavor: '35mg', nicotine: '7-OH', price: 12.00, category: 'Supplements', brand: 'Blues' },
         ],
     },
     {
@@ -526,6 +534,7 @@ export default function App() {
     const [activeCategory, setActiveCategory] = useState<string | undefined>(undefined);
     const [pendingScrollTarget, setPendingScrollTarget] = useState<string | null>(null);
     const [selectedVariantByGroup, setSelectedVariantByGroup] = useState<Record<string, number>>({});
+    const [authChecked, setAuthChecked] = useState(false);
     const mapTagToFilter = useCallback((tag: string | null): ProductFilter => {
         if (!tag || !tag.trim()) return 'all';
         const normalizedTag = tag.trim().toLowerCase();
@@ -616,14 +625,24 @@ export default function App() {
     useEffect(() => {
         const token = localStorage.getItem('vapeshub_token');
         if (token) {
-            fetchCurrentUser(token).then(user => {
-                if (user) {
-                    setCurrentUser(user);
-                } else {
+            fetchCurrentUser(token)
+                .then(user => {
+                    if (user) {
+                        setCurrentUser(user);
+                    } else {
+                        localStorage.removeItem('vapeshub_token');
+                    }
+                })
+                .catch(() => {
                     localStorage.removeItem('vapeshub_token');
-                }
-            });
+                })
+                .finally(() => {
+                    setAuthChecked(true);
+                });
+            return;
         }
+
+        setAuthChecked(true);
     }, []);
 
     useEffect(() => {
@@ -635,6 +654,21 @@ export default function App() {
     useEffect(() => {
         setShowCheckoutOverlay(location.pathname === '/checkout');
     }, [location.pathname]);
+
+    useEffect(() => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }, [location.pathname]);
+
+    useEffect(() => {
+        if (location.pathname !== '/dashboard' || !authChecked) {
+            return;
+        }
+
+        if (!currentUser) {
+            setShowAuthModal(true);
+            navigate('/products', { replace: true });
+        }
+    }, [authChecked, currentUser, location.pathname, navigate]);
 
     useEffect(() => {
         const routedProductId = parseProductIdFromPath(location.pathname);
@@ -979,6 +1013,27 @@ export default function App() {
         setIsCollectionMenuOpen(false);
     };
 
+    const handleProtectedDashboardLinkClick = (event: React.MouseEvent<HTMLAnchorElement>) => {
+        if (!currentUser) {
+            event.preventDefault();
+            toast('Please sign in to access your dashboard.', { icon: '🔒' });
+            setShowAuthModal(true);
+            return;
+        }
+
+        setIsMenuOpen(false);
+        setIsCollectionMenuOpen(false);
+    };
+
+    const handleSessionAccessClick = () => {
+        if (currentUser) {
+            handleSignOut();
+            return;
+        }
+
+        setShowAuthModal(true);
+    };
+
     const handleFeatureNotReady = (featureName: string) => {
         toast.error(`LAYER OFFLINE: ${featureName} scheduled for v2 deployment.`, {
             style: {
@@ -1070,6 +1125,18 @@ export default function App() {
         : searchQuery.trim()
             ? `The Banana Leaf collection matching ${searchQuery.trim()} is currently being curated. Check back soon for premium drops.`
             : 'The Banana Leaf collection is currently being curated. Check back soon for premium drops.';
+
+    const isContentPage = [
+        '/about/our-story',
+        '/about/authenticity',
+        '/about/press',
+        '/support/help-center',
+        '/support/shipping',
+        '/support/returns',
+        '/support/contact',
+    ].includes(location.pathname);
+
+    const isDashboardPage = location.pathname === '/dashboard';
 
     const featureBannerPrices = useMemo(() => {
         const pricesByBrand: Record<string, number> = {};
@@ -1553,7 +1620,24 @@ export default function App() {
 
             {/* Main Content */}
             <main className="flex-1 max-w-[1500px] mx-auto w-full pb-12">
-                {activeTab === 'marketplace' && !selectedProductId && location.pathname !== '/checkout/success' && (
+                {location.pathname === '/about/our-story' && <OurStory />}
+                {location.pathname === '/about/authenticity' && <Authenticity />}
+                {location.pathname === '/about/press' && <Press />}
+                {location.pathname === '/support/help-center' && <HelpCenter />}
+                {location.pathname === '/support/shipping' && <ShippingPolicy />}
+                {location.pathname === '/support/returns' && <ReturnsPolicy />}
+                {location.pathname === '/support/contact' && <Contact />}
+
+                {isDashboardPage && currentUser && <Dashboard userName={currentUser.name} email={currentUser.email} />}
+
+                {isDashboardPage && !currentUser && !authChecked && (
+                    <section className="mx-4 mt-6 rounded-[2rem] border border-slate-100 bg-white p-8 shadow-sm md:p-10 text-center">
+                        <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[#4AB1F4]">Loading</p>
+                        <h2 className="mt-3 text-3xl font-black uppercase tracking-tighter text-slate-900">Preparing Your Dashboard</h2>
+                    </section>
+                )}
+
+                {activeTab === 'marketplace' && !selectedProductId && location.pathname !== '/checkout/success' && !isContentPage && !isDashboardPage && (
                     <div className="space-y-6">
                         <section id="brand-showcase-section" className="mx-4 space-y-3 pt-3 md:pt-4">
                             {FEATURE_BANNERS.map((banner) => (
@@ -2323,37 +2407,44 @@ export default function App() {
                     <div className="space-y-6">
                         <h4 className="text-[11px] font-black uppercase tracking-[0.2em] text-brand-primary">About Banana Leaf</h4>
                         <ul className="space-y-4 text-[11px] text-slate-400 font-black uppercase tracking-widest">
-                            <li className="hover:text-white cursor-pointer transition-colors" onClick={() => handleFeatureNotReady('Our Story')}>Our Story</li>
-                            <li className="hover:text-white cursor-pointer transition-colors" onClick={() => handleFeatureNotReady('Journal')}>Journal</li>
-                            <li className="hover:text-white cursor-pointer transition-colors" onClick={() => handleFeatureNotReady('Authenticity')}>Authenticity</li>
-                            <li className="hover:text-white cursor-pointer transition-colors" onClick={() => handleFeatureNotReady('Hardware Support')}>Press Assets</li>
+                            <li><Link to="/about/our-story" className="hover:text-white transition-colors">Our Story</Link></li>
+                            <li><Link to="/about/authenticity" className="hover:text-white transition-colors">Authenticity</Link></li>
+                            <li><Link to="/about/press" className="hover:text-white transition-colors">Press Assets</Link></li>
                         </ul>
                     </div>
                     <div className="space-y-6">
                         <h4 className="text-[11px] font-black uppercase tracking-[0.2em] text-brand-primary">Shop</h4>
                         <ul className="space-y-4 text-[11px] text-slate-400 font-black uppercase tracking-widest">
-                            <li className="hover:text-white cursor-pointer transition-colors" onClick={() => handleFeatureNotReady('Pulse X Series')}>Pulse X Series</li>
-                            <li className="hover:text-white cursor-pointer transition-colors" onClick={() => handleFeatureNotReady('The Kits')}>The Kits</li>
-                            <li className="hover:text-white cursor-pointer transition-colors" onClick={() => handleFeatureNotReady('The Originals')}>The Originals</li>
-                            <li className="hover:text-white cursor-pointer transition-colors" onClick={() => handleFeatureNotReady('Cloud Series')}>Cloud Series</li>
+                            <li><Link to={buildProductsUrl({ search: 'Pulse X' })} className="hover:text-white transition-colors">Pulse X Series</Link></li>
+                            <li><Link to={buildProductsUrl({ search: 'Kit' })} className="hover:text-white transition-colors">The Kits</Link></li>
+                            <li><Link to={buildProductsUrl({ search: 'Original' })} className="hover:text-white transition-colors">The Originals</Link></li>
+                            <li><Link to={buildProductsUrl({ search: 'Cloud' })} className="hover:text-white transition-colors">Cloud Series</Link></li>
                         </ul>
                     </div>
                     <div className="space-y-6">
                         <h4 className="text-[11px] font-black uppercase tracking-[0.2em] text-brand-primary">Support</h4>
                         <ul className="space-y-4 text-[11px] text-slate-400 font-black uppercase tracking-widest">
-                            <li className="hover:text-white cursor-pointer transition-colors" onClick={() => handleFeatureNotReady('Help Center')}>Help Center</li>
-                            <li className="hover:text-white cursor-pointer transition-colors" onClick={() => handleFeatureNotReady('Shipping')}>Shipping</li>
-                            <li className="hover:text-white cursor-pointer transition-colors" onClick={() => handleFeatureNotReady('Returns')}>Returns</li>
-                            <li className="hover:text-white cursor-pointer transition-colors" onClick={() => handleFeatureNotReady('Contact')}>Contact</li>
+                            <li><Link to="/support/help-center" className="hover:text-white transition-colors">Help Center</Link></li>
+                            <li><Link to="/support/shipping" className="hover:text-white transition-colors">Shipping</Link></li>
+                            <li><Link to="/support/returns" className="hover:text-white transition-colors">Returns</Link></li>
+                            <li><Link to="/support/contact" className="hover:text-white transition-colors">Contact</Link></li>
                         </ul>
                     </div>
                     <div className="space-y-6">
                         <h4 className="text-[11px] font-black uppercase tracking-[0.2em] text-brand-primary">Account</h4>
                         <ul className="space-y-4 text-[11px] text-slate-400 font-black uppercase tracking-widest">
-                            <li className="hover:text-white cursor-pointer transition-colors" onClick={() => handleFeatureNotReady('My Profile')}>My Profile</li>
-                            <li className="hover:text-white cursor-pointer transition-colors" onClick={() => handleFeatureNotReady('Order Status')}>Order Status</li>
-                            <li className="hover:text-white cursor-pointer transition-colors" onClick={() => handleFeatureNotReady('Saved Items')}>Saved Items</li>
-                            <li className="hover:text-white cursor-pointer transition-colors" onClick={() => handleFeatureNotReady('Session Access')}>Start Your Session</li>
+                            <li><Link to="/dashboard" className="hover:text-white transition-colors" onClick={handleProtectedDashboardLinkClick}>My Profile</Link></li>
+                            <li><Link to="/dashboard" className="hover:text-white transition-colors" onClick={handleProtectedDashboardLinkClick}>Order Status</Link></li>
+                            <li><Link to="/dashboard" className="hover:text-white transition-colors" onClick={handleProtectedDashboardLinkClick}>Saved Items</Link></li>
+                            <li>
+                                <button
+                                    type="button"
+                                    onClick={handleSessionAccessClick}
+                                    className="hover:text-white transition-colors"
+                                >
+                                    {currentUser ? 'Log Out' : 'Sign In / Register'}
+                                </button>
+                            </li>
                         </ul>
                     </div>
                 </div>

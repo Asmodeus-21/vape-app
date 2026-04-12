@@ -1439,7 +1439,7 @@ export default function App() {
                                 <img
                                     src="/logo.png"
                                     alt="Banana Leaf Store"
-                                    className="h-12 w-auto max-w-[160px] object-contain"
+                                    className="h-48 w-auto object-contain"
                                     onError={(e) => {
                                         const img = e.currentTarget;
                                         img.style.display = 'none';

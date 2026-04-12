@@ -1412,9 +1412,10 @@ export default function App() {
             {/* Premium Top Nav */}
             <header className="w-full bg-[#f8f9fa] md:bg-white/95 border-b border-slate-200/80 text-slate-900 sticky top-0 z-50 backdrop-blur-xl">
                 <div className="max-w-[1500px] mx-auto w-full px-0 md:px-6 md:h-24 md:flex md:items-center md:gap-8">
-                    <div className="md:hidden mx-3 my-2 rounded-full bg-white shadow-lg px-4 py-2">
-                        <div className="flex items-center justify-between gap-2">
-                            <div className="flex items-center gap-2 min-w-0">
+                    <div className="md:hidden mx-3 my-2 rounded-full bg-white shadow-lg px-4 py-3">
+                        <div className="relative flex items-center">
+                            {/* LEFT — Hamburger anchor */}
+                            <div className="flex items-center flex-1 justify-start">
                                 <button
                                     type="button"
                                     className="flex items-center justify-center w-9 h-9 rounded-full border border-slate-200 bg-white text-slate-900 shadow-sm active:scale-95 transition-all"
@@ -1423,33 +1424,37 @@ export default function App() {
                                 >
                                     <Menu className="w-4 h-4" />
                                 </button>
-                                <div
-                                    onClick={() => {
-                                        setActiveTab('marketplace');
-                                        setSelectedProductId(null);
-                                        setSearchQuery('');
-                                        navigate('/products');
+                            </div>
+
+                            {/* CENTER — Logo (absolutely centered) */}
+                            <div
+                                onClick={() => {
+                                    setActiveTab('marketplace');
+                                    setSelectedProductId(null);
+                                    setSearchQuery('');
+                                    navigate('/products');
+                                }}
+                                className="absolute left-1/2 -translate-x-1/2 flex items-center cursor-pointer group"
+                            >
+                                <img
+                                    src="/logo.png"
+                                    alt="Banana Leaf Store"
+                                    className="h-12 w-auto max-w-[160px] object-contain"
+                                    onError={(e) => {
+                                        const img = e.currentTarget;
+                                        img.style.display = 'none';
+                                        const fallback = img.nextElementSibling as HTMLElement | null;
+                                        if (fallback) fallback.style.display = 'flex';
                                     }}
-                                    className="flex items-center cursor-pointer group min-w-0"
-                                >
-                                    <img
-                                        src="/logo.png"
-                                        alt="Banana Leaf Store"
-                                        className="h-10 w-auto max-w-[132px] object-contain"
-                                        onError={(e) => {
-                                            const img = e.currentTarget;
-                                            img.style.display = 'none';
-                                            const fallback = img.nextElementSibling as HTMLElement | null;
-                                            if (fallback) fallback.style.display = 'flex';
-                                        }}
-                                    />
-                                    <div className="hidden flex-col">
-                                        <span className="text-xl font-black tracking-tighter uppercase italic leading-none">Banana Leaf<span className="text-brand-primary">.</span></span>
-                                        <span className="text-[8px] font-black uppercase tracking-[0.3em] text-slate-400 mt-1">Store</span>
-                                    </div>
+                                />
+                                <div className="hidden flex-col">
+                                    <span className="text-xl font-black tracking-tighter uppercase italic leading-none">Banana Leaf<span className="text-brand-primary">.</span></span>
+                                    <span className="text-[8px] font-black uppercase tracking-[0.3em] text-slate-400 mt-1">Store</span>
                                 </div>
                             </div>
-                            <div className="flex items-center gap-2 shrink-0">
+
+                            {/* RIGHT — Search + Cart anchors */}
+                            <div className="flex items-center gap-2 flex-1 justify-end">
                                 <button
                                     type="button"
                                     className="flex items-center justify-center w-9 h-9 rounded-full border border-slate-200 bg-white text-slate-900 shadow-sm active:scale-95 transition-all"

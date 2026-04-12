@@ -27,6 +27,7 @@ export default function AuthModal({ onClose, onAuthSuccess }: AuthModalProps) {
     const [loginOtpCode, setLoginOtpCode] = useState('');
     const [regStep, setRegStep] = useState<'form' | 'otp'>('form');
     const [regOtpCode, setRegOtpCode] = useState('');
+    const [resendCountdown, setResendCountdown] = useState(0);
 
     // Login fields
     const [loginEmail, setLoginEmail] = useState('');
@@ -61,12 +62,15 @@ export default function AuthModal({ onClose, onAuthSuccess }: AuthModalProps) {
         e.preventDefault();
         setError('');
         setLoading(true);
+        setResendCountdown(60);
         try {
             await requestLoginOtp(loginEmail);
             setLoginMode('otp_verify');
             toast.success('Login code sent. Check your email.', { duration: 4000 });
+            console.log(`[auth] OTP sent to ${loginEmail}`);
         } catch (err: any) {
             setError(err.message || 'Failed to send login code. Please try again.');
+            setResendCountdown(0);
         } finally {
             setLoading(false);
         }
@@ -99,16 +103,26 @@ export default function AuthModal({ onClose, onAuthSuccess }: AuthModalProps) {
         if (regPassword.length < 8) { setError('Password must be at least 8 characters.'); return; }
         if (isVendor && !storeName.trim()) { setError('Store name is required for franchise onboarding.'); return; }
         setLoading(true);
+        setResendCountdown(60);
         try {
             await requestOtp(regEmail);
             setRegStep('otp');
             toast.success('Verification code sent! Check your inbox.', { duration: 4000 });
+            console.log(`[auth] Registration OTP sent to ${regEmail}`);
         } catch (err: any) {
             setError(err.message || 'Failed to send verification code. Please try again.');
+            setResendCountdown(0);
         } finally {
             setLoading(false);
         }
     };
+
+    // Countdown timer effect
+    React.useEffect(() => {
+        if (resendCountdown <= 0) return;
+        const timer = setTimeout(() => setResendCountdown(prev => prev - 1), 1000);
+        return () => clearTimeout(timer);
+    }, [resendCountdown]);
 
     const handleVerifyOtp = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -328,10 +342,11 @@ export default function AuthModal({ onClose, onAuthSuccess }: AuthModalProps) {
                                 </button>
                                 <button
                                     type="button"
-                                    onClick={() => { setLoginMode('otp_request'); setLoginOtpCode(''); setError(''); }}
-                                    className="w-full py-3 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 hover:text-slate-900 flex items-center justify-center gap-2 transition-colors"
+                                    onClick={() => { setLoginMode('otp_request'); setLoginOtpCode(''); setError(''); setResendCountdown(0); }}
+                                    disabled={resendCountdown > 0}
+                                    className="w-full py-3 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 hover:text-slate-900 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-colors"
                                 >
-                                    <RefreshCw className="w-3 h-3" /> Change Email / Resend
+                                    <RefreshCw className="w-3 h-3" /> {resendCountdown > 0 ? `Resend in ${resendCountdown}s` : 'Change Email / Resend'}
                                 </button>
                             </motion.form>
                         ) : regStep === 'form' ? (
@@ -443,10 +458,11 @@ export default function AuthModal({ onClose, onAuthSuccess }: AuthModalProps) {
                                 </button>
                                 <button
                                     type="button"
-                                    onClick={() => { setRegStep('form'); setRegOtpCode(''); setError(''); }}
-                                    className="w-full py-3 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 hover:text-slate-900 flex items-center justify-center gap-2 transition-colors"
+                                    onClick={() => { setRegStep('form'); setRegOtpCode(''); setError(''); setResendCountdown(0); }}
+                                    disabled={resendCountdown > 0}
+                                    className="w-full py-3 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 hover:text-slate-900 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-colors"
                                 >
-                                    <RefreshCw className="w-3 h-3" /> Change Email / Resend
+                                    <RefreshCw className="w-3 h-3" /> {resendCountdown > 0 ? `Resend in ${resendCountdown}s` : 'Change Email / Resend'}
                                 </button>
                             </motion.form>
                         )}

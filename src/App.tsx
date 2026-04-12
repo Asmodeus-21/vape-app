@@ -602,10 +602,18 @@ export default function App() {
     useEffect(() => {
         const token = localStorage.getItem('vapeshub_token');
         if (token) {
+            console.log('[auth] Token found in localStorage — restoring session');
             fetchCurrentUser(token).then(user => {
-                if (user) setCurrentUser(user);
-                else localStorage.removeItem('vapeshub_token');
+                if (user) {
+                    console.log(`[auth] Session restored: ${user.email} (role: ${user.role})`);
+                    setCurrentUser(user);
+                } else {
+                    console.log('[auth] Token invalid — clearing localStorage');
+                    localStorage.removeItem('vapeshub_token');
+                }
             });
+        } else {
+            console.log('[auth] No token in localStorage — fresh session');
         }
     }, []);
 
@@ -1253,25 +1261,35 @@ export default function App() {
                     <AuthModal
                         onClose={() => setShowAuthModal(false)}
                         onAuthSuccess={async (user, token) => {
+                            console.log(`[auth] Login successful: ${user.email} (role: ${user.role})`);
                             setCurrentUser(user);
                             localStorage.setItem('vapeshub_token', token);
-                            // Push any pre-login local cart items to the DB, then sync
-                            const localCart = cart;
-                            const byProductId = new Map<number, number>();
-                            for (const item of localCart) {
-                                byProductId.set(item.id, (byProductId.get(item.id) || 0) + 1);
+
+                            // Gateway routing based on user role
+                            if (user.role === 'admin' || user.role === 'super_admin') {
+                                console.log('[auth] Admin detected — redirecting to dashboard');
+                                setActiveTab('admin');
+                            } else {
+                                console.log('[auth] Customer login — syncing cart');
+                                // Push any pre-login local cart items to the DB, then sync
+                                const localCart = cart;
+                                const byProductId = new Map<number, number>();
+                                for (const item of localCart) {
+                                    byProductId.set(item.id, (byProductId.get(item.id) || 0) + 1);
+                                }
+                                await Promise.all(
+                                    Array.from(byProductId.entries()).map(([pid, qty]) =>
+                                        addCartItemApi(token, pid, qty).catch(() => { })
+                                    )
+                                );
+                                const dbItems = await fetchCart(token);
+                                const expanded: Product[] = [];
+                                for (const item of dbItems) {
+                                    for (let i = 0; i < item.quantity; i++) expanded.push(item.product);
+                                }
+                                setCart(expanded);
+                                setActiveTab('marketplace');
                             }
-                            await Promise.all(
-                                Array.from(byProductId.entries()).map(([pid, qty]) =>
-                                    addCartItemApi(token, pid, qty).catch(() => { })
-                                )
-                            );
-                            const dbItems = await fetchCart(token);
-                            const expanded: Product[] = [];
-                            for (const item of dbItems) {
-                                for (let i = 0; i < item.quantity; i++) expanded.push(item.product);
-                            }
-                            setCart(expanded);
                         }}
                     />
                 )}

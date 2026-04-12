@@ -1410,199 +1410,244 @@ export default function App() {
                 )}
             </AnimatePresence>
             {/* Premium Top Nav */}
-            <header className="bg-white/95 border-b border-slate-200/80 text-slate-900 sticky top-0 z-50 backdrop-blur-xl">
-                <div className="max-w-[1500px] mx-auto px-4 md:px-6 h-16 sm:h-20 md:h-24 flex items-center gap-3 md:gap-8">
-                    {/* Logo */}
-                    <div
-                        onClick={() => {
-                            setActiveTab('marketplace');
-                            setSelectedProductId(null);
-                            setSearchQuery('');
-                            navigate('/products');
-                        }}
-                        className="flex items-center gap-3 cursor-pointer group shrink-0 overflow-hidden"
-                    >
-                        <img
-                            src="/logo.png"
-                            alt="Banana Leaf Store"
-                            className="h-14 sm:h-16 md:h-[112px] w-auto max-w-[140px] sm:max-w-[180px] md:max-w-[280px] object-contain"
-                            onError={(e) => {
-                                const img = e.currentTarget;
-                                img.style.display = 'none';
-                                const fallback = img.nextElementSibling as HTMLElement | null;
-                                if (fallback) fallback.style.display = 'flex';
-                            }}
-                        />
-                        <div className="hidden flex-col">
-                            <span className="text-xl md:text-2xl font-black tracking-tighter uppercase italic leading-none">Banana Leaf<span className="text-brand-primary">.</span></span>
-                            <span className="text-[8px] font-black uppercase tracking-[0.3em] text-slate-400 mt-1">Store</span>
+            <header className="w-full bg-[#f8f9fa] md:bg-white/95 border-b border-slate-200/80 text-slate-900 sticky top-0 z-50 backdrop-blur-xl">
+                <div className="max-w-[1500px] mx-auto w-full px-0 md:px-6 md:h-24 md:flex md:items-center md:gap-8">
+                    <div className="md:hidden mx-3 my-2 rounded-full bg-white shadow-lg px-4 py-2">
+                        <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-2 min-w-0">
+                                <button
+                                    type="button"
+                                    className="flex items-center justify-center w-9 h-9 rounded-full border border-slate-200 bg-white text-slate-900 shadow-sm active:scale-95 transition-all"
+                                    onClick={() => setIsMenuOpen(true)}
+                                    aria-label="Open menu"
+                                >
+                                    <Menu className="w-4 h-4" />
+                                </button>
+                                <div
+                                    onClick={() => {
+                                        setActiveTab('marketplace');
+                                        setSelectedProductId(null);
+                                        setSearchQuery('');
+                                        navigate('/products');
+                                    }}
+                                    className="flex items-center cursor-pointer group min-w-0"
+                                >
+                                    <img
+                                        src="/logo.png"
+                                        alt="Banana Leaf Store"
+                                        className="h-10 w-auto max-w-[132px] object-contain"
+                                        onError={(e) => {
+                                            const img = e.currentTarget;
+                                            img.style.display = 'none';
+                                            const fallback = img.nextElementSibling as HTMLElement | null;
+                                            if (fallback) fallback.style.display = 'flex';
+                                        }}
+                                    />
+                                    <div className="hidden flex-col">
+                                        <span className="text-xl font-black tracking-tighter uppercase italic leading-none">Banana Leaf<span className="text-brand-primary">.</span></span>
+                                        <span className="text-[8px] font-black uppercase tracking-[0.3em] text-slate-400 mt-1">Store</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-2 shrink-0">
+                                <button
+                                    type="button"
+                                    className="flex items-center justify-center w-9 h-9 rounded-full border border-slate-200 bg-white text-slate-900 shadow-sm active:scale-95 transition-all"
+                                    onClick={() => setIsMobileSearchOpen((prev) => !prev)}
+                                    aria-expanded={isMobileSearchOpen}
+                                    aria-label="Toggle search"
+                                >
+                                    <Search className="w-4 h-4" />
+                                </button>
+
+                                <button
+                                    type="button"
+                                    className="relative bg-slate-900 p-2.5 rounded-full shadow-xl shadow-slate-900/10 hover:bg-brand-primary transition-all duration-300"
+                                    onClick={() => setIsCartOpen(true)}
+                                    aria-label="Open cart"
+                                >
+                                    <ShoppingCart className="w-5 h-5 text-white" />
+                                    <span className="absolute -top-1 -right-1 bg-brand-primary text-slate-900 text-[10px] font-black w-6 h-6 rounded-full flex items-center justify-center border-4 border-white transition-all">{cart.length}</span>
+                                </button>
+                            </div>
                         </div>
                     </div>
 
-                    <div className="hidden sm:flex flex-1 items-center gap-3">
-                        {/* Search Bar */}
-                        <div className="flex-1 h-12 rounded-2xl overflow-hidden bg-slate-50 border border-slate-200 focus-within:ring-4 focus-within:ring-brand-primary/10 transition-all">
-                            <div className="bg-slate-100 flex items-center px-4 border-r border-slate-200 cursor-pointer hover:bg-slate-200 transition-colors">
-                                <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 whitespace-nowrap">Inventory</span>
-                            </div>
-                            <input
-                                type="text"
-                                className="flex-1 px-4 bg-transparent text-sm font-bold text-slate-900 focus:outline-none placeholder:text-slate-300"
-                                placeholder="Search product identifiers, flavors, or brands..."
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
+                    <div className="hidden md:flex w-full h-16 sm:h-20 md:h-24 items-center gap-3 md:gap-8">
+                        {/* Logo */}
+                        <div
+                            onClick={() => {
+                                setActiveTab('marketplace');
+                                setSelectedProductId(null);
+                                setSearchQuery('');
+                                navigate('/products');
+                            }}
+                            className="flex items-center gap-3 cursor-pointer group shrink-0 overflow-hidden"
+                        >
+                            <img
+                                src="/logo.png"
+                                alt="Banana Leaf Store"
+                                className="h-14 sm:h-16 md:h-[112px] w-auto max-w-[140px] sm:max-w-[180px] md:max-w-[280px] object-contain"
+                                onError={(e) => {
+                                    const img = e.currentTarget;
+                                    img.style.display = 'none';
+                                    const fallback = img.nextElementSibling as HTMLElement | null;
+                                    if (fallback) fallback.style.display = 'flex';
+                                }}
                             />
-                            <button className="bg-slate-900 px-6 hover:bg-brand-primary transition-colors">
-                                <Search className="w-5 h-5 text-white" />
-                            </button>
+                            <div className="hidden flex-col">
+                                <span className="text-xl md:text-2xl font-black tracking-tighter uppercase italic leading-none">Banana Leaf<span className="text-brand-primary">.</span></span>
+                                <span className="text-[8px] font-black uppercase tracking-[0.3em] text-slate-400 mt-1">Store</span>
+                            </div>
                         </div>
-                        <div ref={desktopCollectionMenuRef} className="relative shrink-0">
-                            <button
-                                type="button"
-                                aria-haspopup="menu"
-                                aria-expanded={isCollectionMenuOpen}
-                                onClick={() => setIsCollectionMenuOpen((prev) => !prev)}
-                                className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-[10px] font-black uppercase tracking-[0.28em] text-slate-900 transition-all hover:border-slate-900 hover:bg-slate-50"
-                            >
-                                Collections
-                                <ChevronDown className={`h-4 w-4 transition-transform ${isCollectionMenuOpen ? 'rotate-180' : ''}`} />
-                            </button>
-                            {isCollectionMenuOpen && (
-                                <div role="menu" className="absolute right-0 top-full z-[70] mt-3 w-[320px] overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white p-2 shadow-2xl shadow-slate-900/10">
-                                    <button
-                                        type="button"
-                                        role="menuitem"
-                                        onClick={() => focusMarketplaceSection({ filter: 'all', sectionId: 'brand-showcase-section' })}
-                                        className="flex w-full items-center justify-between rounded-[1.25rem] px-4 py-3 text-left text-[10px] font-black uppercase tracking-[0.22em] text-slate-900 transition-colors hover:bg-slate-100"
-                                    >
-                                        Shop The Collection
-                                        <ArrowRight className="h-4 w-4 text-slate-300" />
-                                    </button>
-                                    <button
-                                        type="button"
-                                        role="menuitem"
-                                        onClick={() => focusMarketplaceSection({ filter: 'all', search: 'Geekbar Pulse X', sectionId: 'inventory-stream-section' })}
-                                        className="flex w-full items-center justify-between rounded-[1.25rem] px-4 py-3 text-left text-[10px] font-black uppercase tracking-[0.22em] text-slate-900 transition-colors hover:bg-slate-100"
-                                    >
-                                        Pulse X Series
-                                        <ArrowRight className="h-4 w-4 text-slate-300" />
-                                    </button>
-                                    <button
-                                        type="button"
-                                        role="menuitem"
-                                        onClick={scrollToFlavorExplorer}
-                                        className="flex w-full items-center justify-between rounded-[1.25rem] px-4 py-3 text-left text-[10px] font-black uppercase tracking-[0.22em] text-slate-900 transition-colors hover:bg-slate-100"
-                                    >
-                                        Start Your Session
-                                        <ArrowRight className="h-4 w-4 text-slate-300" />
-                                    </button>
-                                    <button
-                                        type="button"
-                                        role="menuitem"
-                                        onClick={() => focusMarketplaceSection({ filter: 'express', sectionId: 'shipping-logistics-section' })}
-                                        className="flex w-full items-center justify-between rounded-[1.25rem] px-4 py-3 text-left text-[10px] font-black uppercase tracking-[0.22em] text-slate-900 transition-colors hover:bg-slate-100"
-                                    >
-                                        Seamless Delivery
-                                        <ArrowRight className="h-4 w-4 text-slate-300" />
-                                    </button>
-                                    {currentUser?.role === 'admin' && (
-                                        <>
-                                            <div className="mx-3 my-2 h-px bg-slate-200" />
-                                            <button
-                                                type="button"
-                                                role="menuitem"
-                                                onClick={handleVendorTabClick}
-                                                className="flex w-full items-center justify-between rounded-[1.25rem] px-4 py-3 text-left text-[10px] font-black uppercase tracking-[0.22em] text-emerald-700 transition-colors hover:bg-emerald-50"
-                                            >
-                                                Retailer OS
-                                                <ArrowRight className="h-4 w-4 text-emerald-300" />
-                                            </button>
-                                        </>
-                                    )}
-                                    {currentUser?.role === 'admin' && (
+
+                        <div className="hidden sm:flex flex-1 items-center gap-3">
+                            {/* Search Bar */}
+                            <div className="flex-1 h-12 rounded-2xl overflow-hidden bg-slate-50 border border-slate-200 focus-within:ring-4 focus-within:ring-brand-primary/10 transition-all">
+                                <div className="bg-slate-100 flex items-center px-4 border-r border-slate-200 cursor-pointer hover:bg-slate-200 transition-colors">
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 whitespace-nowrap">Inventory</span>
+                                </div>
+                                <input
+                                    type="text"
+                                    className="flex-1 px-4 bg-transparent text-sm font-bold text-slate-900 focus:outline-none placeholder:text-slate-300"
+                                    placeholder="Search product identifiers, flavors, or brands..."
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                />
+                                <button className="bg-slate-900 px-6 hover:bg-brand-primary transition-colors">
+                                    <Search className="w-5 h-5 text-white" />
+                                </button>
+                            </div>
+                            <div ref={desktopCollectionMenuRef} className="relative shrink-0">
+                                <button
+                                    type="button"
+                                    aria-haspopup="menu"
+                                    aria-expanded={isCollectionMenuOpen}
+                                    onClick={() => setIsCollectionMenuOpen((prev) => !prev)}
+                                    className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-[10px] font-black uppercase tracking-[0.28em] text-slate-900 transition-all hover:border-slate-900 hover:bg-slate-50"
+                                >
+                                    Collections
+                                    <ChevronDown className={`h-4 w-4 transition-transform ${isCollectionMenuOpen ? 'rotate-180' : ''}`} />
+                                </button>
+                                {isCollectionMenuOpen && (
+                                    <div role="menu" className="absolute right-0 top-full z-[70] mt-3 w-[320px] overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white p-2 shadow-2xl shadow-slate-900/10">
                                         <button
                                             type="button"
                                             role="menuitem"
-                                            onClick={handleProfileNavigation}
-                                            className="flex w-full items-center justify-between rounded-[1.25rem] px-4 py-3 text-left text-[10px] font-black uppercase tracking-[0.22em] text-rose-700 transition-colors hover:bg-rose-50"
+                                            onClick={() => focusMarketplaceSection({ filter: 'all', sectionId: 'brand-showcase-section' })}
+                                            className="flex w-full items-center justify-between rounded-[1.25rem] px-4 py-3 text-left text-[10px] font-black uppercase tracking-[0.22em] text-slate-900 transition-colors hover:bg-slate-100"
                                         >
-                                            Admin Layer
-                                            <ShieldCheck className="h-4 w-4 text-rose-300" />
+                                            Shop The Collection
+                                            <ArrowRight className="h-4 w-4 text-slate-300" />
                                         </button>
-                                    )}
+                                        <button
+                                            type="button"
+                                            role="menuitem"
+                                            onClick={() => focusMarketplaceSection({ filter: 'all', search: 'Geekbar Pulse X', sectionId: 'inventory-stream-section' })}
+                                            className="flex w-full items-center justify-between rounded-[1.25rem] px-4 py-3 text-left text-[10px] font-black uppercase tracking-[0.22em] text-slate-900 transition-colors hover:bg-slate-100"
+                                        >
+                                            Pulse X Series
+                                            <ArrowRight className="h-4 w-4 text-slate-300" />
+                                        </button>
+                                        <button
+                                            type="button"
+                                            role="menuitem"
+                                            onClick={scrollToFlavorExplorer}
+                                            className="flex w-full items-center justify-between rounded-[1.25rem] px-4 py-3 text-left text-[10px] font-black uppercase tracking-[0.22em] text-slate-900 transition-colors hover:bg-slate-100"
+                                        >
+                                            Start Your Session
+                                            <ArrowRight className="h-4 w-4 text-slate-300" />
+                                        </button>
+                                        <button
+                                            type="button"
+                                            role="menuitem"
+                                            onClick={() => focusMarketplaceSection({ filter: 'express', sectionId: 'shipping-logistics-section' })}
+                                            className="flex w-full items-center justify-between rounded-[1.25rem] px-4 py-3 text-left text-[10px] font-black uppercase tracking-[0.22em] text-slate-900 transition-colors hover:bg-slate-100"
+                                        >
+                                            Seamless Delivery
+                                            <ArrowRight className="h-4 w-4 text-slate-300" />
+                                        </button>
+                                        {currentUser?.role === 'admin' && (
+                                            <>
+                                                <div className="mx-3 my-2 h-px bg-slate-200" />
+                                                <button
+                                                    type="button"
+                                                    role="menuitem"
+                                                    onClick={handleVendorTabClick}
+                                                    className="flex w-full items-center justify-between rounded-[1.25rem] px-4 py-3 text-left text-[10px] font-black uppercase tracking-[0.22em] text-emerald-700 transition-colors hover:bg-emerald-50"
+                                                >
+                                                    Retailer OS
+                                                    <ArrowRight className="h-4 w-4 text-emerald-300" />
+                                                </button>
+                                            </>
+                                        )}
+                                        {currentUser?.role === 'admin' && (
+                                            <button
+                                                type="button"
+                                                role="menuitem"
+                                                onClick={handleProfileNavigation}
+                                                className="flex w-full items-center justify-between rounded-[1.25rem] px-4 py-3 text-left text-[10px] font-black uppercase tracking-[0.22em] text-rose-700 transition-colors hover:bg-rose-50"
+                                            >
+                                                Admin Layer
+                                                <ShieldCheck className="h-4 w-4 text-rose-300" />
+                                            </button>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* User & Actions */}
+                        <div className="flex items-center gap-3 md:gap-6 shrink-0">
+                            {currentUser ? (
+                                <div
+                                    className="hidden md:flex items-center gap-4 cursor-pointer group"
+                                    onClick={handleProfileNavigation}
+                                >
+                                    <div className="w-10 h-10 bg-slate-900 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-all border-2 border-brand-primary/20">
+                                        <UserIcon className="w-5 h-5 text-brand-primary" />
+                                    </div>
+                                    <div className="flex flex-col">
+                                        <span className="text-[9px] text-slate-400 font-black uppercase tracking-widest leading-none mb-1">Authenticated</span>
+                                        <div className="flex items-center gap-2 group-hover:text-brand-primary transition-colors">
+                                            <span className="text-sm font-black text-slate-900 uppercase tracking-tight">{currentUser.name}</span>
+                                            <LogOut className="w-4 h-4 text-slate-300 hover:text-red-500 transition-colors" onClick={(e) => { e.stopPropagation(); handleSignOut(); }} />
+                                        </div>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="hidden md:flex items-center gap-4 cursor-pointer group" onClick={() => setShowAuthModal(true)}>
+                                    <div className="w-10 h-10 bg-slate-100 rounded-2xl flex items-center justify-center group-hover:bg-brand-primary transition-all group-hover:rotate-6 shadow-sm">
+                                        <UserIcon className="text-slate-900 w-5 h-5 group-hover:text-white transition-all" />
+                                    </div>
+                                    <div className="flex flex-col">
+                                        <span className="text-[9px] text-slate-400 font-black uppercase tracking-widest leading-none mb-1">Credentials</span>
+                                        <div className="flex items-center gap-1 group-hover:text-brand-primary transition-colors">
+                                            <span className="text-sm font-black text-slate-900 uppercase tracking-tight">Login Flow</span>
+                                            <ChevronDown className="w-4 h-4 text-slate-300 group-hover:text-brand-primary" />
+                                        </div>
+                                    </div>
                                 </div>
                             )}
-                        </div>
-                    </div>
 
-                    {/* User & Actions */}
-                    <div className="flex items-center gap-3 md:gap-6 shrink-0">
-                        <button
-                            type="button"
-                            className="md:hidden flex items-center justify-center w-9 h-9 rounded-xl border border-slate-200 bg-white text-slate-900 shadow-sm active:scale-95 transition-all"
-                            onClick={() => setIsMenuOpen(true)}
-                            aria-label="Open menu"
-                        >
-                            <Menu className="w-4 h-4" />
-                        </button>
-                        {currentUser ? (
-                            <div
-                                className="hidden md:flex items-center gap-4 cursor-pointer group"
-                                onClick={handleProfileNavigation}
-                            >
-                                <div className="w-10 h-10 bg-slate-900 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-all border-2 border-brand-primary/20">
-                                    <UserIcon className="w-5 h-5 text-brand-primary" />
+                            {/* Cart */}
+                            <div className="flex items-center gap-4 cursor-pointer group relative" onClick={() => setIsCartOpen(true)}>
+                                <div className="relative bg-slate-900 p-3 md:p-4 rounded-[1.25rem] shadow-xl shadow-slate-900/10 group-hover:bg-brand-primary transition-all duration-300 before:absolute before:inset-0 before:bg-white/10 before:rounded-[1.25rem] before:opacity-0 group-hover:before:opacity-100">
+                                    <ShoppingCart className="w-5 h-5 md:w-6 md:h-6 text-white" />
+                                    <span className="absolute -top-1 -right-1 bg-brand-primary text-slate-900 text-[10px] font-black w-6 h-6 rounded-full flex items-center justify-center border-4 border-white group-hover:scale-110 transition-all">{cart.length}</span>
                                 </div>
-                                <div className="flex flex-col">
-                                    <span className="text-[9px] text-slate-400 font-black uppercase tracking-widest leading-none mb-1">Authenticated</span>
-                                    <div className="flex items-center gap-2 group-hover:text-brand-primary transition-colors">
-                                        <span className="text-sm font-black text-slate-900 uppercase tracking-tight">{currentUser.name}</span>
-                                        <LogOut className="w-4 h-4 text-slate-300 hover:text-red-500 transition-colors" onClick={(e) => { e.stopPropagation(); handleSignOut(); }} />
-                                    </div>
+                                <div className="hidden lg:flex flex-col">
+                                    <span className="text-[9px] text-slate-400 font-black uppercase tracking-widest leading-none mb-1">Ledger Total</span>
+                                    <span className="text-sm font-black text-slate-900">${cart.reduce((sum, item) => sum + item.price, 0).toFixed(2)}</span>
                                 </div>
-                            </div>
-                        ) : (
-                            <div className="hidden md:flex items-center gap-4 cursor-pointer group" onClick={() => setShowAuthModal(true)}>
-                                <div className="w-10 h-10 bg-slate-100 rounded-2xl flex items-center justify-center group-hover:bg-brand-primary transition-all group-hover:rotate-6 shadow-sm">
-                                    <UserIcon className="text-slate-900 w-5 h-5 group-hover:text-white transition-all" />
-                                </div>
-                                <div className="flex flex-col">
-                                    <span className="text-[9px] text-slate-400 font-black uppercase tracking-widest leading-none mb-1">Credentials</span>
-                                    <div className="flex items-center gap-1 group-hover:text-brand-primary transition-colors">
-                                        <span className="text-sm font-black text-slate-900 uppercase tracking-tight">Login Flow</span>
-                                        <ChevronDown className="w-4 h-4 text-slate-300 group-hover:text-brand-primary" />
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-
-                        <button
-                            type="button"
-                            className="md:hidden flex items-center justify-center w-9 h-9 rounded-xl border border-slate-200 bg-white text-slate-900 shadow-sm active:scale-95 transition-all"
-                            onClick={() => setIsMobileSearchOpen((prev) => !prev)}
-                            aria-expanded={isMobileSearchOpen}
-                            aria-label="Toggle search"
-                        >
-                            <Search className="w-4 h-4" />
-                        </button>
-
-                        {/* Cart */}
-                        <div className="flex items-center gap-4 cursor-pointer group relative" onClick={() => setIsCartOpen(true)}>
-                            <div className="relative bg-slate-900 p-3 md:p-4 rounded-[1.25rem] shadow-xl shadow-slate-900/10 group-hover:bg-brand-primary transition-all duration-300 before:absolute before:inset-0 before:bg-white/10 before:rounded-[1.25rem] before:opacity-0 group-hover:before:opacity-100">
-                                <ShoppingCart className="w-5 h-5 md:w-6 md:h-6 text-white" />
-                                <span className="absolute -top-1 -right-1 bg-brand-primary text-slate-900 text-[10px] font-black w-6 h-6 rounded-full flex items-center justify-center border-4 border-white group-hover:scale-110 transition-all">{cart.length}</span>
-                            </div>
-                            <div className="hidden lg:flex flex-col">
-                                <span className="text-[9px] text-slate-400 font-black uppercase tracking-widest leading-none mb-1">Ledger Total</span>
-                                <span className="text-sm font-black text-slate-900">${cart.reduce((sum, item) => sum + item.price, 0).toFixed(2)}</span>
                             </div>
                         </div>
                     </div>
                 </div>
 
                 {/* Mobile Search - Visible only on mobile */}
-                <div className={`relative z-[60] sm:hidden px-4 pb-3 ${isMobileSearchOpen ? 'block' : 'hidden'}`}>
-                    <div className="flex h-10 rounded-lg overflow-hidden border border-gray-200 bg-gray-50">
+                <div className={`relative z-[60] md:hidden px-3 pb-3 ${isMobileSearchOpen ? 'block' : 'hidden'}`}>
+                    <div className="mx-1 flex h-10 rounded-full overflow-hidden border border-gray-200 bg-white shadow-sm">
                         <input
                             type="text"
                             className="flex-1 px-3 text-sm focus:outline-none"
@@ -2127,12 +2172,12 @@ export default function App() {
                                 className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[100]"
                             />
                             <motion.div
-                                initial={{ x: '-100%' }}
-                                animate={{ x: 0 }}
-                                exit={{ x: '-100%' }}
-                                className="fixed top-0 left-0 h-full w-full max-w-[320px] bg-slate-900 z-[101] flex flex-col shadow-2xl border-r border-white/5"
+                                initial={{ opacity: 0, y: -14, scale: 0.98 }}
+                                animate={{ opacity: 1, y: 0, scale: 1 }}
+                                exit={{ opacity: 0, y: -10, scale: 0.98 }}
+                                className="fixed top-[76px] left-1/2 -translate-x-1/2 w-[min(calc(100vw-1.5rem),24rem)] max-h-[calc(100vh-92px)] overflow-hidden rounded-[1.75rem] bg-slate-900 z-[101] flex flex-col shadow-2xl border border-white/10"
                             >
-                                <div className="p-8 bg-slate-950 flex items-center justify-between border-b border-white/5">
+                                <div className="p-5 bg-slate-950 flex items-center justify-between border-b border-white/5">
                                     <div className="flex items-center gap-4">
                                         <div className="w-10 h-10 bg-brand-primary rounded-xl flex items-center justify-center shadow-lg shadow-brand-primary/20">
                                             <UserIcon className="w-6 h-6 text-white" />
@@ -2146,7 +2191,7 @@ export default function App() {
                                         <X className="w-6 h-6 text-white" />
                                     </button>
                                 </div>
-                                <div className="flex-1 overflow-y-auto p-8 space-y-10">
+                                <div className="flex-1 overflow-y-auto p-5 space-y-7">
                                     <div className="space-y-6">
                                         <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-brand-primary">Collections</h3>
                                         <ul className="space-y-5">
@@ -2190,7 +2235,7 @@ export default function App() {
                                         </ul>
                                     </div>
                                 </div>
-                                <div className="p-8 border-t border-white/5 bg-slate-950/50">
+                                <div className="p-5 border-t border-white/5 bg-slate-950/50">
                                     <div className="flex items-center gap-3">
                                         <img
                                             src="/logo.png"

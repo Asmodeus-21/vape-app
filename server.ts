@@ -150,7 +150,6 @@ export async function createApp(options: { skipSeed?: boolean; skipVite?: boolea
         }
         sql = getPostgresClient();
         isDatabaseConnected = true;
-        console.log('[db] Supabase/PostgreSQL schema ensured from schema.sql during startup.');
     } catch (err) {
         console.error(databaseWarningMessage);
         console.error('[db]', err);
@@ -483,6 +482,88 @@ export async function createApp(options: { skipSeed?: boolean; skipVite?: boolea
             res.status(201).json({ success: true, orderId });
         } catch (err: any) {
             res.status(400).json({ error: err.message });
+        }
+    });
+
+    app.post('/api/orders/guest-checkout', async (req, res) => {
+        const { items, shippingAddress, customerEmail, customerName, saveDetails } = req.body;
+
+        if (!Array.isArray(items) || items.length === 0) {
+            res.status(400).json({ error: 'Items array is required' });
+            return;
+        }
+        if (items.length > 50) {
+            res.status(400).json({ error: 'Maximum 50 items per order' });
+            return;
+        }
+        if (typeof shippingAddress !== 'string' || shippingAddress.trim().length < 10) {
+            res.status(400).json({ error: 'Valid shipping address is required (min 10 characters)' });
+            return;
+        }
+
+        for (const item of items) {
+            if (!item || !Number.isInteger(item.productId) || item.productId <= 0) {
+                res.status(400).json({ error: 'Invalid product ID' });
+                return;
+            }
+            if (!Number.isInteger(item.quantity) || item.quantity <= 0) {
+                res.status(400).json({ error: 'Quantity must be a positive integer' });
+                return;
+            }
+            if (item.quantity > 1000) {
+                res.status(400).json({ error: 'Maximum quantity per item is 1000' });
+                return;
+            }
+        }
+
+        const normalizedShippingAddress = shippingAddress.trim();
+        const normalizedEmail = typeof customerEmail === 'string' ? customerEmail.toLowerCase().trim() : '';
+        const normalizedName = typeof customerName === 'string' && customerName.trim()
+            ? customerName.trim()
+            : 'Guest Customer';
+
+        if (!normalizedEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+            res.status(400).json({ error: 'A valid email is required for guest checkout' });
+            return;
+        }
+
+        try {
+            let checkoutUserId: number;
+            const shouldSaveDetails = Boolean(saveDetails);
+
+            if (shouldSaveDetails) {
+                const existingUser = await findUserByEmail(sql, normalizedEmail);
+                if (existingUser) {
+                    checkoutUserId = Number(existingUser.id);
+                } else {
+                    const generatedPassword = `Guest#${Date.now()}!`;
+                    const registration = await registerUser(normalizedEmail, generatedPassword, normalizedName, 'customer');
+                    if (!registration.success || !registration.user) {
+                        res.status(400).json({ error: registration.error || 'Unable to create customer profile' });
+                        return;
+                    }
+                    checkoutUserId = Number(registration.user.id);
+                }
+            } else {
+                // Use an isolated synthetic account per guest order to avoid
+                // commingling order history across unrelated visitors.
+                const guestAliasEmail = `guest+${Date.now()}-${Math.floor(Math.random() * 100000)}@banana-leaf.store`;
+                const registration = await registerUser(guestAliasEmail, `Guest#${Date.now()}!`, normalizedName, 'customer');
+                if (!registration.success || !registration.user) {
+                    res.status(400).json({ error: registration.error || 'Unable to initialize guest checkout profile' });
+                    return;
+                }
+                checkoutUserId = Number(registration.user.id);
+            }
+
+            const orderId = await checkoutOrder(sql, checkoutUserId, items, normalizedShippingAddress);
+            const orderInfo = await getOrderWithUser(sql, orderId);
+            const orderTotal = orderInfo ? Number(orderInfo.total_amount) : 0;
+            await sendOrderConfirmation(normalizedEmail, orderId, orderTotal);
+
+            res.status(201).json({ success: true, orderId, guest: true });
+        } catch (err: any) {
+            res.status(400).json({ error: err.message || 'Guest checkout failed' });
         }
     });
 
@@ -973,9 +1054,9 @@ export async function startServer() {
 
     app.listen(port, "0.0.0.0", () => {
         const isDatabaseConnected = Boolean(app.locals.isDatabaseConnected);
-        console.log(`\n🚀 BananaLeaf Server running on http://localhost:${port}`);
-        console.log(`   Gemini AI: ${process.env.GEMINI_API_KEY ? '✅ Key loaded' : '⚠️  No API key found'}`);
-        console.log(`   Database: ${isDatabaseConnected ? '✅ Supabase/PostgreSQL ready' : '⚠️  Maintenance mode (database offline)'}\n`);
+        if (!isDatabaseConnected) {
+            console.error('Server started in maintenance mode: database offline.');
+        }
     });
 }
 

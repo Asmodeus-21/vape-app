@@ -16,3 +16,7 @@ _agents/
 _agent/
 .vercel
 .env*.local
+vape-app/
+tmp_products*.json
+temp.css
+test-admin-profile-nav.cjs

@@ -67,7 +67,6 @@ export default function AuthModal({ onClose, onAuthSuccess }: AuthModalProps) {
             await requestLoginOtp(loginEmail);
             setLoginMode('otp_verify');
             toast.success('Login code sent. Check your email.', { duration: 4000 });
-            console.log(`[auth] OTP sent to ${loginEmail}`);
         } catch (err: any) {
             setError(err.message || 'Failed to send login code. Please try again.');
             setResendCountdown(0);
@@ -108,7 +107,6 @@ export default function AuthModal({ onClose, onAuthSuccess }: AuthModalProps) {
             await requestOtp(regEmail);
             setRegStep('otp');
             toast.success('Verification code sent! Check your inbox.', { duration: 4000 });
-            console.log(`[auth] Registration OTP sent to ${regEmail}`);
         } catch (err: any) {
             setError(err.message || 'Failed to send verification code. Please try again.');
             setResendCountdown(0);

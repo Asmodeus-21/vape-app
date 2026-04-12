@@ -1,7 +1,8 @@
 {
-    "name": "bananaleaf",
+    "name": "banana-leaf-store",
     "private": true,
-    "version": "0.0.0",
+    "version": "1.0.0",
+    "description": "Production-ready vape and nicotine commerce platform with OTP auth, JuiceFly-style UX, and guest checkout.",
     "type": "module",
     "scripts": {
         "dev": "tsx server.ts",

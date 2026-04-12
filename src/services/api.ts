@@ -127,7 +127,11 @@ export async function fetchProductById(id: string | number): Promise<Product | n
     }
 }
 
-export async function createOrder(token: string, items: { productId: number; quantity: number }[], shippingAddress: string) {
+export async function createOrder(token: string | null | undefined, items: { productId: number; quantity: number }[], shippingAddress: string) {
+    if (!token) {
+        throw new Error('Missing auth token for authenticated checkout');
+    }
+
     const res = await fetch('/api/orders/checkout', {
         method: 'POST',
         headers: {
@@ -138,6 +142,25 @@ export async function createOrder(token: string, items: { productId: number; qua
     });
     const data = await safeJson(res);
     if (!res.ok) throw new Error(data.error || 'Checkout failed');
+    return data;
+}
+
+export async function createGuestOrder(
+    items: { productId: number; quantity: number }[],
+    shippingAddress: string,
+    customerEmail: string,
+    customerName: string,
+    saveDetails: boolean,
+) {
+    const res = await fetch('/api/orders/guest-checkout', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ items, shippingAddress, customerEmail, customerName, saveDetails }),
+    });
+    const data = await safeJson(res);
+    if (!res.ok) throw new Error(data.error || 'Guest checkout failed');
     return data;
 }
 

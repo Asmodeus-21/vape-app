@@ -49,6 +49,15 @@ interface AuthUser {
     storeId?: number | null;
 }
 
+interface CheckoutSummary {
+    orderId: number;
+    total: number;
+    deliveryFee: number;
+    shippingAddress: string;
+    customerEmail: string;
+    items: Array<{ name: string; quantity: number; lineTotal: number }>;
+}
+
 type ProductFilter = 'all' | 'bestsellers' | 'newarrivals' | 'express';
 
 interface ProductCardImageProps {
@@ -70,7 +79,8 @@ interface MarketplaceProductCardProps {
 
 interface FeatureBanner {
     brand: string;
-    headline: string;
+    headlinePrefix: string;
+    fallbackPrice: number;
     description: string;
     imageUrl: string;
     backgroundImageUrl: string;
@@ -316,7 +326,7 @@ function MarketplaceProductCard({ group, selectedVariant, onOpenProduct, onSelec
                     }}
                     className="juicefly-action-button mt-auto w-full justify-center"
                 >
-                    Select options
+                    Select Option
                 </button>
             </div>
         </article>
@@ -326,7 +336,8 @@ function MarketplaceProductCard({ group, selectedVariant, onOpenProduct, onSelec
 const FEATURE_BANNERS: readonly FeatureBanner[] = [
     {
         brand: 'Geek Bar',
-        headline: 'Geek Bar from $21.90',
+        headlinePrefix: 'Geek Bar from',
+        fallbackPrice: 21.9,
         description: 'Layered mint, candy, and citrus profiles with a premium disposable finish.',
         imageUrl: '/images/geek-bar-pulse-x-25000-clear.jpg',
         backgroundImageUrl: '/images/geek-bar-pulse-x-25000-clear.jpg',
@@ -334,7 +345,8 @@ const FEATURE_BANNERS: readonly FeatureBanner[] = [
     },
     {
         brand: 'Flum',
-        headline: 'Flum from $19.92',
+        headlinePrefix: 'Flum from',
+        fallbackPrice: 19.92,
         description: 'Bright, fruit-forward all-day picks with the soft silhouette customers recognize.',
         imageUrl: '/images/devices/elf-bar-bc5000.png',
         backgroundImageUrl: '/images/devices/elf-bar-bc5000.png',
@@ -342,7 +354,8 @@ const FEATURE_BANNERS: readonly FeatureBanner[] = [
     },
     {
         brand: 'RAZ',
-        headline: 'RAZ from $22.50',
+        headlinePrefix: 'RAZ from',
+        fallbackPrice: 22.5,
         description: 'A moody, modern disposable edit styled for high-conversion deal framing.',
         imageUrl: '/images/devices/pngtree-a-sleek-vaping-device-with-transparent-tank-glowing-orange-light-and-png-image_15912369.png',
         backgroundImageUrl: '/images/devices/geekvape-aegis-legend.jpg',
@@ -501,7 +514,9 @@ export default function App() {
     const [selectedProductId, setSelectedProductId] = useState<number | null>(null);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isCollectionMenuOpen, setIsCollectionMenuOpen] = useState(false);
+    const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
     const [showCheckoutOverlay, setShowCheckoutOverlay] = useState(false);
+    const [checkoutSummary, setCheckoutSummary] = useState<CheckoutSummary | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [aiChatOpen, setAiChatOpen] = useState(false);
     const [aiMessages, setAiMessages] = useState<{ role: 'user' | 'ai', text: string }[]>([]);
@@ -583,7 +598,6 @@ export default function App() {
     const [adminStats, setAdminStats] = useState<any>(null);
     const [adminLoading, setAdminLoading] = useState(false);
     const desktopCollectionMenuRef = useRef<HTMLDivElement | null>(null);
-    const mobileCollectionMenuRef = useRef<HTMLDivElement | null>(null);
 
     // ── Cart: restore from localStorage ──────────────────────────────
     const [cart, setCart] = useState<Product[]>(() => {
@@ -602,18 +616,13 @@ export default function App() {
     useEffect(() => {
         const token = localStorage.getItem('vapeshub_token');
         if (token) {
-            console.log('[auth] Token found in localStorage — restoring session');
             fetchCurrentUser(token).then(user => {
                 if (user) {
-                    console.log(`[auth] Session restored: ${user.email} (role: ${user.role})`);
                     setCurrentUser(user);
                 } else {
-                    console.log('[auth] Token invalid — clearing localStorage');
                     localStorage.removeItem('vapeshub_token');
                 }
             });
-        } else {
-            console.log('[auth] No token in localStorage — fresh session');
         }
     }, []);
 
@@ -622,6 +631,10 @@ export default function App() {
             applyMarketplaceStateFromUrl(searchParams);
         }
     }, [applyMarketplaceStateFromUrl, location.pathname, searchParams]);
+
+    useEffect(() => {
+        setShowCheckoutOverlay(location.pathname === '/checkout');
+    }, [location.pathname]);
 
     useEffect(() => {
         const routedProductId = parseProductIdFromPath(location.pathname);
@@ -645,9 +658,8 @@ export default function App() {
         const handlePointerDown = (event: MouseEvent) => {
             const target = event.target as Node;
             const isInsideDesktopMenu = desktopCollectionMenuRef.current?.contains(target);
-            const isInsideMobileMenu = mobileCollectionMenuRef.current?.contains(target);
 
-            if (!isInsideDesktopMenu && !isInsideMobileMenu) {
+            if (!isInsideDesktopMenu) {
                 setIsCollectionMenuOpen(false);
             }
         };
@@ -666,6 +678,12 @@ export default function App() {
             document.removeEventListener('keydown', handleEscape);
         };
     }, [isCollectionMenuOpen]);
+
+    useEffect(() => {
+        if (isMenuOpen) {
+            setIsMobileSearchOpen(false);
+        }
+    }, [isMenuOpen]);
 
     useEffect(() => {
         if (activeTab !== 'marketplace' || location.pathname !== '/products') {
@@ -769,10 +787,8 @@ export default function App() {
             }
 
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/sw.js').then(registration => {
-                    console.log('SW registered: ', registration);
-                }).catch(registrationError => {
-                    console.log('SW registration failed: ', registrationError);
+                navigator.serviceWorker.register('/sw.js').catch(registrationError => {
+                    console.error('Service worker registration failed:', registrationError);
                 });
             });
         }
@@ -878,6 +894,7 @@ export default function App() {
         const newItems = Array(quantity).fill(itemToAdd);
         setCart(prev => [...prev, ...newItems]);
         toast.success(`${product.name.substring(0, 30)}... added to cart!`, { duration: 2000 });
+        setIsCartOpen(true);
         const token = localStorage.getItem('vapeshub_token');
         if (token && product.id) {
             addCartItemApi(token, product.id, quantity).catch(() => { });
@@ -924,12 +941,8 @@ export default function App() {
             toast.error('Your cart is empty');
             return;
         }
-        if (!currentUser) {
-            toast('Please sign in to checkout', { icon: '🔒' });
-            setShowAuthModal(true);
-            return;
-        }
-        setShowCheckoutOverlay(true);
+        setIsCartOpen(false);
+        navigate('/checkout');
     };
 
     const handleVendorTabClick = () => {
@@ -1057,6 +1070,27 @@ export default function App() {
         : searchQuery.trim()
             ? `The Banana Leaf collection matching ${searchQuery.trim()} is currently being curated. Check back soon for premium drops.`
             : 'The Banana Leaf collection is currently being curated. Check back soon for premium drops.';
+
+    const featureBannerPrices = useMemo(() => {
+        const pricesByBrand: Record<string, number> = {};
+
+        for (const group of homepageGridGroups) {
+            const lowestPrice = Math.min(...group.variants.map((variant) => variant.price));
+            const brandKey = group.brand.trim().toLowerCase();
+            const existingPrice = pricesByBrand[brandKey];
+            if (existingPrice === undefined || lowestPrice < existingPrice) {
+                pricesByBrand[brandKey] = lowestPrice;
+            }
+        }
+
+        return pricesByBrand;
+    }, [homepageGridGroups]);
+
+    const getFeatureBannerHeadline = useCallback((banner: FeatureBanner) => {
+        const livePrice = featureBannerPrices[banner.brand.trim().toLowerCase()];
+        const resolvedPrice = typeof livePrice === 'number' ? livePrice : banner.fallbackPrice;
+        return `${banner.headlinePrefix} $${resolvedPrice.toFixed(2)}`;
+    }, [featureBannerPrices]);
 
     useEffect(() => {
         if (!pendingScrollTarget) {
@@ -1220,15 +1254,10 @@ export default function App() {
             return null;
         }
 
-        return parentVariantGroups.find((group) => group.variants.some((variant) => variant.id === selectedProductId)) ?? null;
-    }, [parentVariantGroups, selectedProductId]);
-
-    useEffect(() => {
-        const isLocalDebug = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-        if (isLocalDebug) {
-            console.log(homepageGridGroups);
-        }
-    }, [homepageGridGroups]);
+        return parentVariantGroups.find((group) => group.variants.some((variant) => variant.id === selectedProductId))
+            ?? homepageGridGroups.find((group) => group.variants.some((variant) => variant.id === selectedProductId))
+            ?? null;
+    }, [parentVariantGroups, homepageGridGroups, selectedProductId]);
 
     const openProductDetailPage = useCallback((productId: number) => {
         setSelectedProductId(productId);
@@ -1261,16 +1290,13 @@ export default function App() {
                     <AuthModal
                         onClose={() => setShowAuthModal(false)}
                         onAuthSuccess={async (user, token) => {
-                            console.log(`[auth] Login successful: ${user.email} (role: ${user.role})`);
                             setCurrentUser(user);
                             localStorage.setItem('vapeshub_token', token);
 
                             // Gateway routing based on user role
                             if (user.role === 'admin' || user.role === 'super_admin') {
-                                console.log('[auth] Admin detected — redirecting to dashboard');
                                 setActiveTab('admin');
                             } else {
-                                console.log('[auth] Customer login — syncing cart');
                                 // Push any pre-login local cart items to the DB, then sync
                                 const localCart = cart;
                                 const byProductId = new Map<number, number>();
@@ -1296,11 +1322,20 @@ export default function App() {
             </AnimatePresence>
             {/* Checkout Overlay */}
             <AnimatePresence>
-                {showCheckoutOverlay && currentUser && (
+                {showCheckoutOverlay && (
                     <CheckoutOverlay
                         cart={cart}
-                        token={localStorage.getItem('vapeshub_token') || ''}
-                        onClose={() => setShowCheckoutOverlay(false)}
+                        token={localStorage.getItem('vapeshub_token')}
+                        currentUser={currentUser}
+                        onAuthSuccess={(user, token) => {
+                            setCurrentUser(user);
+                            localStorage.setItem('vapeshub_token', token);
+                        }}
+                        onClose={() => navigate('/products')}
+                        onOrderComplete={(summary) => {
+                            setCheckoutSummary(summary);
+                            navigate('/checkout/success');
+                        }}
                         onSuccess={() => {
                             setCart([]);
                         }}
@@ -1403,16 +1438,20 @@ export default function App() {
                                         Seamless Delivery
                                         <ArrowRight className="h-4 w-4 text-slate-300" />
                                     </button>
-                                    <div className="mx-3 my-2 h-px bg-slate-200" />
-                                    <button
-                                        type="button"
-                                        role="menuitem"
-                                        onClick={handleVendorTabClick}
-                                        className="flex w-full items-center justify-between rounded-[1.25rem] px-4 py-3 text-left text-[10px] font-black uppercase tracking-[0.22em] text-emerald-700 transition-colors hover:bg-emerald-50"
-                                    >
-                                        Retailer OS
-                                        <ArrowRight className="h-4 w-4 text-emerald-300" />
-                                    </button>
+                                    {currentUser?.role === 'admin' && (
+                                        <>
+                                            <div className="mx-3 my-2 h-px bg-slate-200" />
+                                            <button
+                                                type="button"
+                                                role="menuitem"
+                                                onClick={handleVendorTabClick}
+                                                className="flex w-full items-center justify-between rounded-[1.25rem] px-4 py-3 text-left text-[10px] font-black uppercase tracking-[0.22em] text-emerald-700 transition-colors hover:bg-emerald-50"
+                                            >
+                                                Retailer OS
+                                                <ArrowRight className="h-4 w-4 text-emerald-300" />
+                                            </button>
+                                        </>
+                                    )}
                                     {currentUser?.role === 'admin' && (
                                         <button
                                             type="button"
@@ -1431,25 +1470,6 @@ export default function App() {
 
                     {/* User & Actions */}
                     <div className="flex items-center gap-3 md:gap-6 shrink-0">
-                        <div className="relative sm:hidden" ref={mobileCollectionMenuRef}>
-                            <button
-                                type="button"
-                                aria-haspopup="menu"
-                                aria-expanded={isCollectionMenuOpen}
-                                onClick={() => setIsCollectionMenuOpen((prev) => !prev)}
-                                className="flex items-center justify-center w-9 h-9 rounded-xl border border-slate-200 bg-white text-slate-900 shadow-sm active:scale-95 transition-all"
-                            >
-                                <ChevronDown className={`w-4 h-4 transition-transform ${isCollectionMenuOpen ? 'rotate-180' : ''}`} />
-                            </button>
-                            {isCollectionMenuOpen && (
-                                <div role="menu" className="absolute right-0 top-full z-[70] mt-3 w-[270px] overflow-hidden rounded-[1.5rem] border border-slate-200 bg-white p-2 shadow-2xl shadow-slate-900/10">
-                                    <button type="button" role="menuitem" onClick={() => focusMarketplaceSection({ filter: 'all', sectionId: 'brand-showcase-section' })} className="flex w-full items-center justify-between rounded-xl px-4 py-3 text-left text-[10px] font-black uppercase tracking-[0.22em] text-slate-900 hover:bg-slate-100 transition-colors">Shop The Collection<ArrowRight className="h-4 w-4 text-slate-300" /></button>
-                                    <button type="button" role="menuitem" onClick={() => focusMarketplaceSection({ filter: 'all', search: 'Geekbar Pulse X', sectionId: 'inventory-stream-section' })} className="flex w-full items-center justify-between rounded-xl px-4 py-3 text-left text-[10px] font-black uppercase tracking-[0.22em] text-slate-900 hover:bg-slate-100 transition-colors">Pulse X Series<ArrowRight className="h-4 w-4 text-slate-300" /></button>
-                                    <button type="button" role="menuitem" onClick={scrollToFlavorExplorer} className="flex w-full items-center justify-between rounded-xl px-4 py-3 text-left text-[10px] font-black uppercase tracking-[0.22em] text-slate-900 hover:bg-slate-100 transition-colors">Start Your Session<ArrowRight className="h-4 w-4 text-slate-300" /></button>
-                                    <button type="button" role="menuitem" onClick={() => focusMarketplaceSection({ filter: 'express', sectionId: 'shipping-logistics-section' })} className="flex w-full items-center justify-between rounded-xl px-4 py-3 text-left text-[10px] font-black uppercase tracking-[0.22em] text-slate-900 hover:bg-slate-100 transition-colors">Seamless Delivery<ArrowRight className="h-4 w-4 text-slate-300" /></button>
-                                </div>
-                            )}
-                        </div>
                         <button
                             type="button"
                             className="md:hidden flex items-center justify-center w-9 h-9 rounded-xl border border-slate-200 bg-white text-slate-900 shadow-sm active:scale-95 transition-all"
@@ -1489,13 +1509,14 @@ export default function App() {
                             </div>
                         )}
 
-                        {/* Mobile login/user button — visible on small screens */}
                         <button
-                            className="md:hidden flex items-center justify-center w-9 h-9 rounded-xl bg-[#40E0D0] text-white shadow-sm active:scale-95 transition-all shrink-0"
-                            onClick={() => currentUser ? handleProfileNavigation() : setShowAuthModal(true)}
-                            aria-label={currentUser ? 'Profile' : 'Login'}
+                            type="button"
+                            className="md:hidden flex items-center justify-center w-9 h-9 rounded-xl border border-slate-200 bg-white text-slate-900 shadow-sm active:scale-95 transition-all"
+                            onClick={() => setIsMobileSearchOpen((prev) => !prev)}
+                            aria-expanded={isMobileSearchOpen}
+                            aria-label="Toggle search"
                         >
-                            <UserIcon className="w-4 h-4" />
+                            <Search className="w-4 h-4" />
                         </button>
 
                         {/* Cart */}
@@ -1513,12 +1534,13 @@ export default function App() {
                 </div>
 
                 {/* Mobile Search - Visible only on mobile */}
-                <div className="sm:hidden px-4 pb-3">
+                <div className={`relative z-[60] sm:hidden px-4 pb-3 ${isMobileSearchOpen ? 'block' : 'hidden'}`}>
                     <div className="flex h-10 rounded-lg overflow-hidden border border-gray-200 bg-gray-50">
                         <input
                             type="text"
                             className="flex-1 px-3 text-sm focus:outline-none"
                             placeholder="Search products..."
+                            aria-label="Search products"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                         />
@@ -1531,7 +1553,7 @@ export default function App() {
 
             {/* Main Content */}
             <main className="flex-1 max-w-[1500px] mx-auto w-full pb-12">
-                {activeTab === 'marketplace' && !selectedProductId && (
+                {activeTab === 'marketplace' && !selectedProductId && location.pathname !== '/checkout/success' && (
                     <div className="space-y-6">
                         <section id="brand-showcase-section" className="mx-4 space-y-3 pt-3 md:pt-4">
                             {FEATURE_BANNERS.map((banner) => (
@@ -1545,29 +1567,29 @@ export default function App() {
                                             backgroundImage: `linear-gradient(92deg, rgba(15,23,42,0.96) 0%, rgba(15,23,42,0.84) 44%, rgba(15,23,42,0.48) 72%, rgba(15,23,42,0.24) 100%), url(${banner.backgroundImageUrl})`,
                                         }}
                                     />
-                                    <div className="relative grid min-h-[268px] gap-6 px-6 py-6 sm:px-7 md:min-h-[296px] md:grid-cols-[minmax(0,1.08fr)_minmax(240px,0.92fr)] md:items-center md:px-10 md:py-8 lg:min-h-[320px] lg:px-12">
-                                        <div className="space-y-3 text-white md:max-w-[35rem]">
+                                    <div className="relative grid min-h-[292px] gap-4 px-4 py-5 sm:px-7 sm:py-6 md:min-h-[296px] md:grid-cols-[minmax(0,1.08fr)_minmax(240px,0.92fr)] md:items-center md:gap-6 md:px-10 md:py-8 lg:min-h-[320px] lg:px-12">
+                                        <div className="space-y-3 pr-0 text-white md:max-w-[35rem] md:pr-4">
                                             <p className="text-[10px] font-black uppercase tracking-[0.34em] text-[#8bd1ff]">{banner.brand}</p>
                                             <div className="space-y-2.5">
-                                                <h3 className="max-w-[11ch] text-[2.05rem] font-black leading-[0.92] tracking-[-0.07em] text-white md:text-[2.6rem] lg:text-[3.1rem]">{banner.headline}</h3>
-                                                <p className="max-w-[34rem] text-[0.92rem] leading-6 text-slate-200 md:text-[0.98rem] md:leading-7">{banner.description}</p>
+                                                <h3 className="max-w-[12ch] text-[1.72rem] font-black leading-[0.95] tracking-[-0.05em] text-white sm:text-[2.05rem] md:text-[2.6rem] lg:text-[3.1rem]">{getFeatureBannerHeadline(banner)}</h3>
+                                                <p className="max-w-[34rem] text-[0.86rem] leading-5 text-slate-200 sm:text-[0.92rem] sm:leading-6 md:text-[0.98rem] md:leading-7">{banner.description}</p>
                                             </div>
                                             <button
                                                 type="button"
                                                 onClick={() => focusMarketplaceSection({
                                                     filter: 'all',
-                                                    search: banner.search,
+                                                    search: banner.brand,
                                                     category: banner.category,
-                                                    sectionId: 'inventory-stream-section',
+                                                    sectionId: 'marketplace-grid-section',
                                                 })}
-                                                className="inline-flex h-11 items-center justify-center rounded-[0.9rem] bg-[#4AB1F4] px-5 text-[11px] font-black uppercase tracking-[0.18em] text-white transition-colors hover:bg-[#2f9ce5]"
+                                                className="inline-flex h-12 items-center justify-center rounded-[1rem] bg-[#4AB1F4] px-6 text-[11px] font-black uppercase tracking-[0.18em] text-white shadow-[0_10px_22px_rgba(74,177,244,0.42)] transition-all hover:-translate-y-0.5 hover:bg-[#2f9ce5]"
                                             >
                                                 Claim Deal
                                             </button>
                                         </div>
 
-                                        <div className="flex items-center justify-center md:justify-end">
-                                            <div className="flex h-[184px] w-[184px] items-center justify-center rounded-[1.55rem] border border-slate-100 bg-white p-4 shadow-[0_20px_50px_rgba(15,23,42,0.22)] md:h-[216px] md:w-[216px] md:p-5 lg:h-[236px] lg:w-[236px]">
+                                        <div className="flex items-center justify-end">
+                                            <div className="ml-auto flex h-[146px] w-[146px] items-center justify-center rounded-[1.4rem] border border-slate-100 bg-white p-3 shadow-[0_20px_50px_rgba(15,23,42,0.22)] sm:h-[184px] sm:w-[184px] sm:p-4 md:h-[216px] md:w-[216px] md:p-5 lg:h-[236px] lg:w-[236px]">
                                                 <img
                                                     src={banner.imageUrl}
                                                     alt={`${banner.brand} promotional device`}
@@ -1581,7 +1603,7 @@ export default function App() {
                             ))}
                         </section>
 
-                        <section className="mx-4 rounded-[2rem] border border-slate-100 bg-white p-6 shadow-sm md:p-10">
+                        <section id="marketplace-grid-section" className="mx-4 rounded-[2rem] border border-slate-100 bg-white p-6 shadow-sm md:p-10">
                             <div className="grid grid-cols-2 gap-4 lg:grid-cols-4 lg:gap-6">
                                 {homepageGridLoading ? (
                                     <div className="col-span-full w-full py-20 text-center bg-slate-50 rounded-[2rem] border border-dashed border-slate-100 flex items-center justify-center gap-3">
@@ -1712,6 +1734,77 @@ export default function App() {
                         <div id="shipping-logistics-section" className="h-0 w-full" aria-hidden="true" />
                     </div>
                 )
+                }
+
+                {
+                    location.pathname === '/checkout/success' && checkoutSummary && (
+                        <section className="mx-4 mt-6 rounded-[2rem] border border-slate-100 bg-white p-8 shadow-sm md:p-10">
+                            <div className="mb-8 flex flex-col gap-3 border-b border-slate-100 pb-6">
+                                <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[#4AB1F4]">Thank You</p>
+                                <h2 className="text-3xl font-black uppercase tracking-tighter text-slate-900">Order Confirmed</h2>
+                                <p className="text-sm font-semibold text-slate-500">Order #{checkoutSummary.orderId} has been received.</p>
+                            </div>
+
+                            <div className="grid gap-6 md:grid-cols-2">
+                                <div className="rounded-2xl border border-slate-100 bg-slate-50 p-5">
+                                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Shipping</p>
+                                    <p className="mt-2 text-sm font-bold text-slate-900">{checkoutSummary.shippingAddress}</p>
+                                    <p className="mt-2 text-xs font-semibold text-slate-500">Email: {checkoutSummary.customerEmail}</p>
+                                </div>
+                                <div className="rounded-2xl border border-slate-100 bg-slate-50 p-5">
+                                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Totals</p>
+                                    <p className="mt-2 text-sm font-bold text-slate-900">Subtotal: ${(checkoutSummary.total - checkoutSummary.deliveryFee).toFixed(2)}</p>
+                                    <p className="text-sm font-bold text-slate-900">Delivery: ${checkoutSummary.deliveryFee.toFixed(2)}</p>
+                                    <p className="mt-2 text-xl font-black tracking-tight text-[#4AB1F4]">Total: ${checkoutSummary.total.toFixed(2)}</p>
+                                </div>
+                            </div>
+
+                            <div className="mt-6 rounded-2xl border border-slate-100">
+                                <div className="border-b border-slate-100 px-5 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Order Summary</div>
+                                <div className="divide-y divide-slate-100">
+                                    {checkoutSummary.items.map((item) => (
+                                        <div key={`${item.name}-${item.quantity}`} className="flex items-center justify-between px-5 py-4">
+                                            <div>
+                                                <p className="text-sm font-black text-slate-900">{item.name}</p>
+                                                <p className="text-xs font-semibold text-slate-500">Qty: {item.quantity}</p>
+                                            </div>
+                                            <p className="text-sm font-black text-slate-900">${item.lineTotal.toFixed(2)}</p>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="mt-8 flex flex-wrap gap-3">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setCheckoutSummary(null);
+                                        navigate('/products');
+                                    }}
+                                    className="inline-flex h-11 items-center justify-center rounded-xl bg-slate-900 px-6 text-[11px] font-black uppercase tracking-[0.18em] text-white transition-colors hover:bg-[#4AB1F4]"
+                                >
+                                    Continue Shopping
+                                </button>
+                            </div>
+                        </section>
+                    )
+                }
+
+                {
+                    location.pathname === '/checkout/success' && !checkoutSummary && (
+                        <section className="mx-4 mt-6 rounded-[2rem] border border-slate-100 bg-white p-8 shadow-sm md:p-10 text-center">
+                            <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[#4AB1F4]">Thank You</p>
+                            <h2 className="mt-3 text-3xl font-black uppercase tracking-tighter text-slate-900">Order Received</h2>
+                            <p className="mt-3 text-sm font-semibold text-slate-500">Your order has been placed successfully.</p>
+                            <button
+                                type="button"
+                                onClick={() => navigate('/products')}
+                                className="mt-6 inline-flex h-11 items-center justify-center rounded-xl bg-slate-900 px-6 text-[11px] font-black uppercase tracking-[0.18em] text-white transition-colors hover:bg-[#4AB1F4]"
+                            >
+                                Return To Products
+                            </button>
+                        </section>
+                    )
                 }
 
                 {
@@ -1961,8 +2054,8 @@ export default function App() {
                                             <UserIcon className="w-6 h-6 text-white" />
                                         </div>
                                         <div className="flex flex-col">
-                                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">User Session</span>
-                                            <span className="text-white font-black uppercase tracking-tight">{currentUser ? currentUser.name : 'Unauthenticated'}</span>
+                                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">{currentUser ? 'Account Login' : 'Welcome, Guest'}</span>
+                                            <span className="text-white font-black uppercase tracking-tight">{currentUser ? currentUser.name : 'Sign In / Register'}</span>
                                         </div>
                                     </div>
                                     <button onClick={() => setIsMenuOpen(false)} className="p-2 hover:bg-white/5 rounded-xl transition-colors">
@@ -1971,7 +2064,7 @@ export default function App() {
                                 </div>
                                 <div className="flex-1 overflow-y-auto p-8 space-y-10">
                                     <div className="space-y-6">
-                                        <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-brand-primary">Explore</h3>
+                                        <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-brand-primary">Collections</h3>
                                         <ul className="space-y-5">
                                             <li className="flex items-center justify-between text-white font-black uppercase tracking-widest text-xs hover:text-brand-primary cursor-pointer transition-colors" onClick={() => { focusMarketplaceSection({ filter: 'all', sectionId: 'brand-showcase-section' }); setIsMenuOpen(false); }}>
                                                 Shop The Collection <ChevronRight className="w-4 h-4 text-slate-500" />
@@ -1979,8 +2072,8 @@ export default function App() {
                                             <li className="flex items-center justify-between text-white font-black uppercase tracking-widest text-xs hover:text-brand-primary cursor-pointer transition-colors" onClick={() => { focusMarketplaceSection({ filter: 'express', sectionId: 'shipping-logistics-section' }); setIsMenuOpen(false); }}>
                                                 Seamless Delivery <ChevronRight className="w-4 h-4 text-slate-500" />
                                             </li>
-                                            <li className="flex items-center justify-between text-white font-black uppercase tracking-widest text-xs hover:text-brand-primary cursor-pointer transition-colors" onClick={() => { scrollToFlavorExplorer(); setIsMenuOpen(false); }}>
-                                                Start Your Session <ChevronRight className="w-4 h-4 text-slate-500" />
+                                            <li className="flex items-center justify-between text-white font-black uppercase tracking-widest text-xs hover:text-brand-primary cursor-pointer transition-colors" onClick={() => { if (currentUser) { handleProfileNavigation(); } else { setShowAuthModal(true); } setIsMenuOpen(false); }}>
+                                                {currentUser ? 'My Account' : 'Sign In / Register'} <ChevronRight className="w-4 h-4 text-slate-500" />
                                             </li>
                                             <li className="flex items-center justify-between text-white font-black uppercase tracking-widest text-xs hover:text-brand-primary cursor-pointer transition-colors" onClick={() => { focusMarketplaceSection({ filter: 'all', search: 'Geekbar Pulse X', sectionId: 'inventory-stream-section' }); setIsMenuOpen(false); }}>
                                                 Pulse X Series <ChevronRight className="w-4 h-4 text-slate-500" />
@@ -1990,18 +2083,26 @@ export default function App() {
                                     <div className="space-y-6">
                                         <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-brand-primary">Account</h3>
                                         <ul className="space-y-5">
-                                            <li onClick={handleProfileNavigation} className="text-white font-black uppercase tracking-widest text-xs hover:text-brand-primary cursor-pointer transition-colors">User Profile</li>
-                                            <li onClick={() => { handleVendorTabClick(); setIsMenuOpen(false); }} className="text-brand-accent font-black uppercase tracking-widest text-xs hover:text-white cursor-pointer transition-colors flex items-center gap-2">
-                                                <span className="w-1.5 h-1.5 bg-brand-accent rounded-full animate-pulse" />
-                                                Retailer OS
-                                            </li>
+                                            {currentUser ? (
+                                                <li onClick={() => { handleProfileNavigation(); setIsMenuOpen(false); }} className="text-white font-black uppercase tracking-widest text-xs hover:text-brand-primary cursor-pointer transition-colors">My Account</li>
+                                            ) : (
+                                                <li onClick={() => { setShowAuthModal(true); setIsMenuOpen(false); }} className="text-white font-black uppercase tracking-widest text-xs hover:text-brand-primary cursor-pointer transition-colors">Sign In / Register</li>
+                                            )}
+                                            {currentUser?.role === 'admin' && (
+                                                <li onClick={() => { handleVendorTabClick(); setIsMenuOpen(false); }} className="text-brand-accent font-black uppercase tracking-widest text-xs hover:text-white cursor-pointer transition-colors flex items-center gap-2">
+                                                    <span className="w-1.5 h-1.5 bg-brand-accent rounded-full animate-pulse" />
+                                                    Retailer OS
+                                                </li>
+                                            )}
                                             {currentUser?.role === 'admin' && (
                                                 <li onClick={handleProfileNavigation} className="text-rose-400 font-black uppercase tracking-widest text-xs hover:text-white cursor-pointer transition-colors flex items-center gap-2">
                                                     <ShieldCheck className="w-4 h-4" />
                                                     Admin Layer
                                                 </li>
                                             )}
-                                            <li onClick={handleSignOut} className="text-slate-500 font-black uppercase tracking-widest text-xs hover:text-red-400 cursor-pointer transition-colors">Terminate Session</li>
+                                            {currentUser && (
+                                                <li onClick={handleSignOut} className="text-slate-500 font-black uppercase tracking-widest text-xs hover:text-red-400 cursor-pointer transition-colors">Log Out</li>
+                                            )}
                                         </ul>
                                     </div>
                                 </div>

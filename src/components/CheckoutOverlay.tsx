@@ -1,280 +1,375 @@
-import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
-import { ShoppingCart, ArrowRight, ShieldCheck, CheckCircle2, CreditCard, Lock, X, MapPin, Zap } from 'lucide-react';
-import { Product } from '../types';
-import AgeVerification from './AgeVerification';
-import { createOrder } from '../services/api';
+import { ArrowRight, CheckCircle2, CreditCard, Loader2, Lock, Mail, Truck, X } from 'lucide-react';
+import { AnimatePresence, motion } from 'motion/react';
+import { useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
+import { createGuestOrder, createOrder, registerWithOtp, requestOtp, verifyLoginOtp } from '../services/api';
+import { Product } from '../types';
 
-interface CheckoutOverlayProps {
-  cart: Product[];
-  token: string;
-  onClose: () => void;
-  onSuccess: () => void;
+interface AuthUser {
+    id: number;
+    email: string;
+    name: string;
+    role: string;
+    storeId?: number | null;
 }
 
-type CheckoutStep = 'cart_review' | 'age_verification' | 'shipping_payment' | 'success';
+interface CheckoutSummary {
+    orderId: number;
+    total: number;
+    deliveryFee: number;
+    shippingAddress: string;
+    customerEmail: string;
+    items: Array<{ name: string; quantity: number; lineTotal: number }>;
+}
 
-export default function CheckoutOverlay({ cart, token, onClose, onSuccess }: CheckoutOverlayProps) {
-  const [step, setStep] = useState<CheckoutStep>('cart_review');
-  const [shippingAddress, setShippingAddress] = useState('123 Main St, Ukiah, CA 95482');
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [orderId, setOrderId] = useState<number | null>(null);
+interface CheckoutOverlayProps {
+    cart: Product[];
+    token?: string | null;
+    currentUser: AuthUser | null;
+    onClose: () => void;
+    onSuccess: () => void;
+    onOrderComplete: (summary: CheckoutSummary) => void;
+    onAuthSuccess: (user: AuthUser, token: string) => void;
+}
 
-  const cartTotal = cart.reduce((sum, item) => sum + item.price, 0);
+type CheckoutStep = 'shipping' | 'delivery' | 'payment';
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-  // Group cart items by product ID & flavor/nicotine to calculate quantities
-  const groupedCart = cart.reduce((acc, item) => {
-    // Unique key considering options
-    const key = `${item.id}-${(item as any).flavor || ''}-${(item as any).nicotine || ''}`;
-    if (!acc[key]) {
-      acc[key] = { product: item, quantity: 0 };
-    }
-    acc[key].quantity += 1;
-    return acc;
-  }, {} as Record<string, { product: Product; quantity: number }>);
+export default function CheckoutOverlay({
+    cart,
+    token,
+    currentUser,
+    onClose,
+    onSuccess,
+    onOrderComplete,
+    onAuthSuccess,
+}: CheckoutOverlayProps) {
+    const [step, setStep] = useState<CheckoutStep>('shipping');
+    const [isProcessing, setIsProcessing] = useState(false);
 
-  const cartItems = Object.values(groupedCart);
+    const [fullName, setFullName] = useState(currentUser?.name || '');
+    const [customerEmail, setCustomerEmail] = useState(currentUser?.email || '');
+    const [phone, setPhone] = useState('');
+    const [shippingAddress, setShippingAddress] = useState('');
+    const [isAgeVerified, setIsAgeVerified] = useState(false);
+    const [deliveryMethod, setDeliveryMethod] = useState<'standard' | 'express'>('standard');
 
-  const handlePaymentSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsProcessing(true);
+    const [checkoutMode, setCheckoutMode] = useState<'guest' | 'save'>('guest');
+    const [otpCode, setOtpCode] = useState('');
+    const [otpSent, setOtpSent] = useState(false);
+    const [otpVerified, setOtpVerified] = useState(false);
+    const [saveDetailsToken, setSaveDetailsToken] = useState<string | null>(token ?? null);
 
-    try {
-      // Simulate payment delay
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      const itemsToOrder = cartItems.map(item => ({
-        productId: item.product.id,
-        quantity: item.quantity,
-      }));
+    const groupedCart = useMemo(() => {
+        return cart.reduce((acc, item) => {
+            const key = `${item.id}-${(item as any).flavor || ''}-${(item as any).nicotine || ''}`;
+            if (!acc[key]) {
+                acc[key] = { product: item, quantity: 0 };
+            }
+            acc[key].quantity += 1;
+            return acc;
+        }, {} as Record<string, { product: Product; quantity: number }>);
+    }, [cart]);
 
-      const res = await createOrder(token, itemsToOrder, shippingAddress);
-      setOrderId(res.orderId);
-      setStep('success');
-    } catch (err: any) {
-      toast.error(err.message || 'Payment failed');
-    } finally {
-      setIsProcessing(false);
-    }
-  };
+    const cartItems = useMemo(() => Object.values(groupedCart), [groupedCart]);
+    const subtotal = useMemo(() => cartItems.reduce((sum, item) => sum + item.product.price * item.quantity, 0), [cartItems]);
+    const deliveryFee = deliveryMethod === 'express' ? 5.99 : 0;
+    const total = subtotal + deliveryFee;
+    const isGuestCheckout = !currentUser;
 
-  return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/80 backdrop-blur-xl p-4">
-      <motion.div 
-        initial={{ opacity: 0, scale: 0.95, y: 20 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.95, y: 20 }}
-        className="bg-white max-w-2xl w-full rounded-[2.5rem] shadow-[0_32px_64px_-16px_rgba(0,0,0,0.3)] overflow-hidden flex flex-col max-h-[90vh] border border-white/20"
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between p-8 border-b border-slate-100 bg-slate-50/50">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-slate-900 rounded-2xl flex items-center justify-center shadow-lg rotate-3">
-              <Lock className="w-6 h-6 text-brand-primary" />
-            </div>
-            <div>
-              <h2 className="text-xl font-black text-slate-900 uppercase tracking-tighter">Secure Protocol</h2>
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Transaction Stream Encrypted</p>
-            </div>
-          </div>
-          {step !== 'success' && (
-            <button onClick={onClose} className="p-3 hover:bg-slate-100 rounded-2xl transition-all text-slate-400 hover:text-slate-900">
-              <X className="w-6 h-6" />
-            </button>
-          )}
-        </div>
+    const validateShippingStep = () => {
+        if (!fullName.trim()) {
+            toast.error('Full name is required');
+            return false;
+        }
+        if (!customerEmail.trim() || !EMAIL_REGEX.test(customerEmail.trim())) {
+            toast.error('A valid email is required');
+            return false;
+        }
+        if (!shippingAddress.trim() || shippingAddress.trim().length < 10) {
+            toast.error('Please enter a full shipping address');
+            return false;
+        }
+        return true;
+    };
 
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6 md:p-8">
-          <AnimatePresence mode="wait">
-            
-            {/* STEP 1: CART REVIEW */}
-            {step === 'cart_review' && (
-              <motion.div 
-                key="step1"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                className="space-y-6"
-              >
-                <div className="flex items-center gap-4 mb-8">
-                  <div className="w-12 h-12 rounded-2xl flex items-center justify-center bg-slate-900 text-brand-primary font-black shadow-lg">1</div>
-                  <h3 className="text-2xl font-black uppercase tracking-tighter text-slate-900">Ledger Review</h3>
-                </div>
+    const handleSendOtp = async () => {
+        if (!customerEmail.trim() || !EMAIL_REGEX.test(customerEmail.trim())) {
+            toast.error('Enter a valid email before requesting verification');
+            return;
+        }
 
-                <div className="space-y-4 max-h-[40vh] overflow-y-auto pr-3 scrollbar-hide">
-                  {cartItems.map((item, idx) => (
-                    <div key={idx} className="flex gap-5 items-center bg-slate-50 p-5 rounded-[2rem] border border-slate-100 group hover:border-brand-primary/50 transition-all">
-                      <div className="w-20 h-20 bg-white rounded-2xl p-2 shrink-0 border border-slate-100 shadow-sm group-hover:rotate-3 transition-transform">
-                        <img src={item.product.image} alt={item.product.name} className="w-full h-full object-contain" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h4 className="font-black text-slate-900 uppercase tracking-tight truncate text-sm">{item.product.name}</h4>
-                        <div className="text-[10px] text-slate-400 font-black uppercase tracking-widest flex gap-3 mt-1">
-                          {(item.product as any).flavor && <span>Flavor: {(item.product as any).flavor}</span>}
-                          {(item.product as any).nicotine && <span>Nic: {(item.product as any).nicotine}</span>}
-                        </div>
-                      </div>
-                      <div className="text-right shrink-0">
-                        <div className="font-black text-slate-900 tracking-tighter text-lg">${(item.product.price * item.quantity).toFixed(2)}</div>
-                        <div className="text-[10px] text-slate-400 font-black uppercase tracking-widest">Units: {item.quantity}</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+        try {
+            await requestOtp(customerEmail.trim());
+            setOtpSent(true);
+            toast.success('Verification code sent to your email');
+        } catch (err: any) {
+            toast.error(err.message || 'Unable to send verification code');
+        }
+    };
 
-                <div className="border-t border-slate-100 pt-8 mt-8">
-                  <div className="flex justify-between items-end mb-10">
-                    <div>
-                        <span className="text-slate-400 font-black uppercase tracking-[0.2em] text-[10px]">Consolidated Total</span>
-                        <p className="text-[8px] font-black uppercase tracking-[0.3em] text-slate-300">Including Market Tax</p>
-                    </div>
-                    <span className="text-5xl font-black text-slate-900 tracking-tighter">${cartTotal.toFixed(2)}</span>
-                  </div>
-                  <button 
-                    onClick={() => setStep('age_verification')}
-                    className="w-full py-5 bg-slate-900 text-white font-black uppercase tracking-[0.2em] rounded-2xl flex items-center justify-center gap-4 shadow-2xl shadow-slate-900/20 hover:bg-brand-primary hover:scale-[1.02] transition-all text-xs"
-                  >
-                    Proceed to Age Auth
-                    <ArrowRight className="w-5 h-5" />
-                  </button>
-                </div>
-              </motion.div>
-            )}
+    const handleVerifyOtp = async () => {
+        if (otpCode.trim().length !== 6) {
+            toast.error('Enter the 6-digit code from your email');
+            return;
+        }
 
-            {/* STEP 2: AGE VERIFICATION */}
-            {step === 'age_verification' && (
-              <motion.div 
-                key="step2"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                className="relative min-h-[400px]"
-              >
-                {/* We render the existing AgeVerification component but trap its callback */}
-                <AgeVerification onVerified={() => setStep('shipping_payment')} />
-                <button 
-                  onClick={() => setStep('cart_review')}
-                  className="absolute top-0 left-0 text-gray-500 font-bold text-sm hover:text-brand-primary underline"
-                >
-                  Back to Cart
-                </button>
-              </motion.div>
-            )}
+        try {
+            const generatedPassword = `Auto#${Date.now()}!`;
+            let authResult;
 
-            {/* STEP 3: SHIPPING AND PAYMENT */}
-            {step === 'shipping_payment' && (
-              <motion.div 
-                key="step3"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                className="space-y-6"
-              >
-                <div className="flex justify-between items-center mb-10">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-2xl flex items-center justify-center bg-slate-900 text-brand-primary font-black shadow-lg">2</div>
-                    <h3 className="text-2xl font-black uppercase tracking-tighter text-slate-900">Destination & Ledger</h3>
-                  </div>
-                  <button onClick={() => setStep('age_verification')} className="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-900 transition-colors">Go Back</button>
-                </div>
+            try {
+                authResult = await verifyLoginOtp(customerEmail.trim(), otpCode.trim());
+            } catch (verifyError: any) {
+                const verifyErrorMessage = String(verifyError?.message || '').toLowerCase();
+                if (!verifyErrorMessage.includes('user not found')) {
+                    throw verifyError;
+                }
 
-                <form onSubmit={handlePaymentSubmit} className="space-y-8">
-                  {/* Shipping Info */}
-                  <div className="bg-slate-50 p-8 rounded-[2rem] border border-slate-100">
-                    <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-4 flex items-center gap-3 ml-2">
-                      <MapPin className="w-4 h-4 text-brand-primary" />
-                      Dispatch Coordinates
-                    </h4>
-                    <input 
-                      type="text" 
-                      required
-                      value={shippingAddress}
-                      onChange={(e) => setShippingAddress(e.target.value)}
-                      className="w-full bg-white border border-slate-100 rounded-2xl px-6 py-4 font-bold text-xs outline-none focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/10 transition-all text-slate-900 shadow-sm"
-                    />
-                  </div>
+                authResult = await registerWithOtp(
+                    customerEmail.trim(),
+                    otpCode.trim(),
+                    fullName.trim(),
+                    generatedPassword,
+                    false,
+                );
+            }
 
-                  {/* Mock Payment Info */}
-                  <div className="bg-slate-50 p-8 rounded-[2rem] border border-slate-100">
-                    <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-4 flex items-center gap-3 ml-2">
-                      <CreditCard className="w-4 h-4 text-slate-400" />
-                      Payment Terminal
-                    </h4>
-                    <div className="space-y-4">
-                      <input 
-                        type="text" 
-                        placeholder="Card Number" 
-                        value="•••• •••• •••• 4242"
-                        readOnly
-                        className="w-full bg-white border border-slate-100 rounded-2xl px-6 py-4 font-mono outline-none text-slate-400 cursor-not-allowed shadow-sm text-xs"
-                      />
-                      <div className="grid grid-cols-2 gap-4">
-                        <input type="text" placeholder="MM/YY" value="12/26" readOnly className="bg-white border text-center border-slate-100 rounded-2xl px-6 py-4 font-mono outline-none text-slate-400 cursor-not-allowed shadow-sm text-xs" />
-                        <input type="text" placeholder="CVC" value="•••" readOnly className="bg-white border text-center border-slate-100 rounded-2xl px-6 py-4 font-mono outline-none text-slate-400 cursor-not-allowed shadow-sm text-xs" />
-                      </div>
-                      <p className="text-[9px] text-slate-300 font-black uppercase tracking-[0.2em] text-center mt-4 flex items-center justify-center gap-2">
-                        <Lock className="w-3 h-3" /> Sandbox Environment — No Actual Charge
-                      </p>
-                    </div>
-                  </div>
+            setOtpVerified(true);
+            setSaveDetailsToken(authResult.token);
+            onAuthSuccess(authResult.user, authResult.token);
+            toast.success('Email verified. Details will be saved.');
+        } catch (err: any) {
+            toast.error(err.message || 'Verification failed');
+        }
+    };
 
-                  <div className="border-t border-slate-100 pt-8 flex flex-col md:flex-row items-center justify-between gap-6">
-                    <div className="text-left">
-                      <div className="text-[10px] text-slate-400 font-black uppercase tracking-widest mb-1">Final Authorization</div>
-                      <div className="text-4xl font-black text-slate-900 tracking-tighter">${cartTotal.toFixed(2)}</div>
-                    </div>
-                    <button 
-                      type="submit"
-                      disabled={isProcessing}
-                      className="w-full md:w-auto px-10 py-5 bg-slate-900 text-white font-black uppercase tracking-[0.2em] rounded-2xl flex items-center justify-center gap-3 shadow-2xl shadow-slate-900/20 hover:bg-brand-primary transition-all text-xs active:scale-95"
-                    >
-                      {isProcessing ? 'Synchronizing...' : 'Settle Ledger'}
-                      {!isProcessing && <ArrowRight className="w-5 h-5" />}
-                    </button>
-                  </div>
-                </form>
-              </motion.div>
-            )}
+    const handleCompletePurchase = async () => {
+        if (!isAgeVerified) {
+            toast.error('You must confirm 21+ age verification before purchase');
+            setStep('shipping');
+            return;
+        }
 
-            {/* STEP 4: SUCCESS */}
-            {step === 'success' && (
-              <motion.div 
-                key="step4"
-                initial={{ opacity: 0, scale: 0.9, y: 20 }}
+        if (!validateShippingStep()) {
+            setStep('shipping');
+            return;
+        }
+
+        if (isGuestCheckout && checkoutMode === 'save' && (!otpVerified || !saveDetailsToken)) {
+            toast.error('Verify your email code to save details');
+            return;
+        }
+
+        setIsProcessing(true);
+
+        try {
+            const itemsToOrder = cartItems.map((item) => ({
+                productId: item.product.id,
+                quantity: item.quantity,
+            }));
+
+            let orderId: number;
+
+            if (saveDetailsToken) {
+                const response = await createOrder(saveDetailsToken, itemsToOrder, shippingAddress.trim());
+                orderId = Number(response.orderId);
+            } else {
+                const response = await createGuestOrder(
+                    itemsToOrder,
+                    shippingAddress.trim(),
+                    customerEmail.trim(),
+                    fullName.trim(),
+                    checkoutMode === 'save',
+                );
+                orderId = Number(response.orderId);
+            }
+
+            const summary: CheckoutSummary = {
+                orderId,
+                total,
+                deliveryFee,
+                shippingAddress: shippingAddress.trim(),
+                customerEmail: customerEmail.trim(),
+                items: cartItems.map((item) => ({
+                    name: item.product.name,
+                    quantity: item.quantity,
+                    lineTotal: item.product.price * item.quantity,
+                })),
+            };
+
+            onSuccess();
+            onOrderComplete(summary);
+            toast.success('Purchase completed successfully');
+        } catch (err: any) {
+            toast.error(err.message || 'Checkout failed');
+        } finally {
+            setIsProcessing(false);
+        }
+    };
+
+    return (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/80 backdrop-blur-xl p-4">
+            <motion.div
+                initial={{ opacity: 0, scale: 0.96, y: 12 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
-                className="flex flex-col items-center text-center py-12 space-y-8"
-              >
-                <div className="w-32 h-32 bg-emerald-50 rounded-[3rem] flex items-center justify-center mb-4 relative shadow-inner">
-                  <CheckCircle2 className="text-brand-primary w-16 h-16" />
-                  <div className="absolute -top-2 -right-2 w-8 h-8 bg-brand-primary rounded-full flex items-center justify-center text-white border-4 border-white shadow-lg">
-                    <Zap className="w-4 h-4 fill-current" />
-                  </div>
+                exit={{ opacity: 0, scale: 0.96, y: 12 }}
+                className="bg-white max-w-3xl w-full rounded-[2rem] shadow-[0_32px_64px_-16px_rgba(0,0,0,0.3)] overflow-hidden flex flex-col max-h-[92vh] border border-white/20"
+            >
+                <div className="flex items-center justify-between p-6 border-b border-slate-100 bg-slate-50/60">
+                    <div className="flex items-center gap-3">
+                        <div className="w-11 h-11 bg-slate-900 rounded-xl flex items-center justify-center shadow-lg">
+                            <Lock className="w-5 h-5 text-[#4AB1F4]" />
+                        </div>
+                        <div>
+                            <h2 className="text-lg font-black text-slate-900 uppercase tracking-tight">Checkout</h2>
+                            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Shipping → Delivery → Payment</p>
+                        </div>
+                    </div>
+                    <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-xl transition-all text-slate-400 hover:text-slate-900">
+                        <X className="w-5 h-5" />
+                    </button>
                 </div>
-                <div>
-                  <h2 className="text-5xl font-black text-slate-900 uppercase tracking-tighter mb-4">Transmission Success</h2>
-                  <p className="text-slate-500 font-medium max-w-sm mx-auto text-sm leading-relaxed">
-                    Order <span className="text-slate-900 font-black">#{orderId}</span> has been successfully logged into the Hub ledger. A confirmation stream has been initialized to your credentials.
-                  </p>
-                </div>
-                <div className="pt-6 w-full">
-                  <button 
-                    onClick={() => {
-                      onSuccess();
-                      onClose();
-                    }}
-                    className="w-full py-5 bg-slate-900 text-white font-black uppercase tracking-[0.2em] rounded-2xl shadow-[0_20px_40px_-10px_rgba(0,0,0,0.2)] hover:bg-brand-primary transition-all text-xs active:scale-95"
-                  >
-                    Return to Marketplace
-                  </button>
-                </div>
-              </motion.div>
-            )}
 
-          </AnimatePresence>
+                <div className="flex-1 overflow-y-auto p-6 md:p-8">
+                    <AnimatePresence mode="wait">
+                        {step === 'shipping' && (
+                            <motion.div key="shipping" initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -16 }} className="space-y-6">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-9 h-9 rounded-xl bg-slate-900 text-[#4AB1F4] font-black flex items-center justify-center">1</div>
+                                    <h3 className="text-xl font-black uppercase tracking-tight text-slate-900">Shipping</h3>
+                                </div>
+
+                                <div className="grid gap-4 md:grid-cols-2">
+                                    <input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Full name" className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold focus:border-[#4AB1F4] focus:outline-none" />
+                                    <input value={customerEmail} onChange={(e) => setCustomerEmail(e.target.value)} placeholder="Email" type="email" className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold focus:border-[#4AB1F4] focus:outline-none" />
+                                    <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Phone" className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold focus:border-[#4AB1F4] focus:outline-none" />
+                                    <input value={shippingAddress} onChange={(e) => setShippingAddress(e.target.value)} placeholder="Shipping address" className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold focus:border-[#4AB1F4] focus:outline-none" />
+                                </div>
+
+                                <label className="flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                                    <input
+                                        type="checkbox"
+                                        checked={isAgeVerified}
+                                        onChange={(e) => setIsAgeVerified(e.target.checked)}
+                                        className="mt-0.5 h-4 w-4 rounded border-slate-300 text-[#4AB1F4]"
+                                    />
+                                    <span className="text-xs font-semibold text-slate-700">
+                                        I confirm I am 21+ and legally eligible to purchase nicotine products.
+                                    </span>
+                                </label>
+
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        if (!isAgeVerified) {
+                                            toast.error('Confirm 21+ age verification to continue');
+                                            return;
+                                        }
+                                        if (validateShippingStep()) {
+                                            setStep('delivery');
+                                        }
+                                    }}
+                                    className="inline-flex h-11 items-center justify-center rounded-xl bg-slate-900 px-6 text-[11px] font-black uppercase tracking-[0.2em] text-white hover:bg-[#4AB1F4] transition-colors"
+                                >
+                                    Continue to Delivery <ArrowRight className="ml-2 h-4 w-4" />
+                                </button>
+                            </motion.div>
+                        )}
+
+                        {step === 'delivery' && (
+                            <motion.div key="delivery" initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -16 }} className="space-y-6">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-9 h-9 rounded-xl bg-slate-900 text-[#4AB1F4] font-black flex items-center justify-center">2</div>
+                                    <h3 className="text-xl font-black uppercase tracking-tight text-slate-900">Delivery</h3>
+                                </div>
+
+                                <div className="grid gap-4">
+                                    <button type="button" onClick={() => setDeliveryMethod('standard')} className={`rounded-xl border p-4 text-left transition-colors ${deliveryMethod === 'standard' ? 'border-[#4AB1F4] bg-[#4AB1F4]/10' : 'border-slate-200 bg-white'}`}>
+                                        <p className="text-sm font-black text-slate-900">Standard Shipping</p>
+                                        <p className="text-xs font-semibold text-slate-500">3-5 business days • Free</p>
+                                    </button>
+                                    <button type="button" onClick={() => setDeliveryMethod('express')} className={`rounded-xl border p-4 text-left transition-colors ${deliveryMethod === 'express' ? 'border-[#4AB1F4] bg-[#4AB1F4]/10' : 'border-slate-200 bg-white'}`}>
+                                        <p className="text-sm font-black text-slate-900">Express Shipping</p>
+                                        <p className="text-xs font-semibold text-slate-500">1-2 business days • $5.99</p>
+                                    </button>
+                                </div>
+
+                                <div className="flex gap-3">
+                                    <button type="button" onClick={() => setStep('shipping')} className="inline-flex h-11 items-center justify-center rounded-xl border border-slate-200 px-5 text-[11px] font-black uppercase tracking-[0.2em] text-slate-600 hover:bg-slate-100 transition-colors">Back</button>
+                                    <button type="button" onClick={() => setStep('payment')} className="inline-flex h-11 items-center justify-center rounded-xl bg-slate-900 px-6 text-[11px] font-black uppercase tracking-[0.2em] text-white hover:bg-[#4AB1F4] transition-colors">Continue to Payment <ArrowRight className="ml-2 h-4 w-4" /></button>
+                                </div>
+                            </motion.div>
+                        )}
+
+                        {step === 'payment' && (
+                            <motion.div key="payment" initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -16 }} className="space-y-6">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-9 h-9 rounded-xl bg-slate-900 text-[#4AB1F4] font-black flex items-center justify-center">3</div>
+                                    <h3 className="text-xl font-black uppercase tracking-tight text-slate-900">Payment</h3>
+                                </div>
+
+                                <div className="rounded-xl border border-slate-200 bg-slate-50 p-5">
+                                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 flex items-center gap-2"><CreditCard className="w-4 h-4" /> Payment Placeholder</p>
+                                    <p className="mt-2 text-xs font-semibold text-slate-500">Stripe / credit card fields will mount here.</p>
+                                </div>
+
+                                {isGuestCheckout && (
+                                    <div className="rounded-xl border border-slate-200 bg-white p-5 space-y-4">
+                                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Checkout Mode</p>
+                                        <div className="grid gap-3 md:grid-cols-2">
+                                            <button type="button" onClick={() => setCheckoutMode('guest')} className={`rounded-xl border px-4 py-3 text-left ${checkoutMode === 'guest' ? 'border-[#4AB1F4] bg-[#4AB1F4]/10' : 'border-slate-200'}`}>
+                                                <p className="text-sm font-black text-slate-900">Guest Checkout</p>
+                                                <p className="text-xs font-semibold text-slate-500">No password required</p>
+                                            </button>
+                                            <button type="button" onClick={() => setCheckoutMode('save')} className={`rounded-xl border px-4 py-3 text-left ${checkoutMode === 'save' ? 'border-[#4AB1F4] bg-[#4AB1F4]/10' : 'border-slate-200'}`}>
+                                                <p className="text-sm font-black text-slate-900">Save My Details</p>
+                                                <p className="text-xs font-semibold text-slate-500">OTP email verification</p>
+                                            </button>
+                                        </div>
+
+                                        {checkoutMode === 'save' && (
+                                            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-3">
+                                                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Email Verification</p>
+                                                <div className="flex flex-wrap gap-2">
+                                                    <button type="button" onClick={handleSendOtp} className="inline-flex h-10 items-center justify-center rounded-lg bg-slate-900 px-4 text-[10px] font-black uppercase tracking-[0.14em] text-white hover:bg-[#4AB1F4] transition-colors"><Mail className="mr-2 h-3 w-3" />{otpSent ? 'Resend Code' : 'Send Code'}</button>
+                                                    <input
+                                                        value={otpCode}
+                                                        onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                                                        placeholder="6-digit code"
+                                                        className="h-10 rounded-lg border border-slate-200 px-3 text-sm font-bold tracking-[0.2em]"
+                                                    />
+                                                    <button type="button" onClick={handleVerifyOtp} className="inline-flex h-10 items-center justify-center rounded-lg border border-slate-300 px-4 text-[10px] font-black uppercase tracking-[0.14em] text-slate-700 hover:bg-slate-100 transition-colors">Verify</button>
+                                                </div>
+                                                {otpVerified && (
+                                                    <p className="text-xs font-semibold text-emerald-600 flex items-center gap-1"><CheckCircle2 className="h-4 w-4" /> Verified. Details will be saved.</p>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
+                                <div className="rounded-xl border border-slate-200 bg-slate-50 p-5">
+                                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Order Total</p>
+                                    <div className="mt-2 space-y-1 text-sm font-semibold text-slate-600">
+                                        <p>Subtotal: ${subtotal.toFixed(2)}</p>
+                                        <p>Delivery: ${deliveryFee.toFixed(2)}</p>
+                                    </div>
+                                    <p className="mt-3 text-3xl font-black tracking-tight text-slate-900">${total.toFixed(2)}</p>
+                                </div>
+
+                                <div className="flex flex-wrap gap-3">
+                                    <button type="button" onClick={() => setStep('delivery')} className="inline-flex h-11 items-center justify-center rounded-xl border border-slate-200 px-5 text-[11px] font-black uppercase tracking-[0.2em] text-slate-600 hover:bg-slate-100 transition-colors">Back</button>
+                                    <button type="button" disabled={isProcessing} onClick={handleCompletePurchase} className="inline-flex h-11 items-center justify-center rounded-xl bg-[#4AB1F4] px-6 text-[11px] font-black uppercase tracking-[0.18em] text-white shadow-[0_10px_22px_rgba(74,177,244,0.42)] hover:bg-[#2f9ce5] transition-colors disabled:opacity-70">
+                                        {isProcessing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Truck className="mr-2 h-4 w-4" />}
+                                        Complete Purchase
+                                    </button>
+                                </div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+                </div>
+            </motion.div>
         </div>
-      </motion.div>
-    </div>
-  );
+    );
 }

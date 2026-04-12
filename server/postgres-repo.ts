@@ -1,11 +1,35 @@
 import { type Sql } from 'postgres';
 
+const DEFAULT_PRODUCT_IMAGE_PLACEHOLDER = '/images/2023-05-11.webp';
+const MAX_PRODUCTS_LIMIT = 1000;
+
+function resolveProductImage(row: any): string {
+    const preferred = typeof row.image_url === 'string' ? row.image_url.trim() : '';
+    const legacy = typeof row.image === 'string' ? row.image.trim() : '';
+    const candidate = preferred || legacy;
+
+    if (!candidate) {
+        return DEFAULT_PRODUCT_IMAGE_PLACEHOLDER;
+    }
+
+    const isLikelyUrl = candidate.startsWith('http://') || candidate.startsWith('https://');
+    const isLikelyPublicPath = candidate.startsWith('/');
+    if (!isLikelyUrl && !isLikelyPublicPath) {
+        return DEFAULT_PRODUCT_IMAGE_PLACEHOLDER;
+    }
+
+    return candidate;
+}
+
 function addParam(values: Array<string | number | boolean | null>, value: string | number | boolean | null): string {
     values.push(value);
     return `$${values.length}`;
 }
 
 export function mapProductRow(row: any) {
+    const originalPrice = Number(row.original_price);
+    const discountPercentage = Number(row.discount_percentage);
+
     return {
         id: row.id,
         name: row.name,
@@ -13,9 +37,11 @@ export function mapProductRow(row: any) {
         flavor: row.flavor,
         nicotine: row.nicotine,
         price: Number(row.price),
+        originalPrice: Number.isFinite(originalPrice) && originalPrice > 0 ? originalPrice : undefined,
+        discountPercentage: Number.isFinite(discountPercentage) && discountPercentage > 0 ? discountPercentage : undefined,
         rating: Number(row.rating),
         reviews: Number(row.reviews),
-        image: row.image,
+        image: resolveProductImage(row),
         category: row.category,
         description: row.description,
         stockQty: Number(row.stock_qty),
@@ -57,7 +83,7 @@ export async function storeExists(sql: Sql, storeId: number) {
 
 export async function listMarketplaceProducts(
     sql: Sql,
-    filters: { search?: string; filter?: string; category?: string }
+    filters: { search?: string; filter?: string; category?: string; limit?: number }
 ) {
     const clauses = ['1=1'];
     const values: Array<string | number | boolean | null> = [];
@@ -83,8 +109,19 @@ export async function listMarketplaceProducts(
         clauses.push('is_express_delivery = TRUE');
     }
 
+    let limitClause = '';
+    if (
+        typeof filters.limit === 'number'
+        && Number.isInteger(filters.limit)
+        && filters.limit > 0
+        && filters.limit <= MAX_PRODUCTS_LIMIT
+    ) {
+        const limitParam = addParam(values, filters.limit);
+        limitClause = ` LIMIT ${limitParam}`;
+    }
+
     const rows = await sql.unsafe<any[]>(
-        `SELECT * FROM products WHERE ${clauses.join(' AND ')} ORDER BY is_bestseller DESC, rating DESC, reviews DESC`,
+        `SELECT * FROM products WHERE ${clauses.join(' AND ')} ORDER BY is_bestseller DESC, rating DESC, reviews DESC${limitClause}`,
         values,
     );
 

@@ -3,6 +3,22 @@ import { hashPassword } from '../server/auth.js';
 import { getPostgresClient, initializePostgresSchema } from './index.js';
 import { seedProducts } from './seed.js';
 
+const HOMEPAGE_INVENTORY_BRANDS = new Set([
+    'Geekbar Pulse X',
+    'Foger Pods',
+    'Utbar',
+    'Flum Mello',
+]);
+
+const DEFAULT_BRAND_IMAGE_BY_NAME: Record<string, string> = {
+    'Geekbar Pulse X': '/images/geek-bar-pulse-x-25000-clear.jpg',
+    'Foger Pods': '/images/devices/uwell-caliburn-g2.webp',
+    Utbar: '/images/ut-bar-clear-no-flavor.jpg',
+    'Flum Mello': '/images/devices/elf-bar-bc5000.png',
+};
+
+const DEFAULT_PLACEHOLDER_IMAGE = '/images/2023-05-11.webp';
+
 export const PRIMARY_STORE = {
     id: 1,
     name: 'BananaLeaf Marketplace',
@@ -34,6 +50,33 @@ export const OFFICIAL_DEMO_USERS = [
         storeId: null,
     },
 ] as const;
+
+function getHomepageInventorySeedProducts() {
+    return seedProducts.filter((product) => HOMEPAGE_INVENTORY_BRANDS.has(product.brand));
+}
+
+function resolveSeedImageUrl(product: (typeof seedProducts)[number]): string {
+    const image = product.image?.trim();
+    if (image) {
+        return image;
+    }
+
+    return DEFAULT_BRAND_IMAGE_BY_NAME[product.brand] || DEFAULT_PLACEHOLDER_IMAGE;
+}
+
+async function hasProductsImageUrlColumn(sql: ReturnType<typeof getPostgresClient>): Promise<boolean> {
+    const rows = await sql<{ has_image_url: boolean }[]>`
+        SELECT EXISTS (
+            SELECT 1
+            FROM information_schema.columns
+            WHERE table_schema = current_schema()
+              AND table_name = 'products'
+              AND column_name = 'image_url'
+        ) AS has_image_url
+    `;
+
+    return Boolean(rows[0]?.has_image_url);
+}
 
 async function ensurePrimaryStore(sql: any): Promise<void> {
     await sql`
@@ -117,6 +160,14 @@ export async function seedPostgres(options?: { closeClient?: boolean }): Promise
     await upsertOfficialDemoUsers(sql);
 
     const forceReseed = process.env.FORCE_RESEED === 'true';
+    const hasImageUrlColumn = await hasProductsImageUrlColumn(sql);
+    const homepageInventorySeedProducts = getHomepageInventorySeedProducts();
+    const hasRequiredHomepageInventory = homepageInventorySeedProducts.length > 0;
+
+    if (!hasRequiredHomepageInventory) {
+        throw new Error('Seed catalog missing required homepage brands (Geekbar, Foger, Utbar, Flum Mello).');
+    }
+
     const countResult = await sql<{ cnt: string }[]>`SELECT COUNT(*)::text AS cnt FROM products`;
     const count = Number(countResult[0]?.cnt ?? 0);
 
@@ -133,6 +184,49 @@ export async function seedPostgres(options?: { closeClient?: boolean }): Promise
     }
 
     for (const product of seedProducts) {
+        const resolvedImageUrl = resolveSeedImageUrl(product);
+
+        if (hasImageUrlColumn) {
+            await sql`
+                INSERT INTO products (
+                    name,
+                    brand,
+                    flavor,
+                    nicotine,
+                    price,
+                    rating,
+                    reviews,
+                    image,
+                    image_url,
+                    category,
+                    description,
+                    stock_qty,
+                    store_id,
+                    is_express_delivery,
+                    is_bestseller,
+                    is_new_arrival
+                ) VALUES (
+                    ${product.name},
+                    ${product.brand},
+                    ${product.flavor},
+                    ${product.nicotine},
+                    ${product.price},
+                    ${product.rating},
+                    ${product.reviews},
+                    ${resolvedImageUrl},
+                    ${resolvedImageUrl},
+                    ${product.category},
+                    ${product.description},
+                    ${product.stock_qty},
+                    ${PRIMARY_STORE.id},
+                    ${Boolean(product.is_express_delivery)},
+                    ${Boolean(product.is_bestseller)},
+                    ${Boolean(product.is_new_arrival)}
+                )
+            `;
+            continue;
+        }
+
         await sql`
             INSERT INTO products (
                 name,
@@ -158,11 +252,11 @@ export async function seedPostgres(options?: { closeClient?: boolean }): Promise
                 ${product.price},
                 ${product.rating},
                 ${product.reviews},
-                ${product.image},
+                ${resolvedImageUrl},
                 ${product.category},
                 ${product.description},
                 ${product.stock_qty},
-                ${1},
+                ${PRIMARY_STORE.id},
                 ${Boolean(product.is_express_delivery)},
                 ${Boolean(product.is_bestseller)},
                 ${Boolean(product.is_new_arrival)}
@@ -171,12 +265,16 @@ export async function seedPostgres(options?: { closeClient?: boolean }): Promise
     }
 
     console.log(`[Seed:Postgres] Refreshed ${OFFICIAL_DEMO_USERS.length} demo users and seeded ${seedProducts.length} products${forceReseed ? ' (force reseed)' : ''}.`);
+    console.log(`[Seed:Postgres] Homepage inventory brands verified: ${Array.from(HOMEPAGE_INVENTORY_BRANDS).join(', ')} (${homepageInventorySeedProducts.length} products).`);
     if (closeClient) {
         await sql.end({ timeout: 5 });
     }
 }
 
-if (import.meta.url === `file://${process.argv[1]?.replace(/\\/g, '/')}`) {
+const scriptEntryArg = process.argv[1]?.replace(/\\/g, '/') ?? '';
+const isInvokedAsSeedScript = /\/seed-postgres\.(ts|js)$/i.test(scriptEntryArg);
+
+if (isInvokedAsSeedScript) {
     seedPostgres({ closeClient: true }).catch((err) => {
         console.error('[Seed:Postgres] Failed:', err);
         process.exitCode = 1;

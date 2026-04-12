@@ -9,6 +9,7 @@
         "db:migrate:supabase": "tsx db/migrate-postgres.ts",
         "db:init:postgres": "tsx db/seed-postgres.ts",
         "db:seed:supabase": "tsx db/seed-postgres.ts",
+        "db:seed": "set FORCE_RESEED=true && tsx db/seed-postgres.ts",
         "build": "vite build",
         "preview": "vite preview",
         "clean": "rm -rf dist",

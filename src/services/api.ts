@@ -1,5 +1,7 @@
 import { Product, Store } from '../types';
 
+const MAX_PRODUCTS_LIMIT = 1000;
+
 /** Parse a fetch Response as JSON safely; logs status + raw body on failure. */
 async function safeJson(res: Response): Promise<any> {
     const text = await res.text();
@@ -19,11 +21,20 @@ export async function fetchProducts(params?: {
     search?: string;
     filter?: 'all' | 'bestsellers' | 'newarrivals' | 'express';
     category?: string;
+    limit?: number;
 }): Promise<Product[]> {
     const query = new URLSearchParams();
     if (params?.search) query.set('search', params.search);
     if (params?.filter && params.filter !== 'all') query.set('filter', params.filter);
     if (params?.category) query.set('category', params.category);
+    if (
+        typeof params?.limit === 'number'
+        && Number.isInteger(params.limit)
+        && params.limit > 0
+        && params.limit <= MAX_PRODUCTS_LIMIT
+    ) {
+        query.set('limit', String(params.limit));
+    }
 
     const url = `/api/products${query.toString() ? `?${query.toString()}` : ''}`;
 

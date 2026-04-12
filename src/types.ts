@@ -6,6 +6,7 @@ export interface Product {
     nicotine: string;
     price: number;
     originalPrice?: number;
+    discountPercentage?: number;
     rating: number;
     reviews: number;
     image: string;

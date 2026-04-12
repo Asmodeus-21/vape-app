@@ -126,6 +126,41 @@ function buildProductsUrl(params?: ProductRouteParams): string {
     return `/products${search ? `?${search}` : ''}`;
 }
 
+function buildProductDetailUrl(productId: number): string {
+    return `/product/${productId}`;
+}
+
+function parseProductIdFromPath(pathname: string): number | null {
+    const match = pathname.match(/^\/product\/(\d+)$/);
+    if (!match) {
+        return null;
+    }
+
+    const productId = Number(match[1]);
+    return Number.isInteger(productId) && productId > 0 ? productId : null;
+}
+
+function seededUnitValue(seed: number): number {
+    const normalizedSeed = Math.sin(seed * 12.9898 + 78.233) * 43758.5453;
+    return normalizedSeed - Math.floor(normalizedSeed);
+}
+
+function getPlaceholderCardMetrics(productId: number): { rating: number; reviews: number } {
+    const ratingSeed = seededUnitValue(productId + 17);
+    const reviewsSeed = seededUnitValue(productId + 31);
+    const rating = Number((4.2 + ratingSeed * 0.8).toFixed(1));
+    const reviews = 12 + Math.floor(reviewsSeed * 37);
+
+    return { rating, reviews };
+}
+
+function getFallbackHotDealPercent(productId: number): number {
+    const dealOptions = [15, 17, 20];
+    const seed = seededUnitValue(productId + 53);
+    const index = Math.floor(seed * dealOptions.length) % dealOptions.length;
+    return dealOptions[index];
+}
+
 function ProductCardImage({ imageUrl, productName, brand, category, isExpressDelivery, salePercent = 0 }: ProductCardImageProps) {
     const resolvedCatalogImage = useMemo(() => resolveCatalogImage({ image: imageUrl, name: productName, brand, category }), [imageUrl, productName, brand, category]);
     const [currentImageUrl, setCurrentImageUrl] = useState(resolvedCatalogImage);
@@ -150,7 +185,7 @@ function ProductCardImage({ imageUrl, productName, brand, category, isExpressDel
                 />
             </div>
             {salePercent > 0 && (
-                <div className="absolute left-3 top-3 z-20 rounded-full bg-emerald-500 px-2.5 py-1 text-[10px] font-black text-white shadow-sm" aria-label={`Sale: ${salePercent}% off`}>
+                <div className="absolute left-3 top-3 z-20 rounded-md bg-emerald-500 px-2.5 py-1 text-[10px] font-black text-white shadow-sm" aria-label={`Sale: ${salePercent}% off`}>
                     -{salePercent}%
                 </div>
             )}
@@ -169,18 +204,22 @@ function getDisplayOriginalPrice(product: Product): number {
         return Number(product.originalPrice.toFixed(2));
     }
 
-    const fallbackDiscount = product.isBestSeller
-        ? FALLBACK_DISCOUNT_PERCENT.bestSeller
-        : product.isNewArrival
-            ? FALLBACK_DISCOUNT_PERCENT.newArrival
-            : product.isExpressDelivery
-                ? FALLBACK_DISCOUNT_PERCENT.expressDelivery
-                : FALLBACK_DISCOUNT_PERCENT.standard;
+    if (typeof product.discountPercentage === 'number' && product.discountPercentage > 0 && product.discountPercentage < 100) {
+        return Number((product.price / (1 - product.discountPercentage / 100)).toFixed(2));
+    }
 
-    return Number((product.price / (1 - fallbackDiscount / 100)).toFixed(2));
+    return Number((product.price * 1.2).toFixed(2));
 }
 
 function getSalePercentage(product: Product): number {
+    if (typeof product.discountPercentage === 'number' && product.discountPercentage > 0) {
+        return Math.round(product.discountPercentage);
+    }
+
+    if (typeof product.id === 'number') {
+        return getFallbackHotDealPercent(product.id);
+    }
+
     const originalPrice = getDisplayOriginalPrice(product);
     return Math.max(0, Math.round(((originalPrice - product.price) / originalPrice) * 100));
 }
@@ -192,7 +231,8 @@ function isHighDemandProduct(product: Product): boolean {
 function MarketplaceProductCard({ group, selectedVariant, onOpenProduct, onSelectVariant }: MarketplaceProductCardProps) {
     const originalPrice = getDisplayOriginalPrice(selectedVariant);
     const salePercentage = getSalePercentage(selectedVariant);
-    const flavorCategoryLabel = `${selectedVariant.flavor} ${group.category || 'Vapes'}`.trim().toUpperCase();
+    const categoryLabel = (selectedVariant.category || group.category || 'Vapes').trim().toUpperCase();
+    const placeholderMetrics = getPlaceholderCardMetrics(selectedVariant.id);
 
     return (
         <article
@@ -210,43 +250,45 @@ function MarketplaceProductCard({ group, selectedVariant, onOpenProduct, onSelec
 
             <div className="flex min-h-[250px] flex-col gap-4">
                 <div className="space-y-2">
-                    <p className="line-clamp-1 text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">{flavorCategoryLabel}</p>
+                    <p className="line-clamp-1 text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">{categoryLabel}</p>
                     <h4 className="line-clamp-2 text-base font-bold leading-6 text-slate-950">{group.parentName}</h4>
                     {isHighDemandProduct(selectedVariant) && (
                         <span className="juicefly-stock-pill" role="status" aria-live="polite">Limited Stock!</span>
                     )}
                 </div>
 
-                <div className="flex min-h-[44px] items-center gap-2 overflow-x-auto pr-1 scrollbar-hide">
-                    {group.variants.map((variant) => {
-                        const isSelected = variant.id === selectedVariant.id;
-                        return (
-                            <button
-                                key={variant.id}
-                                type="button"
-                                onClick={(event) => {
-                                    event.stopPropagation();
-                                    onSelectVariant(variant.id);
-                                }}
-                                className={`shrink-0 rounded-full border px-3 py-1 text-[9px] font-black uppercase tracking-[0.14em] transition-all ${isSelected ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 bg-slate-50 text-slate-500 hover:border-[#4AB1F4] hover:text-[#4AB1F4]'}`}
-                            >
-                                {variant.flavor}
-                            </button>
-                        );
-                    })}
-                </div>
+                {group.variants.length > 1 && (
+                    <div className="flex min-h-[44px] items-center gap-2 overflow-x-auto pr-1 scrollbar-hide">
+                        {group.variants.map((variant) => {
+                            const isSelected = variant.id === selectedVariant.id;
+                            return (
+                                <button
+                                    key={variant.id}
+                                    type="button"
+                                    onClick={(event) => {
+                                        event.stopPropagation();
+                                        onSelectVariant(variant.id);
+                                    }}
+                                    className={`shrink-0 rounded-full border px-3 py-1 text-[9px] font-black uppercase tracking-[0.14em] transition-all ${isSelected ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 bg-slate-50 text-slate-500 hover:border-[#4AB1F4] hover:text-[#4AB1F4]'}`}
+                                >
+                                    {variant.flavor}
+                                </button>
+                            );
+                        })}
+                    </div>
+                )}
 
                 <div className="flex items-center gap-2">
-                    <div className="flex text-[#FFA41C]" aria-label={`Rated ${selectedVariant.rating} out of 5 stars`}>
+                    <div className="flex text-[#FFA41C]" aria-label={`Rated ${placeholderMetrics.rating} out of 5 stars`}>
                         {[...Array(5)].map((_, index) => (
                             <Star
                                 key={index}
                                 aria-hidden="true"
-                                className={`h-3.5 w-3.5 fill-current ${index < Math.round(selectedVariant.rating) ? '' : 'text-slate-200'}`}
+                                className={`h-3.5 w-3.5 fill-current ${index < Math.round(placeholderMetrics.rating) ? '' : 'text-slate-200'}`}
                             />
                         ))}
                     </div>
-                    <span className="text-[11px] font-semibold text-slate-500">({selectedVariant.reviews})</span>
+                    <span className="text-[11px] font-semibold text-slate-500">({placeholderMetrics.reviews})</span>
                 </div>
 
                 <div className="flex items-baseline gap-2.5">
@@ -262,7 +304,7 @@ function MarketplaceProductCard({ group, selectedVariant, onOpenProduct, onSelec
                     }}
                     className="juicefly-action-button mt-auto w-full justify-center"
                 >
-                    Select Options
+                    Select options
                 </button>
             </div>
         </article>
@@ -321,7 +363,9 @@ export default function App() {
     const [searchParams] = useSearchParams();
     const [activeTab, setActiveTab] = useState<'marketplace' | 'vendor' | 'admin'>('marketplace');
     const [products, setProducts] = useState<Product[]>([]);
+    const [homepageGridProducts, setHomepageGridProducts] = useState<Product[]>([]);
     const [productsLoading, setProductsLoading] = useState(true);
+    const [homepageGridLoading, setHomepageGridLoading] = useState(true);
     const [selectedProductId, setSelectedProductId] = useState<number | null>(null);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isCollectionMenuOpen, setIsCollectionMenuOpen] = useState(false);
@@ -440,6 +484,20 @@ export default function App() {
     }, [applyMarketplaceStateFromUrl, location.pathname, searchParams]);
 
     useEffect(() => {
+        const routedProductId = parseProductIdFromPath(location.pathname);
+
+        if (routedProductId !== null) {
+            setActiveTab('marketplace');
+            setSelectedProductId(routedProductId);
+            return;
+        }
+
+        if (location.pathname === '/products') {
+            setSelectedProductId(null);
+        }
+    }, [location.pathname]);
+
+    useEffect(() => {
         if (!isCollectionMenuOpen) {
             return;
         }
@@ -499,6 +557,25 @@ export default function App() {
         const debounce = setTimeout(loadProducts, 300);
         return () => clearTimeout(debounce);
     }, [loadProducts]);
+
+    useEffect(() => {
+        let isCancelled = false;
+
+        const loadHomepageGridProducts = async () => {
+            setHomepageGridLoading(true);
+            const data = await fetchProducts({ limit: 8 });
+            if (!isCancelled) {
+                setHomepageGridProducts(data.slice(0, 8));
+                setHomepageGridLoading(false);
+            }
+        };
+
+        loadHomepageGridProducts();
+
+        return () => {
+            isCancelled = true;
+        };
+    }, []);
 
     useEffect(() => {
         // AI Pop-up after 5s — only once per browser session (survives refresh, clears on tab close)
@@ -994,6 +1071,21 @@ export default function App() {
         return parentVariantGroups.find((group) => group.variants.some((variant) => variant.id === selectedProductId)) ?? null;
     }, [parentVariantGroups, selectedProductId]);
 
+    const homepageGridGroups = useMemo<ParentVariantGroup[]>(() => {
+        return homepageGridProducts.map((product) => ({
+            key: `homepage-${product.id}`,
+            parentName: product.name,
+            brand: product.brand,
+            category: product.category,
+            variants: [product],
+        }));
+    }, [homepageGridProducts]);
+
+    const openProductDetailPage = useCallback((productId: number) => {
+        setSelectedProductId(productId);
+        navigate(buildProductDetailUrl(productId));
+    }, [navigate]);
+
     const shouldShowProductsLoading = productsLoading;
 
     return (
@@ -1061,7 +1153,12 @@ export default function App() {
                 <div className="max-w-[1500px] mx-auto px-4 md:px-6 h-16 sm:h-20 md:h-24 flex items-center gap-3 md:gap-8">
                     {/* Logo */}
                     <div
-                        onClick={() => { setActiveTab('marketplace'); setSelectedProductId(null); setSearchQuery(''); }}
+                        onClick={() => {
+                            setActiveTab('marketplace');
+                            setSelectedProductId(null);
+                            setSearchQuery('');
+                            navigate('/products');
+                        }}
                         className="flex items-center gap-3 cursor-pointer group shrink-0 overflow-hidden"
                     >
                         <img
@@ -1325,6 +1422,38 @@ export default function App() {
                             ))}
                         </section>
 
+                        <section className="mx-4 rounded-[2rem] border border-slate-100 bg-white p-6 shadow-sm md:p-10">
+                            <div className="grid grid-cols-2 gap-4 lg:grid-cols-4 lg:gap-6">
+                                {homepageGridLoading ? (
+                                    <div className="col-span-full w-full py-20 text-center bg-slate-50 rounded-[2rem] border border-dashed border-slate-100 flex items-center justify-center gap-3">
+                                        <Loader2 className="w-5 h-5 animate-spin text-brand-primary" />
+                                        <span className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-500">Loading Collection...</span>
+                                    </div>
+                                ) : homepageGridGroups.length > 0 ? (
+                                    homepageGridGroups.map((group) => {
+                                        const selectedVariant = group.variants[0];
+
+                                        return (
+                                            <div key={`banner-grid-${group.key}`}>
+                                                <MarketplaceProductCard
+                                                    group={group}
+                                                    selectedVariant={selectedVariant}
+                                                    onOpenProduct={() => openProductDetailPage(selectedVariant.id)}
+                                                    onSelectVariant={() => { }}
+                                                />
+                                            </div>
+                                        );
+                                    })
+                                ) : (
+                                    <MarketplaceEmptyState
+                                        title={emptyStateTitle}
+                                        description={emptyStateDescription}
+                                        onReset={resetMarketplaceFilters}
+                                    />
+                                )}
+                            </div>
+                        </section>
+
                         <section id="inventory-stream-section" className="bg-white mx-4 p-8 md:p-12 border border-slate-100 rounded-[2.5rem] shadow-sm">
                             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
                                 <div className="flex items-center gap-4">
@@ -1365,7 +1494,7 @@ export default function App() {
                                                 <MarketplaceProductCard
                                                     group={group}
                                                     selectedVariant={selectedVariant}
-                                                    onOpenProduct={() => setSelectedProductId(selectedVariant.id)}
+                                                    onOpenProduct={() => openProductDetailPage(selectedVariant.id)}
                                                     onSelectVariant={(variantId) => setSelectedVariantByGroup((prev) => ({ ...prev, [group.key]: variantId }))}
                                                 />
                                             </div>
@@ -1383,421 +1512,436 @@ export default function App() {
 
                         <div id="shipping-logistics-section" className="h-0 w-full" aria-hidden="true" />
                     </div>
-                )}
+                )
+                }
 
-                {activeTab === 'marketplace' && selectedProductId && (
-                    <ProductDetail
-                        group={selectedProductGroup}
-                        selectedVariantId={selectedProductId}
-                        onBack={() => setSelectedProductId(null)}
-                        onVariantChange={handleProductDetailVariantChange}
-                        onAddToCart={addToCart}
-                    />
-                )}
+                {
+                    activeTab === 'marketplace' && selectedProductId && (
+                        <ProductDetail
+                            group={selectedProductGroup}
+                            selectedVariantId={selectedProductId}
+                            onBack={() => navigate(buildProductsUrl({
+                                tag: activeFilter !== 'all' ? activeFilter : undefined,
+                                category: activeCategory,
+                                search: searchQuery.trim() || undefined,
+                            }))}
+                            onVariantChange={handleProductDetailVariantChange}
+                            onAddToCart={addToCart}
+                        />
+                    )
+                }
 
-                {activeTab === 'vendor' && (
-                    <div className="p-6 space-y-8" ref={(el) => {
-                        if (el && !botsLoading && !botInsights.review) loadVendorBots();
-                        if (el && !statsLoading && !vendorStats) loadVendorStats();
-                    }}>
-                        <div className="bg-white p-8 md:p-10 premium-card flex flex-col md:flex-row items-center justify-between gap-8 border-b-8 border-brand-primary">
-                            <div>
-                                <h2 className="text-3xl md:text-4xl font-black uppercase tracking-tighter text-slate-900">Retailer OS</h2>
-                                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mt-2">Inventory Management & Intelligence Layer</p>
-                            </div>
-                            <div className="flex items-center gap-4 w-full md:w-auto">
-                                <button
-                                    onClick={requestNotificationPermission}
-                                    className="p-4 bg-slate-50 text-slate-400 rounded-2xl hover:bg-slate-900 hover:text-white transition-all shadow-inner"
-                                    title="Enable Push Notifications"
-                                >
-                                    <Bell className="w-5 h-5" />
-                                </button>
-                                <button
-                                    onClick={sendTestNotification}
-                                    className="px-6 py-4 bg-slate-100 text-slate-900 font-black uppercase tracking-widest text-[9px] rounded-2xl hover:bg-slate-900 hover:text-white transition-all"
-                                >
-                                    Logistics Test
-                                </button>
-                                <button
-                                    className="px-8 py-4 bg-brand-primary text-white font-black uppercase tracking-widest text-[10px] rounded-2xl shadow-2xl shadow-brand-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all flex-1 md:flex-none"
-                                    onClick={() => setShowVendorProductForm(true)}
-                                >
-                                    Initialize Product Node
-                                </button>
-                            </div>
-                        </div>
-
-                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
-                            {[
-                                { label: 'Cycle Velocity', value: `$${vendorStats?.todaySales?.toFixed(2) || '0.00'}`, change: 'Real-time Sales' },
-                                { label: 'Active Pipeline', value: vendorStats?.openOrders || '0', change: 'Orders in fulfillment' },
-                                { label: 'Critical Assets', value: vendorStats?.lowStockItems || '0', change: 'Restock required' },
-                                { label: 'Total Volume', value: `$${vendorStats?.totalEarnings?.toLocaleString() || '0'}`, change: 'Lifetime Revenue' },
-                            ].map((stat, i) => (
-                                <div key={i} className="premium-card p-6 md:p-8 bg-white group hover:border-brand-primary transition-all">
-                                    <div className="text-[10px] text-slate-400 uppercase font-black tracking-[0.2em] mb-4">{stat.label}</div>
-                                    <div className="text-2xl md:text-3xl font-black text-slate-900 mb-2 tracking-tighter">{stat.value}</div>
-                                    <div className="text-[9px] text-slate-400 font-black uppercase tracking-widest flex items-center gap-2">
-                                        <span className="w-1 h-1 bg-brand-primary rounded-full animate-pulse" />
-                                        {stat.change}
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-
-                        {/* Banana Leaf Intelligence Center - Multiple AI Bots */}
-                        <div className="bg-white p-8 md:p-12 premium-card">
-                            <div className="flex items-center gap-6 mb-12">
-                                <div className="w-16 h-16 bg-brand-primary rounded-2xl flex items-center justify-center shadow-2xl shadow-brand-primary/20 rotate-3">
-                                    <Sparkles className="text-white w-8 h-8" />
-                                </div>
+                {
+                    activeTab === 'vendor' && (
+                        <div className="p-6 space-y-8" ref={(el) => {
+                            if (el && !botsLoading && !botInsights.review) loadVendorBots();
+                            if (el && !statsLoading && !vendorStats) loadVendorStats();
+                        }}>
+                            <div className="bg-white p-8 md:p-10 premium-card flex flex-col md:flex-row items-center justify-between gap-8 border-b-8 border-brand-primary">
                                 <div>
-                                    <h3 className="text-2xl md:text-3xl font-black uppercase tracking-tighter text-slate-900">Intelligence Nexus</h3>
-                                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mt-1">Strategic AI Layer — Real-time Market Synthesis</p>
+                                    <h2 className="text-3xl md:text-4xl font-black uppercase tracking-tighter text-slate-900">Retailer OS</h2>
+                                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mt-2">Inventory Management & Intelligence Layer</p>
                                 </div>
-                            </div>
-
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                                {/* Review Analyst Bot */}
-                                <div className="bg-slate-50 p-8 rounded-3xl border border-slate-100 space-y-6 group hover:bg-white hover:shadow-2xl hover:shadow-slate-200/50 transition-all">
-                                    <div className="flex items-center gap-4">
-                                        <div className="w-12 h-12 bg-blue-500 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/20 group-hover:rotate-6 transition-transform">
-                                            <MessageSquare className="text-white w-6 h-6" />
-                                        </div>
-                                        <div>
-                                            <h4 className="font-black text-[11px] uppercase tracking-widest text-slate-900">Sentiment Engine</h4>
-                                            <span className="text-[9px] text-blue-500 font-black uppercase tracking-[0.2em]">{botsLoading ? 'Syncing...' : 'Encrypted & Active'}</span>
-                                        </div>
-                                    </div>
-                                    {botsLoading ? (
-                                        <div className="flex items-center gap-3 text-[10px] text-slate-400 font-black uppercase tracking-widest">
-                                            <Loader2 className="w-4 h-4 animate-spin" /> Synthesizing...
-                                        </div>
-                                    ) : (
-                                        <p className="text-xs text-slate-500 font-medium leading-relaxed italic line-clamp-5 border-l-2 border-slate-200 pl-4">{botInsights.review || 'Awaiting stream...'}</p>
-                                    )}
-                                </div>
-
-                                {/* Inventory Analyst Bot */}
-                                <div className="bg-slate-50 p-8 rounded-3xl border border-slate-100 space-y-6 group hover:bg-white hover:shadow-2xl hover:shadow-slate-200/50 transition-all">
-                                    <div className="flex items-center gap-4">
-                                        <div className="w-12 h-12 bg-brand-primary rounded-2xl flex items-center justify-center shadow-lg shadow-brand-primary/20 group-hover:scale-110 transition-transform">
-                                            <Package className="text-white w-6 h-6" />
-                                        </div>
-                                        <div>
-                                            <h4 className="font-black text-[11px] uppercase tracking-widest text-slate-900">Inventory Pulse</h4>
-                                            <span className="text-[9px] text-brand-primary font-black uppercase tracking-[0.2em]">{botsLoading ? 'Optimizing...' : 'Live Ledger Active'}</span>
-                                        </div>
-                                    </div>
-                                    {botsLoading ? (
-                                        <div className="flex items-center gap-3 text-[10px] text-slate-400 font-black uppercase tracking-widest">
-                                            <Loader2 className="w-4 h-4 animate-spin" /> Calculating...
-                                        </div>
-                                    ) : (
-                                        <p className="text-xs text-slate-500 font-medium leading-relaxed italic line-clamp-5 border-l-2 border-slate-200 pl-4">{botInsights.inventory || 'Awaiting stream...'}</p>
-                                    )}
-                                </div>
-
-                                {/* Market Trend Bot */}
-                                <div className="bg-slate-50 p-8 rounded-3xl border border-slate-100 space-y-6 group hover:bg-white hover:shadow-2xl hover:shadow-slate-200/50 transition-all">
-                                    <div className="flex items-center gap-4">
-                                        <div className="w-12 h-12 bg-slate-900 rounded-2xl flex items-center justify-center shadow-lg shadow-slate-900/20 group-hover:-rotate-6 transition-transform">
-                                            <TrendingUp className="text-brand-primary w-6 h-6" />
-                                        </div>
-                                        <div>
-                                            <h4 className="font-black text-[11px] uppercase tracking-widest text-slate-900">Market Synthesis</h4>
-                                            <span className="text-[9px] text-slate-400 font-black uppercase tracking-[0.2em]">{botsLoading ? 'Analyzing...' : 'External Data Linked'}</span>
-                                        </div>
-                                    </div>
-                                    {botsLoading ? (
-                                        <div className="flex items-center gap-3 text-[10px] text-slate-400 font-black uppercase tracking-widest">
-                                            <Loader2 className="w-4 h-4 animate-spin" /> Fetching Trends...
-                                        </div>
-                                    ) : (
-                                        <p className="text-xs text-slate-500 font-medium leading-relaxed italic line-clamp-5 border-l-2 border-slate-200 pl-4">{botInsights.trends || 'Awaiting stream...'}</p>
-                                    )}
-                                </div>
-                            </div>
-
-                            <div className="mt-8 p-6 bg-brand-secondary text-white rounded-2xl flex flex-col md:flex-row items-center justify-between gap-6">
-                                <div className="space-y-2 text-center md:text-left">
-                                    <h4 className="text-lg font-black uppercase tracking-widest">Ask Banana Leaf Intelligence</h4>
-                                    <p className="text-sm text-gray-300">Get custom reports or business advice from our AI network.</p>
-                                </div>
-                                <form onSubmit={handleVendorAiQuery} className="flex w-full md:w-auto gap-3">
-                                    <input
-                                        type="text"
-                                        value={vendorQuery}
-                                        onChange={(e) => setVendorQuery(e.target.value)}
-                                        placeholder="e.g. 'What should I restock this week?'"
-                                        className="flex-1 md:w-80 bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-sm focus:outline-none focus:bg-white/20"
-                                    />
-                                    <button type="submit" disabled={vendorAiLoading} className="bg-brand-primary text-white p-3 rounded-xl disabled:opacity-60">
-                                        {vendorAiLoading ? <Loader2 className="w-6 h-6 animate-spin" /> : <ChevronRight className="w-6 h-6" />}
+                                <div className="flex items-center gap-4 w-full md:w-auto">
+                                    <button
+                                        onClick={requestNotificationPermission}
+                                        className="p-4 bg-slate-50 text-slate-400 rounded-2xl hover:bg-slate-900 hover:text-white transition-all shadow-inner"
+                                        title="Enable Push Notifications"
+                                    >
+                                        <Bell className="w-5 h-5" />
                                     </button>
-                                </form>
-                            </div>
-                            {vendorAiResponse && (
-                                <div className="mt-4 p-5 bg-gray-50 border border-gray-100 rounded-2xl">
-                                    <p className="text-[10px] font-black uppercase tracking-widest text-brand-primary mb-2">AI Response</p>
-                                    <p className="text-sm text-gray-700 font-medium leading-relaxed">{vendorAiResponse}</p>
-                                </div>
-                            )}
-                        </div>
-
-                        {showVendorProductForm && currentUser && (
-                            <VendorProductForm
-                                token={localStorage.getItem('vapeshub_token') || ''}
-                                onClose={() => setShowVendorProductForm(false)}
-                                onSuccess={() => {
-                                    setShowVendorProductForm(false);
-                                    loadProducts(); // Refresh products
-                                }}
-                            />
-                        )}
-
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                            <VendorProductList token={localStorage.getItem('vapeshub_token') || ''} />
-                            <VendorOrders token={localStorage.getItem('vapeshub_token') || ''} />
-                        </div>
-
-                        <div className="bg-white p-10 premium-card">
-                            <div className="flex items-center gap-6 mb-10">
-                                <div className="w-14 h-14 bg-emerald-50 rounded-2xl flex items-center justify-center shadow-inner">
-                                    <Globe className="text-brand-primary w-6 h-6" />
-                                </div>
-                                <div>
-                                    <h3 className="text-xl font-black uppercase tracking-tighter text-slate-900">Demand Heatmap</h3>
-                                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mt-1">Real-time Consumer Density Radar</p>
+                                    <button
+                                        onClick={sendTestNotification}
+                                        className="px-6 py-4 bg-slate-100 text-slate-900 font-black uppercase tracking-widest text-[9px] rounded-2xl hover:bg-slate-900 hover:text-white transition-all"
+                                    >
+                                        Logistics Test
+                                    </button>
+                                    <button
+                                        className="px-8 py-4 bg-brand-primary text-white font-black uppercase tracking-widest text-[10px] rounded-2xl shadow-2xl shadow-brand-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all flex-1 md:flex-none"
+                                        onClick={() => setShowVendorProductForm(true)}
+                                    >
+                                        Initialize Product Node
+                                    </button>
                                 </div>
                             </div>
-                            <div className="h-80 bg-slate-50 rounded-3xl flex items-center justify-center text-slate-400 border border-slate-100 relative overflow-hidden group">
-                                <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-emerald-500/5 via-transparent to-transparent" />
-                                <div className="text-center space-y-4 relative z-10 transition-transform group-hover:scale-110 duration-700">
-                                    <div className="relative">
-                                        <MapPin className="w-12 h-12 mx-auto text-brand-primary opacity-20" />
-                                        <div className="absolute inset-0 w-12 h-12 mx-auto bg-brand-primary rounded-full animate-ping opacity-10" />
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+                                {[
+                                    { label: 'Cycle Velocity', value: `$${vendorStats?.todaySales?.toFixed(2) || '0.00'}`, change: 'Real-time Sales' },
+                                    { label: 'Active Pipeline', value: vendorStats?.openOrders || '0', change: 'Orders in fulfillment' },
+                                    { label: 'Critical Assets', value: vendorStats?.lowStockItems || '0', change: 'Restock required' },
+                                    { label: 'Total Volume', value: `$${vendorStats?.totalEarnings?.toLocaleString() || '0'}`, change: 'Lifetime Revenue' },
+                                ].map((stat, i) => (
+                                    <div key={i} className="premium-card p-6 md:p-8 bg-white group hover:border-brand-primary transition-all">
+                                        <div className="text-[10px] text-slate-400 uppercase font-black tracking-[0.2em] mb-4">{stat.label}</div>
+                                        <div className="text-2xl md:text-3xl font-black text-slate-900 mb-2 tracking-tighter">{stat.value}</div>
+                                        <div className="text-[9px] text-slate-400 font-black uppercase tracking-widest flex items-center gap-2">
+                                            <span className="w-1 h-1 bg-brand-primary rounded-full animate-pulse" />
+                                            {stat.change}
+                                        </div>
                                     </div>
-                                    <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Syncing Intelligence Node...</p>
-                                </div>
+                                ))}
                             </div>
-                        </div>
-                    </div>
-                )}
 
-                {activeTab === 'admin' && (
-                    <div className="p-4" ref={(el) => { if (el && !adminLoading && !adminStats) loadAdminStats(); }}>
-                        <div className="mb-8">
-                            <h2 className="text-3xl font-black text-gray-900 uppercase tracking-tighter">Global Analytics & Admin OS</h2>
-                            <p className="text-gray-500 font-bold uppercase tracking-widest text-[10px]">Master Control Center — Restricted to Authorized Administrators</p>
-                        </div>
-
-                        <AdminDashboard token={localStorage.getItem('vapeshub_token') || ''} stats={adminStats} currentUser={currentUser} />
-                    </div>
-                )}
-            </main>
-
-            {/* Mobile Menu Drawer */}
-            <AnimatePresence>
-                {isMenuOpen && (
-                    <>
-                        <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            onClick={() => setIsMenuOpen(false)}
-                            className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[100]"
-                        />
-                        <motion.div
-                            initial={{ x: '-100%' }}
-                            animate={{ x: 0 }}
-                            exit={{ x: '-100%' }}
-                            className="fixed top-0 left-0 h-full w-full max-w-[320px] bg-slate-900 z-[101] flex flex-col shadow-2xl border-r border-white/5"
-                        >
-                            <div className="p-8 bg-slate-950 flex items-center justify-between border-b border-white/5">
-                                <div className="flex items-center gap-4">
-                                    <div className="w-10 h-10 bg-brand-primary rounded-xl flex items-center justify-center shadow-lg shadow-brand-primary/20">
-                                        <UserIcon className="w-6 h-6 text-white" />
+                            {/* Banana Leaf Intelligence Center - Multiple AI Bots */}
+                            <div className="bg-white p-8 md:p-12 premium-card">
+                                <div className="flex items-center gap-6 mb-12">
+                                    <div className="w-16 h-16 bg-brand-primary rounded-2xl flex items-center justify-center shadow-2xl shadow-brand-primary/20 rotate-3">
+                                        <Sparkles className="text-white w-8 h-8" />
                                     </div>
-                                    <div className="flex flex-col">
-                                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">User Session</span>
-                                        <span className="text-white font-black uppercase tracking-tight">{currentUser ? currentUser.name : 'Unauthenticated'}</span>
+                                    <div>
+                                        <h3 className="text-2xl md:text-3xl font-black uppercase tracking-tighter text-slate-900">Intelligence Nexus</h3>
+                                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mt-1">Strategic AI Layer — Real-time Market Synthesis</p>
                                     </div>
                                 </div>
-                                <button onClick={() => setIsMenuOpen(false)} className="p-2 hover:bg-white/5 rounded-xl transition-colors">
-                                    <X className="w-6 h-6 text-white" />
-                                </button>
-                            </div>
-                            <div className="flex-1 overflow-y-auto p-8 space-y-10">
-                                <div className="space-y-6">
-                                    <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-brand-primary">Explore</h3>
-                                    <ul className="space-y-5">
-                                        <li className="flex items-center justify-between text-white font-black uppercase tracking-widest text-xs hover:text-brand-primary cursor-pointer transition-colors" onClick={() => { focusMarketplaceSection({ filter: 'all', sectionId: 'brand-showcase-section' }); setIsMenuOpen(false); }}>
-                                            Shop The Collection <ChevronRight className="w-4 h-4 text-slate-500" />
-                                        </li>
-                                        <li className="flex items-center justify-between text-white font-black uppercase tracking-widest text-xs hover:text-brand-primary cursor-pointer transition-colors" onClick={() => { focusMarketplaceSection({ filter: 'express', sectionId: 'shipping-logistics-section' }); setIsMenuOpen(false); }}>
-                                            Seamless Delivery <ChevronRight className="w-4 h-4 text-slate-500" />
-                                        </li>
-                                        <li className="flex items-center justify-between text-white font-black uppercase tracking-widest text-xs hover:text-brand-primary cursor-pointer transition-colors" onClick={() => { scrollToFlavorExplorer(); setIsMenuOpen(false); }}>
-                                            Start Your Session <ChevronRight className="w-4 h-4 text-slate-500" />
-                                        </li>
-                                        <li className="flex items-center justify-between text-white font-black uppercase tracking-widest text-xs hover:text-brand-primary cursor-pointer transition-colors" onClick={() => { focusMarketplaceSection({ filter: 'all', search: 'Geekbar Pulse X', sectionId: 'inventory-stream-section' }); setIsMenuOpen(false); }}>
-                                            Pulse X Series <ChevronRight className="w-4 h-4 text-slate-500" />
-                                        </li>
-                                    </ul>
-                                </div>
-                                <div className="space-y-6">
-                                    <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-brand-primary">Account</h3>
-                                    <ul className="space-y-5">
-                                        <li onClick={handleProfileNavigation} className="text-white font-black uppercase tracking-widest text-xs hover:text-brand-primary cursor-pointer transition-colors">User Profile</li>
-                                        <li onClick={() => { handleVendorTabClick(); setIsMenuOpen(false); }} className="text-brand-accent font-black uppercase tracking-widest text-xs hover:text-white cursor-pointer transition-colors flex items-center gap-2">
-                                            <span className="w-1.5 h-1.5 bg-brand-accent rounded-full animate-pulse" />
-                                            Retailer OS
-                                        </li>
-                                        {currentUser?.role === 'admin' && (
-                                            <li onClick={handleProfileNavigation} className="text-rose-400 font-black uppercase tracking-widest text-xs hover:text-white cursor-pointer transition-colors flex items-center gap-2">
-                                                <ShieldCheck className="w-4 h-4" />
-                                                Admin Layer
-                                            </li>
+
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                                    {/* Review Analyst Bot */}
+                                    <div className="bg-slate-50 p-8 rounded-3xl border border-slate-100 space-y-6 group hover:bg-white hover:shadow-2xl hover:shadow-slate-200/50 transition-all">
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-12 h-12 bg-blue-500 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/20 group-hover:rotate-6 transition-transform">
+                                                <MessageSquare className="text-white w-6 h-6" />
+                                            </div>
+                                            <div>
+                                                <h4 className="font-black text-[11px] uppercase tracking-widest text-slate-900">Sentiment Engine</h4>
+                                                <span className="text-[9px] text-blue-500 font-black uppercase tracking-[0.2em]">{botsLoading ? 'Syncing...' : 'Encrypted & Active'}</span>
+                                            </div>
+                                        </div>
+                                        {botsLoading ? (
+                                            <div className="flex items-center gap-3 text-[10px] text-slate-400 font-black uppercase tracking-widest">
+                                                <Loader2 className="w-4 h-4 animate-spin" /> Synthesizing...
+                                            </div>
+                                        ) : (
+                                            <p className="text-xs text-slate-500 font-medium leading-relaxed italic line-clamp-5 border-l-2 border-slate-200 pl-4">{botInsights.review || 'Awaiting stream...'}</p>
                                         )}
-                                        <li onClick={handleSignOut} className="text-slate-500 font-black uppercase tracking-widest text-xs hover:text-red-400 cursor-pointer transition-colors">Terminate Session</li>
-                                    </ul>
-                                </div>
-                            </div>
-                            <div className="p-8 border-t border-white/5 bg-slate-950/50">
-                                <div className="flex items-center gap-3">
-                                    <img
-                                        src="/logo.png"
-                                        alt="Banana Leaf Store"
-                                        className="h-8 w-auto object-contain brightness-0 invert"
-                                        onError={(e) => {
-                                            const img = e.currentTarget;
-                                            img.style.display = 'none';
-                                            const fallback = img.nextElementSibling as HTMLElement | null;
-                                            if (fallback) fallback.style.display = 'inline';
-                                        }}
-                                    />
-                                    <span className="hidden text-lg font-black tracking-tighter text-white uppercase italic">Banana Leaf<span className="text-brand-primary">.</span></span>
-                                </div>
-                            </div>
-                        </motion.div>
-                    </>
-                )}
-            </AnimatePresence>
-
-            {/* Cart Drawer */}
-            <AnimatePresence>
-                {isCartOpen && (
-                    <>
-                        <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            onClick={() => setIsCartOpen(false)}
-                            className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[100]"
-                        />
-                        <motion.div
-                            initial={{ x: '100%' }}
-                            animate={{ x: 0 }}
-                            exit={{ x: '100%' }}
-                            className="fixed top-0 right-0 h-full w-full max-w-md bg-white z-[101] flex flex-col shadow-2xl border-l border-slate-100"
-                        >
-                            <div className="p-8 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-                                <div className="flex flex-col">
-                                    <span className="text-brand-primary text-[10px] font-black uppercase tracking-[0.3em] mb-1">Manifest Ledger</span>
-                                    <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tighter">Your Hub Cart ({cart.length})</h2>
-                                </div>
-                                <button onClick={() => setIsCartOpen(false)} className="w-10 h-10 flex items-center justify-center hover:bg-slate-200 rounded-2xl transition-all">
-                                    <X className="w-6 h-6 text-slate-400" />
-                                </button>
-                            </div>
-
-                            <div className="flex-1 overflow-y-auto p-8 space-y-6">
-                                {cart.length === 0 ? (
-                                    <div className="h-full flex flex-col items-center justify-center text-center space-y-6">
-                                        <div className="w-24 h-24 bg-slate-50 rounded-[2.5rem] flex items-center justify-center border border-slate-100">
-                                            <ShoppingCart className="w-10 h-10 text-slate-200" />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <p className="text-slate-400 font-black uppercase tracking-[0.2em] text-[11px]">Ledger Sync Null</p>
-                                            <p className="text-slate-300 text-xs font-bold uppercase tracking-widest">Awaiting Module Acquisition</p>
-                                        </div>
-                                        <button
-                                            onClick={() => setIsCartOpen(false)}
-                                            className="px-8 py-3 bg-slate-900 text-white text-[10px] font-black uppercase tracking-[0.2em] rounded-xl hover:bg-brand-primary transition-all shadow-xl shadow-slate-900/10"
-                                        >
-                                            Initialize Acquisition
-                                        </button>
                                     </div>
-                                ) : (
-                                    // Group by product id to show quantity
-                                    Object.entries(
-                                        cart.reduce((acc: Record<number, { item: Product, indices: number[] }>, item, idx) => {
-                                            if (!acc[item.id]) acc[item.id] = { item, indices: [] };
-                                            acc[item.id].indices.push(idx);
-                                            return acc;
-                                        }, {})
-                                    ).map(([, { item, indices }]) => (
-                                        <div key={item.id} className="group relative flex gap-6 p-6 bg-white border border-slate-100 rounded-3xl hover:border-brand-primary/30 transition-all duration-300 shadow-sm hover:shadow-xl hover:shadow-slate-900/5">
-                                            <div className="w-24 h-24 bg-slate-50 rounded-2xl p-4 flex-shrink-0 border border-slate-50 group-hover:bg-white transition-colors">
-                                                <img src={item.image} alt={item.name} className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-500" />
+
+                                    {/* Inventory Analyst Bot */}
+                                    <div className="bg-slate-50 p-8 rounded-3xl border border-slate-100 space-y-6 group hover:bg-white hover:shadow-2xl hover:shadow-slate-200/50 transition-all">
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-12 h-12 bg-brand-primary rounded-2xl flex items-center justify-center shadow-lg shadow-brand-primary/20 group-hover:scale-110 transition-transform">
+                                                <Package className="text-white w-6 h-6" />
                                             </div>
-                                            <div className="flex-1 space-y-3 min-w-0">
-                                                <div className="flex flex-col">
-                                                    <span className="text-[9px] font-black uppercase tracking-widest text-brand-primary mb-1">{item.brand}</span>
-                                                    <h4 className="text-sm font-black text-slate-900 line-clamp-2 uppercase tracking-tight leading-tight">{item.name}</h4>
-                                                </div>
-                                                <div className="flex items-center justify-between">
-                                                    <div className="text-xl font-black text-slate-900 tracking-tighter">${(item.price * indices.length).toFixed(2)}</div>
-                                                    <div className="flex items-center gap-3 bg-slate-50 p-1 rounded-xl border border-slate-100">
-                                                        <button onClick={() => removeFromCart(indices[0])} className="w-8 h-8 rounded-lg bg-white border border-slate-100 text-slate-900 font-black flex items-center justify-center hover:bg-slate-900 hover:text-white transition-all shadow-sm">−</button>
-                                                        <span className="text-xs font-black w-4 text-center text-slate-900">{indices.length}</span>
-                                                        <button onClick={() => addToCart(item)} className="w-8 h-8 rounded-lg bg-white border border-slate-100 text-slate-900 font-black flex items-center justify-center hover:bg-slate-900 hover:text-white transition-all shadow-sm">+</button>
-                                                    </div>
-                                                </div>
-                                                <button
-                                                    onClick={() => indices.forEach(() => removeFromCart(cart.findIndex(c => c.id === item.id)))}
-                                                    className="text-[9px] font-black uppercase tracking-widest text-slate-400 hover:text-red-500 transition-colors"
-                                                >
-                                                    Eject Module
-                                                </button>
+                                            <div>
+                                                <h4 className="font-black text-[11px] uppercase tracking-widest text-slate-900">Inventory Pulse</h4>
+                                                <span className="text-[9px] text-brand-primary font-black uppercase tracking-[0.2em]">{botsLoading ? 'Optimizing...' : 'Live Ledger Active'}</span>
                                             </div>
                                         </div>
-                                    ))
+                                        {botsLoading ? (
+                                            <div className="flex items-center gap-3 text-[10px] text-slate-400 font-black uppercase tracking-widest">
+                                                <Loader2 className="w-4 h-4 animate-spin" /> Calculating...
+                                            </div>
+                                        ) : (
+                                            <p className="text-xs text-slate-500 font-medium leading-relaxed italic line-clamp-5 border-l-2 border-slate-200 pl-4">{botInsights.inventory || 'Awaiting stream...'}</p>
+                                        )}
+                                    </div>
+
+                                    {/* Market Trend Bot */}
+                                    <div className="bg-slate-50 p-8 rounded-3xl border border-slate-100 space-y-6 group hover:bg-white hover:shadow-2xl hover:shadow-slate-200/50 transition-all">
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-12 h-12 bg-slate-900 rounded-2xl flex items-center justify-center shadow-lg shadow-slate-900/20 group-hover:-rotate-6 transition-transform">
+                                                <TrendingUp className="text-brand-primary w-6 h-6" />
+                                            </div>
+                                            <div>
+                                                <h4 className="font-black text-[11px] uppercase tracking-widest text-slate-900">Market Synthesis</h4>
+                                                <span className="text-[9px] text-slate-400 font-black uppercase tracking-[0.2em]">{botsLoading ? 'Analyzing...' : 'External Data Linked'}</span>
+                                            </div>
+                                        </div>
+                                        {botsLoading ? (
+                                            <div className="flex items-center gap-3 text-[10px] text-slate-400 font-black uppercase tracking-widest">
+                                                <Loader2 className="w-4 h-4 animate-spin" /> Fetching Trends...
+                                            </div>
+                                        ) : (
+                                            <p className="text-xs text-slate-500 font-medium leading-relaxed italic line-clamp-5 border-l-2 border-slate-200 pl-4">{botInsights.trends || 'Awaiting stream...'}</p>
+                                        )}
+                                    </div>
+                                </div>
+
+                                <div className="mt-8 p-6 bg-brand-secondary text-white rounded-2xl flex flex-col md:flex-row items-center justify-between gap-6">
+                                    <div className="space-y-2 text-center md:text-left">
+                                        <h4 className="text-lg font-black uppercase tracking-widest">Ask Banana Leaf Intelligence</h4>
+                                        <p className="text-sm text-gray-300">Get custom reports or business advice from our AI network.</p>
+                                    </div>
+                                    <form onSubmit={handleVendorAiQuery} className="flex w-full md:w-auto gap-3">
+                                        <input
+                                            type="text"
+                                            value={vendorQuery}
+                                            onChange={(e) => setVendorQuery(e.target.value)}
+                                            placeholder="e.g. 'What should I restock this week?'"
+                                            className="flex-1 md:w-80 bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-sm focus:outline-none focus:bg-white/20"
+                                        />
+                                        <button type="submit" disabled={vendorAiLoading} className="bg-brand-primary text-white p-3 rounded-xl disabled:opacity-60">
+                                            {vendorAiLoading ? <Loader2 className="w-6 h-6 animate-spin" /> : <ChevronRight className="w-6 h-6" />}
+                                        </button>
+                                    </form>
+                                </div>
+                                {vendorAiResponse && (
+                                    <div className="mt-4 p-5 bg-gray-50 border border-gray-100 rounded-2xl">
+                                        <p className="text-[10px] font-black uppercase tracking-widest text-brand-primary mb-2">AI Response</p>
+                                        <p className="text-sm text-gray-700 font-medium leading-relaxed">{vendorAiResponse}</p>
+                                    </div>
                                 )}
                             </div>
 
-                            {cart.length > 0 && (
-                                <div className="p-8 border-t border-slate-100 bg-slate-50/50 space-y-6">
-                                    <div className="flex items-center justify-between">
-                                        <span className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Ledger Aggregation</span>
-                                        <div className="flex items-baseline gap-1">
-                                            <span className="text-sm font-black text-slate-900">$</span>
-                                            <span className="text-4xl font-black text-slate-900 tracking-tighter">{Math.floor(cart.reduce((acc, item) => acc + item.price, 0))}</span>
-                                            <span className="text-base font-black text-slate-400">.{(cart.reduce((acc, item) => acc + item.price, 0) % 1).toFixed(2).split('.')[1]}</span>
-                                        </div>
+                            {showVendorProductForm && currentUser && (
+                                <VendorProductForm
+                                    token={localStorage.getItem('vapeshub_token') || ''}
+                                    onClose={() => setShowVendorProductForm(false)}
+                                    onSuccess={() => {
+                                        setShowVendorProductForm(false);
+                                        loadProducts(); // Refresh products
+                                    }}
+                                />
+                            )}
+
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                                <VendorProductList token={localStorage.getItem('vapeshub_token') || ''} />
+                                <VendorOrders token={localStorage.getItem('vapeshub_token') || ''} />
+                            </div>
+
+                            <div className="bg-white p-10 premium-card">
+                                <div className="flex items-center gap-6 mb-10">
+                                    <div className="w-14 h-14 bg-emerald-50 rounded-2xl flex items-center justify-center shadow-inner">
+                                        <Globe className="text-brand-primary w-6 h-6" />
                                     </div>
-                                    <button
-                                        onClick={handleCheckout}
-                                        className="w-full py-5 bg-slate-900 text-white rounded-2xl text-xs font-black uppercase tracking-[0.3em] shadow-2xl shadow-slate-900/20 hover:bg-brand-primary transition-all flex items-center justify-center gap-4 group"
-                                    >
-                                        <ShieldCheck className="w-5 h-5 group-hover:rotate-12 transition-transform" />
-                                        <span>Authorize Transaction</span>
-                                    </button>
-                                    <div className="flex items-center justify-center gap-2">
-                                        <div className="w-1.5 h-1.5 bg-brand-primary rounded-full animate-pulse" />
-                                        <p className="text-[9px] text-slate-400 font-black uppercase tracking-widest">Biometric Age Verification Required</p>
+                                    <div>
+                                        <h3 className="text-xl font-black uppercase tracking-tighter text-slate-900">Demand Heatmap</h3>
+                                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mt-1">Real-time Consumer Density Radar</p>
                                     </div>
                                 </div>
-                            )}
-                        </motion.div>
-                    </>
-                )}
-            </AnimatePresence>
+                                <div className="h-80 bg-slate-50 rounded-3xl flex items-center justify-center text-slate-400 border border-slate-100 relative overflow-hidden group">
+                                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-emerald-500/5 via-transparent to-transparent" />
+                                    <div className="text-center space-y-4 relative z-10 transition-transform group-hover:scale-110 duration-700">
+                                        <div className="relative">
+                                            <MapPin className="w-12 h-12 mx-auto text-brand-primary opacity-20" />
+                                            <div className="absolute inset-0 w-12 h-12 mx-auto bg-brand-primary rounded-full animate-ping opacity-10" />
+                                        </div>
+                                        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Syncing Intelligence Node...</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )
+                }
+
+                {
+                    activeTab === 'admin' && (
+                        <div className="p-4" ref={(el) => { if (el && !adminLoading && !adminStats) loadAdminStats(); }}>
+                            <div className="mb-8">
+                                <h2 className="text-3xl font-black text-gray-900 uppercase tracking-tighter">Global Analytics & Admin OS</h2>
+                                <p className="text-gray-500 font-bold uppercase tracking-widest text-[10px]">Master Control Center — Restricted to Authorized Administrators</p>
+                            </div>
+
+                            <AdminDashboard token={localStorage.getItem('vapeshub_token') || ''} stats={adminStats} currentUser={currentUser} />
+                        </div>
+                    )
+                }
+            </main >
+
+            {/* Mobile Menu Drawer */}
+            <AnimatePresence>
+                {
+                    isMenuOpen && (
+                        <>
+                            <motion.div
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                onClick={() => setIsMenuOpen(false)}
+                                className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[100]"
+                            />
+                            <motion.div
+                                initial={{ x: '-100%' }}
+                                animate={{ x: 0 }}
+                                exit={{ x: '-100%' }}
+                                className="fixed top-0 left-0 h-full w-full max-w-[320px] bg-slate-900 z-[101] flex flex-col shadow-2xl border-r border-white/5"
+                            >
+                                <div className="p-8 bg-slate-950 flex items-center justify-between border-b border-white/5">
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-10 h-10 bg-brand-primary rounded-xl flex items-center justify-center shadow-lg shadow-brand-primary/20">
+                                            <UserIcon className="w-6 h-6 text-white" />
+                                        </div>
+                                        <div className="flex flex-col">
+                                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">User Session</span>
+                                            <span className="text-white font-black uppercase tracking-tight">{currentUser ? currentUser.name : 'Unauthenticated'}</span>
+                                        </div>
+                                    </div>
+                                    <button onClick={() => setIsMenuOpen(false)} className="p-2 hover:bg-white/5 rounded-xl transition-colors">
+                                        <X className="w-6 h-6 text-white" />
+                                    </button>
+                                </div>
+                                <div className="flex-1 overflow-y-auto p-8 space-y-10">
+                                    <div className="space-y-6">
+                                        <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-brand-primary">Explore</h3>
+                                        <ul className="space-y-5">
+                                            <li className="flex items-center justify-between text-white font-black uppercase tracking-widest text-xs hover:text-brand-primary cursor-pointer transition-colors" onClick={() => { focusMarketplaceSection({ filter: 'all', sectionId: 'brand-showcase-section' }); setIsMenuOpen(false); }}>
+                                                Shop The Collection <ChevronRight className="w-4 h-4 text-slate-500" />
+                                            </li>
+                                            <li className="flex items-center justify-between text-white font-black uppercase tracking-widest text-xs hover:text-brand-primary cursor-pointer transition-colors" onClick={() => { focusMarketplaceSection({ filter: 'express', sectionId: 'shipping-logistics-section' }); setIsMenuOpen(false); }}>
+                                                Seamless Delivery <ChevronRight className="w-4 h-4 text-slate-500" />
+                                            </li>
+                                            <li className="flex items-center justify-between text-white font-black uppercase tracking-widest text-xs hover:text-brand-primary cursor-pointer transition-colors" onClick={() => { scrollToFlavorExplorer(); setIsMenuOpen(false); }}>
+                                                Start Your Session <ChevronRight className="w-4 h-4 text-slate-500" />
+                                            </li>
+                                            <li className="flex items-center justify-between text-white font-black uppercase tracking-widest text-xs hover:text-brand-primary cursor-pointer transition-colors" onClick={() => { focusMarketplaceSection({ filter: 'all', search: 'Geekbar Pulse X', sectionId: 'inventory-stream-section' }); setIsMenuOpen(false); }}>
+                                                Pulse X Series <ChevronRight className="w-4 h-4 text-slate-500" />
+                                            </li>
+                                        </ul>
+                                    </div>
+                                    <div className="space-y-6">
+                                        <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-brand-primary">Account</h3>
+                                        <ul className="space-y-5">
+                                            <li onClick={handleProfileNavigation} className="text-white font-black uppercase tracking-widest text-xs hover:text-brand-primary cursor-pointer transition-colors">User Profile</li>
+                                            <li onClick={() => { handleVendorTabClick(); setIsMenuOpen(false); }} className="text-brand-accent font-black uppercase tracking-widest text-xs hover:text-white cursor-pointer transition-colors flex items-center gap-2">
+                                                <span className="w-1.5 h-1.5 bg-brand-accent rounded-full animate-pulse" />
+                                                Retailer OS
+                                            </li>
+                                            {currentUser?.role === 'admin' && (
+                                                <li onClick={handleProfileNavigation} className="text-rose-400 font-black uppercase tracking-widest text-xs hover:text-white cursor-pointer transition-colors flex items-center gap-2">
+                                                    <ShieldCheck className="w-4 h-4" />
+                                                    Admin Layer
+                                                </li>
+                                            )}
+                                            <li onClick={handleSignOut} className="text-slate-500 font-black uppercase tracking-widest text-xs hover:text-red-400 cursor-pointer transition-colors">Terminate Session</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                                <div className="p-8 border-t border-white/5 bg-slate-950/50">
+                                    <div className="flex items-center gap-3">
+                                        <img
+                                            src="/logo.png"
+                                            alt="Banana Leaf Store"
+                                            className="h-8 w-auto object-contain brightness-0 invert"
+                                            onError={(e) => {
+                                                const img = e.currentTarget;
+                                                img.style.display = 'none';
+                                                const fallback = img.nextElementSibling as HTMLElement | null;
+                                                if (fallback) fallback.style.display = 'inline';
+                                            }}
+                                        />
+                                        <span className="hidden text-lg font-black tracking-tighter text-white uppercase italic">Banana Leaf<span className="text-brand-primary">.</span></span>
+                                    </div>
+                                </div>
+                            </motion.div>
+                        </>
+                    )
+                }
+            </AnimatePresence >
+
+            {/* Cart Drawer */}
+            <AnimatePresence>
+                {
+                    isCartOpen && (
+                        <>
+                            <motion.div
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                onClick={() => setIsCartOpen(false)}
+                                className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[100]"
+                            />
+                            <motion.div
+                                initial={{ x: '100%' }}
+                                animate={{ x: 0 }}
+                                exit={{ x: '100%' }}
+                                className="fixed top-0 right-0 h-full w-full max-w-md bg-white z-[101] flex flex-col shadow-2xl border-l border-slate-100"
+                            >
+                                <div className="p-8 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                                    <div className="flex flex-col">
+                                        <span className="text-brand-primary text-[10px] font-black uppercase tracking-[0.3em] mb-1">Manifest Ledger</span>
+                                        <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tighter">Your Hub Cart ({cart.length})</h2>
+                                    </div>
+                                    <button onClick={() => setIsCartOpen(false)} className="w-10 h-10 flex items-center justify-center hover:bg-slate-200 rounded-2xl transition-all">
+                                        <X className="w-6 h-6 text-slate-400" />
+                                    </button>
+                                </div>
+
+                                <div className="flex-1 overflow-y-auto p-8 space-y-6">
+                                    {cart.length === 0 ? (
+                                        <div className="h-full flex flex-col items-center justify-center text-center space-y-6">
+                                            <div className="w-24 h-24 bg-slate-50 rounded-[2.5rem] flex items-center justify-center border border-slate-100">
+                                                <ShoppingCart className="w-10 h-10 text-slate-200" />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <p className="text-slate-400 font-black uppercase tracking-[0.2em] text-[11px]">Ledger Sync Null</p>
+                                                <p className="text-slate-300 text-xs font-bold uppercase tracking-widest">Awaiting Module Acquisition</p>
+                                            </div>
+                                            <button
+                                                onClick={() => setIsCartOpen(false)}
+                                                className="px-8 py-3 bg-slate-900 text-white text-[10px] font-black uppercase tracking-[0.2em] rounded-xl hover:bg-brand-primary transition-all shadow-xl shadow-slate-900/10"
+                                            >
+                                                Initialize Acquisition
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        // Group by product id to show quantity
+                                        Object.entries(
+                                            cart.reduce((acc: Record<number, { item: Product, indices: number[] }>, item, idx) => {
+                                                if (!acc[item.id]) acc[item.id] = { item, indices: [] };
+                                                acc[item.id].indices.push(idx);
+                                                return acc;
+                                            }, {})
+                                        ).map(([, { item, indices }]) => (
+                                            <div key={item.id} className="group relative flex gap-6 p-6 bg-white border border-slate-100 rounded-3xl hover:border-brand-primary/30 transition-all duration-300 shadow-sm hover:shadow-xl hover:shadow-slate-900/5">
+                                                <div className="w-24 h-24 bg-slate-50 rounded-2xl p-4 flex-shrink-0 border border-slate-50 group-hover:bg-white transition-colors">
+                                                    <img src={item.image} alt={item.name} className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-500" />
+                                                </div>
+                                                <div className="flex-1 space-y-3 min-w-0">
+                                                    <div className="flex flex-col">
+                                                        <span className="text-[9px] font-black uppercase tracking-widest text-brand-primary mb-1">{item.brand}</span>
+                                                        <h4 className="text-sm font-black text-slate-900 line-clamp-2 uppercase tracking-tight leading-tight">{item.name}</h4>
+                                                    </div>
+                                                    <div className="flex items-center justify-between">
+                                                        <div className="text-xl font-black text-slate-900 tracking-tighter">${(item.price * indices.length).toFixed(2)}</div>
+                                                        <div className="flex items-center gap-3 bg-slate-50 p-1 rounded-xl border border-slate-100">
+                                                            <button onClick={() => removeFromCart(indices[0])} className="w-8 h-8 rounded-lg bg-white border border-slate-100 text-slate-900 font-black flex items-center justify-center hover:bg-slate-900 hover:text-white transition-all shadow-sm">−</button>
+                                                            <span className="text-xs font-black w-4 text-center text-slate-900">{indices.length}</span>
+                                                            <button onClick={() => addToCart(item)} className="w-8 h-8 rounded-lg bg-white border border-slate-100 text-slate-900 font-black flex items-center justify-center hover:bg-slate-900 hover:text-white transition-all shadow-sm">+</button>
+                                                        </div>
+                                                    </div>
+                                                    <button
+                                                        onClick={() => indices.forEach(() => removeFromCart(cart.findIndex(c => c.id === item.id)))}
+                                                        className="text-[9px] font-black uppercase tracking-widest text-slate-400 hover:text-red-500 transition-colors"
+                                                    >
+                                                        Eject Module
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))
+                                    )}
+                                </div>
+
+                                {cart.length > 0 && (
+                                    <div className="p-8 border-t border-slate-100 bg-slate-50/50 space-y-6">
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Ledger Aggregation</span>
+                                            <div className="flex items-baseline gap-1">
+                                                <span className="text-sm font-black text-slate-900">$</span>
+                                                <span className="text-4xl font-black text-slate-900 tracking-tighter">{Math.floor(cart.reduce((acc, item) => acc + item.price, 0))}</span>
+                                                <span className="text-base font-black text-slate-400">.{(cart.reduce((acc, item) => acc + item.price, 0) % 1).toFixed(2).split('.')[1]}</span>
+                                            </div>
+                                        </div>
+                                        <button
+                                            onClick={handleCheckout}
+                                            className="w-full py-5 bg-slate-900 text-white rounded-2xl text-xs font-black uppercase tracking-[0.3em] shadow-2xl shadow-slate-900/20 hover:bg-brand-primary transition-all flex items-center justify-center gap-4 group"
+                                        >
+                                            <ShieldCheck className="w-5 h-5 group-hover:rotate-12 transition-transform" />
+                                            <span>Authorize Transaction</span>
+                                        </button>
+                                        <div className="flex items-center justify-center gap-2">
+                                            <div className="w-1.5 h-1.5 bg-brand-primary rounded-full animate-pulse" />
+                                            <p className="text-[9px] text-slate-400 font-black uppercase tracking-widest">Biometric Age Verification Required</p>
+                                        </div>
+                                    </div>
+                                )}
+                            </motion.div>
+                        </>
+                    )
+                }
+            </AnimatePresence >
 
             {/* Floating AI Chat - Bottom Right */}
-            <div className="fixed bottom-4 right-4 md:bottom-8 md:right-8 z-[100] flex flex-col items-end gap-5 pointer-events-none w-[calc(100vw-2rem)] md:w-auto">
+            < div className="fixed bottom-4 right-4 md:bottom-8 md:right-8 z-[100] flex flex-col items-end gap-5 pointer-events-none w-[calc(100vw-2rem)] md:w-auto" >
                 <AnimatePresence>
                     {aiChatOpen && (
                         <motion.div
@@ -1864,7 +2008,7 @@ export default function App() {
                 >
                     {aiChatOpen ? <X className="w-6 h-6 md:w-7 md:h-7" /> : <MessageSquare className="w-6 h-6 md:w-7 md:h-7 text-white" />}
                 </motion.button>
-            </div>
+            </div >
 
             <footer className="bg-slate-900 text-white mt-auto">
                 {/* Return to Top */}
@@ -1943,6 +2087,6 @@ export default function App() {
             </footer>
 
             {/* Duplicate AI trigger removed — handled by the floating chat widget above */}
-        </div>
+        </div >
     );
 }

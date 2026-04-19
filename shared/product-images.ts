@@ -17,7 +17,7 @@ const PRODUCT_NAME_IMAGE_MAP: Array<{ pattern: RegExp; image: string }> = [
 ];
 
 const BRAND_IMAGE_MAP: Array<{ pattern: RegExp; image: string }> = [
-    { pattern: /geekbar|geek.?bar/i, image: '/images/products/geekbar-pulse-x/blackberry-b-burst.png' },
+    { pattern: /geekbar|geek.?bar/i, image: '/images/products/geekbar-pulse-x/hero.png' },
     // Foger: any Foger variant → real product flavor photo
     { pattern: /^foger switch pro pods?$/i, image: '/images/products/foger-pods/sour-blue-dust.webp' },
     { pattern: /^foger switch pro$/i, image: '/images/products/foger-pods/gummy-bear.webp' },
@@ -36,7 +36,7 @@ const BRAND_IMAGE_MAP: Array<{ pattern: RegExp; image: string }> = [
 ];
 
 const CATEGORY_IMAGE_MAP: Array<{ pattern: RegExp; image: string }> = [
-    { pattern: /^disposables$/i, image: '/images/products/geekbar-pulse-x/blackberry-b-burst.png' },
+    { pattern: /^disposables$/i, image: '/images/products/geekbar-pulse-x/hero.png' },
     { pattern: /^nicotine pouches$/i, image: '/images/2023-05-11.webp' },
     { pattern: /^supplements$/i, image: '/images/2023-05-11.webp' },
     { pattern: /^pod systems$/i, image: '/images/devices/uwell-caliburn-g2.webp' },
@@ -109,6 +109,8 @@ const FLAVOR_IMAGE_MAP: Readonly<Record<string, string>> = {
     'foger-pods:pineapple-coconut': '/images/products/foger-pods/pineapple-coconut.webp',
     'foger-pods:blueberry-watermelon': '/images/products/foger-pods/blueberry-watermelon.webp',
     'foger-pods:cool-mint': '/images/products/foger-pods/cool-mint.webp',
+    'foger-pods:blue-rancher-b-pop': '/images/products/foger-pods/blue-rancher-b-pop.webp',
+    'foger-pods:omg-b-pop': '/images/products/foger-pods/omg-b-pop.webp',
 
     // Foger Switch Pro — updated with new images
     'foger-switch-pro:blue-rancher-b-pop': '/images/products/foger-pods/blue-rancher-b-pop.webp',

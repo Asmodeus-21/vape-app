@@ -9,9 +9,9 @@ export interface ProductImageContext {
 const EXTERNAL_PLACEHOLDER_PATTERN = /placehold\.co|source\.unsplash\.com|images\.unsplash\.com|picsum\.photos/i;
 
 const PRODUCT_NAME_IMAGE_MAP: Array<{ pattern: RegExp; image: string }> = [
-    { pattern: /^blues\s*(?:-\s*35mg)?$/i, image: '/images/2023-05-11.webp' },
-    { pattern: /^zyns?\s*(?:-\s*wintergreen)?$/i, image: '/images/2023-05-11.webp' },
-    { pattern: /^hydroxie\s*(?:\(7-oh\))?\s*-\s*10-15mg$/i, image: '/images/2023-05-11.webp' },
+    { pattern: /^blues\s*(?:-\s*35mg)?$/i, image: '/images/products/zyns/wintergreen.jpeg' },
+    { pattern: /^zyns?\s*(?:-\s*wintergreen)?$/i, image: '/images/products/zyns/wintergreen.jpeg' },
+    { pattern: /^hydroxie\s*(?:\(7-oh\))?\s*-\s*10-15mg$/i, image: '/images/products/zyns/wintergreen.jpeg' },
 ];
 
 const BRAND_IMAGE_MAP: Array<{ pattern: RegExp; image: string }> = [
@@ -27,10 +27,10 @@ const BRAND_IMAGE_MAP: Array<{ pattern: RegExp; image: string }> = [
     { pattern: /^flum mello$/i, image: '/images/products/flum-mello/watermelon-icy.png' },
     // Zyns: use real product photo instead of generic stock
     { pattern: /^zyns?$/i, image: '/images/products/zyns/wintergreen.jpeg' },
-    // Hydroxie & Blues: no product photos yet — keep generic until assets arrive
-    { pattern: /^hydroxie$/i, image: '/images/2023-05-11.webp' },
-    { pattern: /^hydroxie \(7-oh\)$/i, image: '/images/2023-05-11.webp' },
-    { pattern: /^blues$/i, image: '/images/2023-05-11.webp' },
+    // Hydroxie & Blues: use Zyn photo as temporary stand-in (removes Cloud9 branding)
+    { pattern: /^hydroxie$/i, image: '/images/products/zyns/wintergreen.jpeg' },
+    { pattern: /^hydroxie \(7-oh\)$/i, image: '/images/products/zyns/wintergreen.jpeg' },
+    { pattern: /^blues$/i, image: '/images/products/zyns/wintergreen.jpeg' },
 ];
 
 const CATEGORY_IMAGE_MAP: Array<{ pattern: RegExp; image: string }> = [

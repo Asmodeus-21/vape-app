@@ -1523,10 +1523,17 @@ export default function App() {
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
                                 />
-                                <button className="bg-slate-900 px-6 hover:bg-brand-primary transition-colors">
+                                <button className="h-12 flex items-center bg-slate-900 px-6 hover:bg-brand-primary transition-colors">
                                     <Search className="w-5 h-5 text-white" />
                                 </button>
                             </div>
+                            <button
+                                type="button"
+                                onClick={() => focusMarketplaceSection({ filter: 'all', sectionId: 'inventory-stream-section' })}
+                                className="shrink-0 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-[10px] font-black uppercase tracking-[0.28em] text-slate-900 transition-all hover:border-brand-primary hover:text-brand-primary hover:bg-slate-50"
+                            >
+                                Shop All
+                            </button>
                             <div ref={desktopCollectionMenuRef} className="relative shrink-0">
                                 <button
                                     type="button"
@@ -1540,6 +1547,16 @@ export default function App() {
                                 </button>
                                 {isCollectionMenuOpen && (
                                     <div role="menu" className="absolute right-0 top-full z-[70] mt-3 w-[320px] overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white p-2 shadow-2xl shadow-slate-900/10">
+                                        <button
+                                            type="button"
+                                            role="menuitem"
+                                            onClick={() => { focusMarketplaceSection({ filter: 'all', sectionId: 'inventory-stream-section' }); setIsCollectionMenuOpen(false); }}
+                                            className="flex w-full items-center justify-between rounded-[1.25rem] px-4 py-3 text-left text-[10px] font-black uppercase tracking-[0.22em] text-brand-primary transition-colors hover:bg-brand-primary/5"
+                                        >
+                                            All Inventory
+                                            <ArrowRight className="h-4 w-4 text-brand-primary/50" />
+                                        </button>
+                                        <div className="mx-3 my-1 h-px bg-slate-100" />
                                         <button
                                             type="button"
                                             role="menuitem"
@@ -2204,6 +2221,9 @@ export default function App() {
                                     <div className="space-y-6">
                                         <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-brand-primary">Collections</h3>
                                         <ul className="space-y-5">
+                                            <li className="flex items-center justify-between text-brand-primary font-black uppercase tracking-widest text-xs hover:text-white cursor-pointer transition-colors" onClick={() => { focusMarketplaceSection({ filter: 'all', sectionId: 'inventory-stream-section' }); setIsMenuOpen(false); }}>
+                                                All Inventory <ChevronRight className="w-4 h-4 text-brand-primary/50" />
+                                            </li>
                                             <li className="flex items-center justify-between text-white font-black uppercase tracking-widest text-xs hover:text-brand-primary cursor-pointer transition-colors" onClick={() => { focusMarketplaceSection({ filter: 'all', sectionId: 'brand-showcase-section' }); setIsMenuOpen(false); }}>
                                                 Shop The Collection <ChevronRight className="w-4 h-4 text-slate-500" />
                                             </li>

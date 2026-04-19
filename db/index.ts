@@ -149,6 +149,7 @@ export function getPostgresClient(): Sql {
             max: 10,
             idle_timeout: 20,
             connect_timeout: 15,
+            prepare: false, // Required for Supabase pgBouncer (transaction pooler, port 6543)
         });
     }
     return _postgres;

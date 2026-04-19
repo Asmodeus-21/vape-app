@@ -11,7 +11,7 @@ import {
 import { motion } from 'motion/react';
 import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
-import { resolveCatalogImage } from '../../shared/product-images';
+import { DEFAULT_CATALOG_IMAGE, resolveCatalogImage, resolveFlavorImage } from '../../shared/product-images';
 import { ParentVariantGroup, Product } from '../types';
 
 interface ProductDetailProps {
@@ -64,6 +64,18 @@ export default function ProductDetail({ group, selectedVariantId, onBack, onVari
             category: selectedVariant.category,
         });
     }, [selectedVariant]);
+
+    // Flavor-specific image: swap when a flavor is selected; falls back to resolvedImage
+    const flavorImage = useMemo(
+        () => resolveFlavorImage(selectedVariant?.brand, selectedVariant?.flavor) ?? resolvedImage,
+        [selectedVariant?.brand, selectedVariant?.flavor, resolvedImage],
+    );
+    const [displayImage, setDisplayImage] = useState(flavorImage);
+
+    useEffect(() => {
+        setDisplayImage(flavorImage);
+    }, [flavorImage]);
+
     const shouldShowFlavorProfile = uniqueFlavors.length > 0;
     const shouldShowStrength = uniqueNicotineStrengths.length > 0;
     const displayTitle = selectedVariant?.flavor && selectedVariant.flavor !== 'N/A'
@@ -123,7 +135,18 @@ export default function ProductDetail({ group, selectedVariantId, onBack, onVari
                             animate={{ opacity: 1, scale: 1 }}
                             className="relative w-full aspect-square max-w-md"
                         >
-                            <img src={resolvedImage} alt={displayTitle} className="w-full h-full object-contain filter drop-shadow-2xl" />
+                            <img
+                                src={displayImage}
+                                alt={displayTitle}
+                                className="w-full h-full object-contain filter drop-shadow-2xl"
+                                onError={() => {
+                                    if (displayImage !== resolvedImage) {
+                                        setDisplayImage(resolvedImage);
+                                    } else if (displayImage !== DEFAULT_CATALOG_IMAGE) {
+                                        setDisplayImage(DEFAULT_CATALOG_IMAGE);
+                                    }
+                                }}
+                            />
                         </motion.div>
                     </div>
 

@@ -29,7 +29,7 @@ import { AnimatePresence, motion } from 'motion/react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast, Toaster } from 'react-hot-toast';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-import { resolveCatalogImage } from '../shared/product-images';
+import { DEFAULT_CATALOG_IMAGE, resolveCatalogImage } from '../shared/product-images';
 import AdminDashboard from './components/AdminDashboard';
 import AuthModal from './components/AuthModal';
 import CheckoutOverlay from './components/CheckoutOverlay';
@@ -198,6 +198,8 @@ function ProductCardImage({ imageUrl, productName, brand, category, isExpressDel
                     onError={() => {
                         if (currentImageUrl !== resolvedCatalogImage) {
                             setCurrentImageUrl(resolvedCatalogImage);
+                        } else if (currentImageUrl !== DEFAULT_CATALOG_IMAGE) {
+                            setCurrentImageUrl(DEFAULT_CATALOG_IMAGE);
                         }
                     }}
                     className="h-full w-full object-contain transition-transform duration-500 group-hover:scale-105"

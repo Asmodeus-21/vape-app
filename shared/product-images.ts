@@ -9,9 +9,11 @@ export interface ProductImageContext {
 const EXTERNAL_PLACEHOLDER_PATTERN = /placehold\.co|source\.unsplash\.com|images\.unsplash\.com|picsum\.photos/i;
 
 const PRODUCT_NAME_IMAGE_MAP: Array<{ pattern: RegExp; image: string }> = [
-    { pattern: /^blues\s*(?:-\s*35mg)?$/i, image: '/images/products/zyns/wintergreen.jpeg' },
+    { pattern: /^blues\s*(?:-\s*35mg)?$/i, image: '/images/products/blues/35mg.jpg' },
+    { pattern: /^blues\s*-\s*\d/i, image: '/images/products/blues/35mg.jpg' },
     { pattern: /^zyns?\s*(?:-\s*wintergreen)?$/i, image: '/images/products/zyns/wintergreen.jpeg' },
-    { pattern: /^hydroxie\s*(?:\(7-oh\))?\s*-\s*10-15mg$/i, image: '/images/products/zyns/wintergreen.jpeg' },
+    { pattern: /^hydroxie\s*(?:\(7-oh\))?\s*-\s*10-15mg$/i, image: '/images/products/hydroxie/10-15mg.jpg' },
+    { pattern: /^hydroxie\s*(?:\(7-oh\))?\s*-/i, image: '/images/products/hydroxie/10-15mg.jpg' },
 ];
 
 const BRAND_IMAGE_MAP: Array<{ pattern: RegExp; image: string }> = [
@@ -26,10 +28,11 @@ const BRAND_IMAGE_MAP: Array<{ pattern: RegExp; image: string }> = [
     { pattern: /flum|float mello/i, image: '/images/products/flum-mello/watermelon-icy.png' },
     // Zyns: use real product photo instead of generic stock
     { pattern: /^zyns?$/i, image: '/images/products/zyns/wintergreen.jpeg' },
-    // Hydroxie & Blues: use Zyn photo as temporary stand-in (removes Cloud9 branding)
-    { pattern: /^hydroxie$/i, image: '/images/products/zyns/wintergreen.jpeg' },
-    { pattern: /^hydroxie \(7-oh\)$/i, image: '/images/products/zyns/wintergreen.jpeg' },
-    { pattern: /^blues$/i, image: '/images/products/zyns/wintergreen.jpeg' },
+    // Hydroxie: real product photo
+    { pattern: /^hydroxie$/i, image: '/images/products/hydroxie/10-15mg.jpg' },
+    { pattern: /^hydroxie \(7-oh\)$/i, image: '/images/products/hydroxie/10-15mg.jpg' },
+    // Blues: real product photo
+    { pattern: /^blues$/i, image: '/images/products/blues/35mg.jpg' },
 ];
 
 const CATEGORY_IMAGE_MAP: Array<{ pattern: RegExp; image: string }> = [
@@ -63,14 +66,33 @@ const FLAVOR_IMAGE_MAP: Readonly<Record<string, string>> = {
     'zyns:cool-mint': '/images/products/zyns/cool-mint.jpeg',
     'zyns:cinnamon': '/images/products/zyns/cinnamon.jpeg',
 
-    // Geekbar Pulse X — 5/15 flavors
+    // Hydroxie (7-OH) — real product photos
+    'hydroxie-7-oh:10-15mg': '/images/products/hydroxie/10-15mg.jpg',
+    'hydroxie-7-oh:10-30mg': '/images/products/hydroxie/10-15mg.jpg',
+    'hydroxie-7-oh:5-15mg': '/images/products/hydroxie/10-15mg.jpg',
+    'hydroxie-7-oh:5-30mg': '/images/products/hydroxie/10-15mg.jpg',
+    'hydroxie-7-oh:5-60mg': '/images/products/hydroxie/10-15mg.jpg',
+
+    // Blues — real product photos
+    'blues:35mg': '/images/products/blues/35mg.jpg',
+    'blues:55mg': '/images/products/blues/35mg.jpg',
+    'blues:75mg': '/images/products/blues/35mg.jpg',
+    'blues:100mg': '/images/products/blues/35mg.jpg',
+    'blues:120mg': '/images/products/blues/35mg.jpg',
+
+    // Geekbar Pulse X — full flavor set
     'geekbar-pulse-x:blackberry-b-burst': '/images/products/geekbar-pulse-x/blackberry-b-burst.png',
+    'geekbar-pulse-x:blackberry-b-pop': '/images/products/geekbar-pulse-x/blackberry-b-pop.png',
     'geekbar-pulse-x:blue-rancher': '/images/products/geekbar-pulse-x/blue-rancher.png',
     'geekbar-pulse-x:cool-mint': '/images/products/geekbar-pulse-x/cool-mint.png',
     'geekbar-pulse-x:pair-of-thieves': '/images/products/geekbar-pulse-x/pair-of-thieves.png',
+    'geekbar-pulse-x:pear-of-thieves': '/images/products/geekbar-pulse-x/pear-of-thieves.png',
     'geekbar-pulse-x:strawberry-kiwi-ice': '/images/products/geekbar-pulse-x/strawberry-kiwi-ice.png',
+    'geekbar-pulse-x:jam-edition': '/images/products/geekbar-pulse-x/jam-edition.png',
+    'geekbar-pulse-x:tobacco-flavour': '/images/products/geekbar-pulse-x/tobacco-flavour.png',
+    'geekbar-pulse-x:grapefruit-refresher': '/images/products/geekbar-pulse-x/grapefruit-refresher.webp',
 
-    // Foger Pods — 16/18 flavors (Gum Mint + Watermelon Ice assets still needed)
+    // Foger Pods — full flavor set
     'foger-pods:sour-blue-dust': '/images/products/foger-pods/sour-blue-dust.webp',
     'foger-pods:miami-mint': '/images/products/foger-pods/miami-mint.webp',
     'foger-pods:blue-ranger-blowup': '/images/products/foger-pods/blue-ranger-blowup.webp',
@@ -88,16 +110,42 @@ const FLAVOR_IMAGE_MAP: Readonly<Record<string, string>> = {
     'foger-pods:blueberry-watermelon': '/images/products/foger-pods/blueberry-watermelon.webp',
     'foger-pods:cool-mint': '/images/products/foger-pods/cool-mint.webp',
 
-    // Utbar — 3/14 flavors
+    // Foger Switch Pro — updated with new images
+    'foger-switch-pro:blue-rancher-b-pop': '/images/products/foger-pods/blue-rancher-b-pop.webp',
+    'foger-switch-pro:gummy-bear': '/images/products/foger-pods/gummy-bear.webp',
+    'foger-switch-pro:miami-mint': '/images/products/foger-pods/miami-mint.webp',
+    'foger-switch-pro:sour-blue-dust': '/images/products/foger-pods/sour-blue-dust.webp',
+    'foger-switch-pro:strawberry-kiwi': '/images/products/foger-pods/sour-apple-ice.webp',
+
+    // Foger Switch Pro Pods — updated with new images
+    'foger-switch-pro-pods:omg-b-pop': '/images/products/foger-pods/omg-b-pop.webp',
+    'foger-switch-pro-pods:cherry-slush': '/images/products/foger-pods/cherry-bomb.webp',
+    'foger-switch-pro-pods:pink-lemonade': '/images/products/foger-pods/pineapple-coconut.webp',
+
+    // Utbar — existing 3 + 11 new flavors
     'utbar:aloe-grape-watermelon': '/images/products/utbar/aloe-grape-watermelon.webp',
     'utbar:blue-rancher-lemonade': '/images/products/utbar/blue-rancher-lemonade.png',
     'utbar:blue-razz-lemonade': '/images/products/utbar/blue-razz-lemonade.png',
+    'utbar:blue-rancher': '/images/products/utbar/blue-rancher.png',
+    'utbar:blue-razz-icy': '/images/products/utbar/blue-razz-icy.png',
+    'utbar:double-green-pop': '/images/products/utbar/double-green-pop.png',
+    'utbar:frozen-blackberry-fab': '/images/products/utbar/frozen-blackberry-fab.png',
+    'utbar:grape-pop-icy': '/images/products/utbar/grape-pop-icy.png',
+    'utbar:sour-pop': '/images/products/utbar/sour-pop.png',
+    'utbar:strawberry-blast': '/images/products/utbar/strawberry-blast.png',
+    'utbar:strawmelon-peach': '/images/products/utbar/strawmelon-peach.png',
+    'utbar:watermelon-blueberry': '/images/products/utbar/watermelon-blueberry.png',
+    'utbar:watermelon-icy': '/images/products/utbar/watermelon-icy.png',
+    'utbar:white-gummy': '/images/products/utbar/white-gummy.png',
 
-    // Flum Mello — 4/8 flavors (Sour Mango Pineapple, Straw Melon, White Gummy, Miami Mint still needed)
+    // Flum Mello — existing 4 + 3 new flavors
     'flum-mello:cool-mint': '/images/products/flum-mello/cool-mint.png',
     'flum-mello:sour-apple-icy': '/images/products/flum-mello/sour-apple-icy.png',
     'flum-mello:watermelon-icy': '/images/products/flum-mello/watermelon-icy.png',
     'flum-mello:watermelon-peach-lime': '/images/products/flum-mello/watermelon-peach-lime.png',
+    'flum-mello:blue-razz-icy': '/images/products/flum-mello/blue-razz-icy.png',
+    'flum-mello:peach-icy': '/images/products/flum-mello/peach-icy.png',
+    'flum-mello:spearmint-watermelon': '/images/products/flum-mello/spearmint-watermelon.png',
 };
 
 function toFlavorSlug(value: string): string {

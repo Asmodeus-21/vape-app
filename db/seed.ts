@@ -67,6 +67,7 @@ const zynFlavors = ['Wintergreen', 'Peppermint', 'Citrus', 'Cool Mint', 'Cinnamo
 
 const geekbarPulseXFlavors = [
     'Blackberry B Burst',
+    'Blackberry B-Pop',
     'Blue Rancher',
     'Blue Razz Ice',
     'Miami Mint',
@@ -74,6 +75,7 @@ const geekbarPulseXFlavors = [
     'Strawberry Kiwi Ice',
     'Pink Berry Lemonade',
     'Pair of Thieves',
+    'Pear of Thieves',
     'Strawberry B Burst',
     'Sour Straws',
     'Sour Fucking Fab',
@@ -81,6 +83,8 @@ const geekbarPulseXFlavors = [
     'Orange Fucking Fab',
     'Raspberry Jam',
     'Blueberry Jam',
+    'Jam Edition',
+    'Tobacco Flavour',
 ];
 
 const fogerPodFlavors = [
@@ -114,11 +118,23 @@ const utbarFlavors = [
     'Pink Berry Lemonade',
     'White Peach Lemon Head',
     'Blue Razz Lemonade',
+    'Blue Rancher Lemonade',
     'Wildberry Drop',
     'Passion Kiwi Pineapple',
     'Banana Smoothie Strawberry',
     'Watermelon Blow Pop',
-    'Blue Rancher Lemonade',
+    // New flavors with dedicated images
+    'Blue Rancher',
+    'Blue Razz Icy',
+    'Double Green Pop',
+    'Frozen Blackberry Fab',
+    'Grape Pop Icy',
+    'Sour Pop',
+    'Strawberry Blast',
+    'Strawmelon Peach',
+    'Watermelon Blueberry',
+    'Watermelon Icy',
+    'White Gummy',
 ];
 
 const flumMelloFlavors = [
@@ -130,6 +146,10 @@ const flumMelloFlavors = [
     'White Gummy',
     'Cool Mint',
     'Miami Mint',
+    // New flavors with dedicated images
+    'Blue Razz Icy',
+    'Peach Icy',
+    'Spearmint Watermelon',
 ];
 
 const geekBarPulseX25KFlavors = [

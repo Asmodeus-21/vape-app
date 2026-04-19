@@ -15,16 +15,15 @@ const PRODUCT_NAME_IMAGE_MAP: Array<{ pattern: RegExp; image: string }> = [
 ];
 
 const BRAND_IMAGE_MAP: Array<{ pattern: RegExp; image: string }> = [
-    { pattern: /^geekbar pulse x$/i, image: '/images/products/geekbar-pulse-x/blackberry-b-burst.png' },
-    { pattern: /^geek bar pulse x 25k$/i, image: '/images/products/geekbar-pulse-x/cool-mint.png' },
-    // Foger Pods: use a real flavor photo as the representative brand card image
-    { pattern: /^foger pods?$/i, image: '/images/products/foger-pods/miami-mint.webp' },
+    { pattern: /geekbar|geek.?bar/i, image: '/images/products/geekbar-pulse-x/blackberry-b-burst.png' },
+    // Foger: any Foger variant → real product flavor photo
     { pattern: /^foger switch pro pods?$/i, image: '/images/products/foger-pods/sour-blue-dust.webp' },
     { pattern: /^foger switch pro$/i, image: '/images/products/foger-pods/gummy-bear.webp' },
-    { pattern: /^utbar ut 50k$/i, image: '/images/products/utbar/aloe-grape-watermelon.webp' },
-    { pattern: /^utbar$/i, image: '/images/products/utbar/aloe-grape-watermelon.webp' },
-    { pattern: /^float mello pro 50k$/i, image: '/images/products/flum-mello/watermelon-icy.png' },
-    { pattern: /^flum mello$/i, image: '/images/products/flum-mello/watermelon-icy.png' },
+    { pattern: /foger/i, image: '/images/products/foger-pods/miami-mint.webp' },
+    // Utbar: any Utbar variant
+    { pattern: /utbar/i, image: '/images/products/utbar/aloe-grape-watermelon.webp' },
+    // Flum / Float Mello: any variant
+    { pattern: /flum|float mello/i, image: '/images/products/flum-mello/watermelon-icy.png' },
     // Zyns: use real product photo instead of generic stock
     { pattern: /^zyns?$/i, image: '/images/products/zyns/wintergreen.jpeg' },
     // Hydroxie & Blues: use Zyn photo as temporary stand-in (removes Cloud9 branding)
@@ -48,7 +47,10 @@ const CATEGORY_IMAGE_MAP: Array<{ pattern: RegExp; image: string }> = [
 ];
 
 export const DEFAULT_CATALOG_IMAGE = '/images/devices/pngtree-a-sleek-vaping-device-with-transparent-tank-glowing-orange-light-and-png-image_15912369.png';
-const PLACEHOLDER_LOCAL_IMAGE_PATHS = new Set(['/images/2023-05-11.webp']);
+const PLACEHOLDER_LOCAL_IMAGE_PATHS = new Set([
+    '/images/2023-05-11.webp',
+    '/images/devices/elf-bar-bc5000.png',
+]);
 
 // ─── Per-flavor image map ─────────────────────────────────────────────────────
 // Keys are `${brandSlug}:${flavorSlug}` where slugs are lowercase-hyphenated.

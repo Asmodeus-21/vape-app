@@ -316,27 +316,36 @@ export default function ShopAll() {
     const [localSearch, setLocalSearch] = useState(filters.search);
     const sortRef = useRef<HTMLDivElement>(null);
 
-    // Fetch ALL products once
+    // Fetch ALL products — retry once on cold-start empty response
     useEffect(() => {
+        let cancelled = false;
         setLoading(true);
         setFetchError(false);
+
         fetchProducts({ filter: 'all' })
             .then((data) => {
-                if (data.length === 0) {
-                    // Retry once automatically in case of a cold-start delay
-                    if (retryCount === 0) {
-                        setTimeout(() => setRetryCount(1), 1500);
-                        return;
-                    }
-                    setFetchError(true);
+                if (cancelled) return;
+                if (data.length === 0 && retryCount === 0) {
+                    // First attempt returned empty — could be a serverless cold-start.
+                    // Wait 2s then retry once automatically.
+                    setTimeout(() => {
+                        if (!cancelled) setRetryCount(1);
+                    }, 2000);
+                    return;
                 }
+                // Empty on second attempt just means no products yet — not an error.
                 setAllProducts(data);
                 setLoading(false);
             })
             .catch(() => {
-                setFetchError(true);
-                setLoading(false);
+                // Only a real network/parse error reaches here.
+                if (!cancelled) {
+                    setFetchError(true);
+                    setLoading(false);
+                }
             });
+
+        return () => { cancelled = true; };
     }, [retryCount]);
 
     // Sync filters → URL params

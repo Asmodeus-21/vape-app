@@ -1,7 +1,9 @@
 import {
+    AlertCircle,
     ChevronDown,
     Filter,
     Loader2,
+    RefreshCw,
     Search,
     SlidersHorizontal,
     Star,
@@ -305,6 +307,8 @@ export default function ShopAll() {
 
     const [allProducts, setAllProducts] = useState<Product[]>([]);
     const [loading, setLoading] = useState(true);
+    const [fetchError, setFetchError] = useState(false);
+    const [retryCount, setRetryCount] = useState(0);
     const [sort, setSort] = useState<SortOption>((searchParams.get('sort') as SortOption) ?? 'featured');
     const [filters, setFilters] = useState<FilterState>(() => buildFiltersFromParams(searchParams));
     const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
@@ -315,11 +319,25 @@ export default function ShopAll() {
     // Fetch ALL products once
     useEffect(() => {
         setLoading(true);
-        fetchProducts({ filter: 'all' }).then((data) => {
-            setAllProducts(data);
-            setLoading(false);
-        });
-    }, []);
+        setFetchError(false);
+        fetchProducts({ filter: 'all' })
+            .then((data) => {
+                if (data.length === 0) {
+                    // Retry once automatically in case of a cold-start delay
+                    if (retryCount === 0) {
+                        setTimeout(() => setRetryCount(1), 1500);
+                        return;
+                    }
+                    setFetchError(true);
+                }
+                setAllProducts(data);
+                setLoading(false);
+            })
+            .catch(() => {
+                setFetchError(true);
+                setLoading(false);
+            });
+    }, [retryCount]);
 
     // Sync filters → URL params
     useEffect(() => {
@@ -507,6 +525,32 @@ export default function ShopAll() {
                         <div className="flex w-full items-center justify-center gap-3 rounded-[2rem] border border-dashed border-slate-100 bg-slate-50 py-24">
                             <Loader2 className="h-5 w-5 animate-spin text-[#4AB1F4]" />
                             <span className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-500">Loading…</span>
+                        </div>
+                    ) : fetchError ? (
+                        <div className="flex w-full flex-col items-center justify-center gap-5 rounded-[2rem] border border-dashed border-rose-200 bg-rose-50/40 py-24 text-center">
+                            <AlertCircle className="h-10 w-10 text-rose-400" />
+                            <div>
+                                <p className="text-[10px] font-black uppercase tracking-[0.4em] text-rose-400">Connection Issue</p>
+                                <p className="mt-1 text-xl font-black uppercase tracking-tighter text-slate-900">Unable to Load Products</p>
+                                <p className="mt-2 text-xs font-medium text-slate-400 max-w-xs mx-auto">The product catalogue could not be reached. Please try again.</p>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => { setLoading(true); setFetchError(false); setRetryCount((c) => c + 1); }}
+                                className="flex items-center gap-2 rounded-2xl bg-slate-900 px-6 py-3 text-[10px] font-black uppercase tracking-widest text-white hover:bg-[#4AB1F4] transition-all active:scale-95"
+                            >
+                                <RefreshCw className="h-3.5 w-3.5" />
+                                Retry
+                            </button>
+                        </div>
+                    ) : displayProducts.length === 0 && !hasActiveFilters ? (
+                        <div className="flex w-full flex-col items-center justify-center gap-5 rounded-[2rem] border border-dashed border-slate-200 bg-slate-50 py-24 text-center">
+                            <img src="/logo.png" alt="Banana Leaf" className="h-14 w-auto opacity-30" />
+                            <div>
+                                <p className="text-[10px] font-black uppercase tracking-[0.4em] text-[#4AB1F4]">Coming Soon</p>
+                                <p className="mt-1 text-xl font-black uppercase tracking-tighter text-slate-900">Catalogue Being Updated</p>
+                                <p className="mt-2 text-xs font-medium text-slate-400">New products are being added. Check back soon.</p>
+                            </div>
                         </div>
                     ) : displayProducts.length === 0 ? (
                         <div className="flex w-full flex-col items-center justify-center gap-5 rounded-[2rem] border border-dashed border-slate-200 bg-slate-50 py-24 text-center">

@@ -13,6 +13,7 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { DEFAULT_CATALOG_IMAGE, resolveCatalogImage } from '../../shared/product-images';
+import { FALLBACK_PRODUCTS } from '../data/fallback-products';
 import { fetchProducts } from '../services/api';
 import { Product } from '../types';
 
@@ -322,28 +323,23 @@ export default function ShopAll() {
         setLoading(true);
         setFetchError(false);
 
-        fetchProducts({ filter: 'all' })
-            .then((data) => {
+        async function load() {
+            let data = await fetchProducts({ filter: 'all' });
+            if (cancelled) return;
+            if (data.length === 0) {
+                // First attempt empty — wait 2s and retry once (handles cold-starts).
+                await new Promise<void>((r) => setTimeout(r, 2000));
                 if (cancelled) return;
-                if (data.length === 0 && retryCount === 0) {
-                    // First attempt returned empty — could be a serverless cold-start.
-                    // Wait 2s then retry once automatically.
-                    setTimeout(() => {
-                        if (!cancelled) setRetryCount(1);
-                    }, 2000);
-                    return;
-                }
-                // Empty on second attempt just means no products yet — not an error.
-                setAllProducts(data);
-                setLoading(false);
-            })
-            .catch(() => {
-                // Only a real network/parse error reaches here.
-                if (!cancelled) {
-                    setFetchError(true);
-                    setLoading(false);
-                }
-            });
+                data = await fetchProducts({ filter: 'all' });
+            }
+            if (cancelled) return;
+            // Still empty after retry — use fallback catalogue so page is never blank.
+            setAllProducts(data.length > 0 ? data : FALLBACK_PRODUCTS);
+            setLoading(false);
+        }
+        load().catch(() => {
+            if (!cancelled) { setFetchError(true); setLoading(false); }
+        });
 
         return () => { cancelled = true; };
     }, [retryCount]);

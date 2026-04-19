@@ -3,6 +3,7 @@ export interface ProductImageContext {
     brand?: string | null;
     category?: string | null;
     name?: string | null;
+    flavor?: string | null;
 }
 
 const EXTERNAL_PLACEHOLDER_PATTERN = /placehold\.co|source\.unsplash\.com|images\.unsplash\.com|picsum\.photos/i;
@@ -15,23 +16,21 @@ const PRODUCT_NAME_IMAGE_MAP: Array<{ pattern: RegExp; image: string }> = [
 
 const BRAND_IMAGE_MAP: Array<{ pattern: RegExp; image: string }> = [
     { pattern: /^geekbar pulse x$/i, image: '/images/geek-bar-pulse-x-25000-clear.jpg' },
-    // TODO: replace with dedicated geek-bar-pulse-x-25k.jpg when asset is available
     { pattern: /^geek bar pulse x 25k$/i, image: '/images/geek-bar-pulse-x-25000-clear.jpg' },
-    { pattern: /^foger pods?$/i, image: '/images/devices/uwell-caliburn-g2.webp' },
-    // TODO: replace with foger-switch-pro-pods.jpg when asset is available
-    { pattern: /^foger switch pro pods?$/i, image: '/images/devices/uwell-caliburn-g2.webp' },
-    // TODO: replace with foger-switch-pro-kit.jpg when asset is available
-    { pattern: /^foger switch pro$/i, image: '/images/devices/uwell-caliburn-g2.webp' },
-    // TODO: replace with utbar-ut-50k.jpg when asset is available
-    { pattern: /^utbar ut 50k$/i, image: '/images/ut-bar-clear-no-flavor.jpg' },
-    { pattern: /^utbar$/i, image: '/images/ut-bar-clear-no-flavor.jpg' },
-    // TODO: replace with float-mello-pro-50k.jpg when asset is available
-    { pattern: /^float mello pro 50k$/i, image: '/images/devices/elf-bar-bc5000.png' },
-    { pattern: /^flum mello$/i, image: '/images/devices/elf-bar-bc5000.png' },
+    // Foger Pods: use a real flavor photo as the representative brand card image
+    { pattern: /^foger pods?$/i, image: '/images/products/foger-pods/miami-mint.webp' },
+    { pattern: /^foger switch pro pods?$/i, image: '/images/products/foger-pods/sour-blue-dust.webp' },
+    { pattern: /^foger switch pro$/i, image: '/images/products/foger-pods/gummy-bear.webp' },
+    { pattern: /^utbar ut 50k$/i, image: '/images/products/utbar/aloe-grape-watermelon.webp' },
+    { pattern: /^utbar$/i, image: '/images/products/utbar/aloe-grape-watermelon.webp' },
+    { pattern: /^float mello pro 50k$/i, image: '/images/products/flum-mello/watermelon-icy.png' },
+    { pattern: /^flum mello$/i, image: '/images/products/flum-mello/watermelon-icy.png' },
+    // Zyns: use real product photo instead of generic stock
+    { pattern: /^zyns?$/i, image: '/images/products/zyns/wintergreen.jpeg' },
+    // Hydroxie & Blues: no product photos yet — keep generic until assets arrive
     { pattern: /^hydroxie$/i, image: '/images/2023-05-11.webp' },
     { pattern: /^hydroxie \(7-oh\)$/i, image: '/images/2023-05-11.webp' },
     { pattern: /^blues$/i, image: '/images/2023-05-11.webp' },
-    { pattern: /^zyns?$/i, image: '/images/2023-05-11.webp' },
 ];
 
 const CATEGORY_IMAGE_MAP: Array<{ pattern: RegExp; image: string }> = [
@@ -120,12 +119,15 @@ function toBrandSlug(brand: string): string {
  * Returns the flavor-specific product image path, or null if no asset exists.
  * Callers should fall back to resolveCatalogImage() when this returns null.
  */
+const IMAGE_VERSION = '?v=1.1';
+
 export function resolveFlavorImage(brand: string | null | undefined, flavor: string | null | undefined): string | null {
     if (!brand || !flavor || flavor === 'N/A') {
         return null;
     }
     const key = `${toBrandSlug(brand)}:${toFlavorSlug(flavor)}`;
-    return FLAVOR_IMAGE_MAP[key] ?? null;
+    const path = FLAVOR_IMAGE_MAP[key];
+    return path ? `${path}${IMAGE_VERSION}` : null;
 }
 
 const matchMappedImage = (value: string | null | undefined, rules: Array<{ pattern: RegExp; image: string }>): string | null => {
@@ -146,6 +148,12 @@ export const isLocalCatalogImage = (imageUrl: string | null | undefined): boolea
 export const isExternalPlaceholderImage = (imageUrl: string | null | undefined): boolean => Boolean(imageUrl && EXTERNAL_PLACEHOLDER_PATTERN.test(imageUrl));
 
 export function resolveCatalogImage(context: ProductImageContext): string {
+    // Check flavor-specific image first so product cards show the real flavor photo
+    const flavorSpecific = resolveFlavorImage(context.brand, context.flavor);
+    if (flavorSpecific) {
+        return flavorSpecific;
+    }
+
     const productNameMatch = matchMappedImage(context.name, PRODUCT_NAME_IMAGE_MAP);
     if (productNameMatch) {
         return productNameMatch;

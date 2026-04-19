@@ -73,6 +73,7 @@ interface ProductCardImageProps {
     productName: string;
     brand: string;
     category: string;
+    flavor: string;
     isExpressDelivery: boolean;
     salePercent?: number;
 }
@@ -180,8 +181,8 @@ function getFallbackHotDealPercent(productId: number): number {
     return dealOptions[index];
 }
 
-function ProductCardImage({ imageUrl, productName, brand, category, isExpressDelivery, salePercent = 0 }: ProductCardImageProps) {
-    const resolvedCatalogImage = useMemo(() => resolveCatalogImage({ image: imageUrl, name: productName, brand, category }), [imageUrl, productName, brand, category]);
+function ProductCardImage({ imageUrl, productName, brand, category, flavor, isExpressDelivery, salePercent = 0 }: ProductCardImageProps) {
+    const resolvedCatalogImage = useMemo(() => resolveCatalogImage({ image: imageUrl, name: productName, brand, category, flavor }), [imageUrl, productName, brand, category, flavor]);
     const [currentImageUrl, setCurrentImageUrl] = useState(resolvedCatalogImage);
 
     useEffect(() => {
@@ -267,6 +268,7 @@ function MarketplaceProductCard({ group, selectedVariant, onOpenProduct, onSelec
                 productName={group.parentName}
                 brand={group.brand}
                 category={group.category}
+                flavor={selectedVariant.flavor}
                 isExpressDelivery={selectedVariant.isExpressDelivery}
                 salePercent={salePercentage}
             />

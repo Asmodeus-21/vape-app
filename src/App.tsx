@@ -45,6 +45,7 @@ import OurStory from './pages/OurStory';
 import Press from './pages/Press';
 import ReturnsPolicy from './pages/ReturnsPolicy';
 import ShippingPolicy from './pages/ShippingPolicy';
+import ShipAll from './pages/ShopAll';
 import { getSmartAiResponse, SYSTEM_INSTRUCTIONS, vapeosAI } from './services/aiService';
 import { addCartItemApi, fetchAdminStats, fetchCart, fetchCurrentUser, fetchHomepageMasterListings, fetchProducts, fetchVendorStats, removeCartItemApi, updateCartItemApi } from './services/api';
 import { ParentVariantGroup, Product } from './types';
@@ -203,7 +204,7 @@ function ProductCardImage({ imageUrl, productName, brand, category, flavor, isEx
                             setCurrentImageUrl(DEFAULT_CATALOG_IMAGE);
                         }
                     }}
-                    className="h-full w-full object-contain transition-transform duration-500 group-hover:scale-105"
+                    className={`h-full w-full object-contain transition-transform duration-500 group-hover:scale-105 ${/^(hydroxie|blues)/i.test(brand) ? 'grayscale opacity-60' : ''}`}
                 />
             </div>
             {salePercent > 0 && (
@@ -215,6 +216,12 @@ function ProductCardImage({ imageUrl, productName, brand, category, flavor, isEx
                 <div className="absolute right-3 top-3 z-20 flex items-center gap-1.5 rounded-full border border-slate-200 bg-white/95 px-2.5 py-1 shadow-sm">
                     <Zap className="w-3 h-3 text-[#4AB1F4]" />
                     <span className="text-[9px] font-black uppercase tracking-[0.14em] text-slate-700">Express</span>
+                </div>
+            )}
+            {/^(hydroxie|blues)/i.test(brand) && (
+                <div className="absolute inset-0 z-30 flex flex-col items-center justify-center gap-1.5 rounded-[1.25rem] bg-slate-900/60 backdrop-blur-[2px]">
+                    <span className="text-[9px] font-black uppercase tracking-[0.18em] text-white/90">Coming Soon</span>
+                    <span className="text-[8px] font-semibold text-white/60">Image Placeholder</span>
                 </div>
             )}
         </div>
@@ -1138,6 +1145,7 @@ export default function App() {
         '/support/shipping',
         '/support/returns',
         '/support/contact',
+        '/shop',
     ].includes(location.pathname);
 
     const isDashboardPage = location.pathname === '/dashboard';
@@ -1512,7 +1520,7 @@ export default function App() {
 
                         <div className="hidden sm:flex flex-1 items-center gap-3">
                             {/* Search Bar */}
-                            <div className="flex-1 h-12 rounded-2xl overflow-hidden bg-slate-50 border border-slate-200 focus-within:ring-4 focus-within:ring-brand-primary/10 transition-all">
+                            <div className="flex flex-1 max-w-md h-12 rounded-2xl overflow-hidden bg-slate-50 border border-slate-200 focus-within:ring-4 focus-within:ring-brand-primary/10 transition-all">
                                 <div className="bg-slate-100 flex items-center px-4 border-r border-slate-200 cursor-pointer hover:bg-slate-200 transition-colors">
                                     <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 whitespace-nowrap">Inventory</span>
                                 </div>
@@ -1529,8 +1537,8 @@ export default function App() {
                             </div>
                             <button
                                 type="button"
-                                onClick={() => focusMarketplaceSection({ filter: 'all', sectionId: 'inventory-stream-section' })}
-                                className="shrink-0 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-[10px] font-black uppercase tracking-[0.28em] text-slate-900 transition-all hover:border-brand-primary hover:text-brand-primary hover:bg-slate-50"
+                                onClick={() => navigate('/shop')}
+                                className="shrink-0 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-[10px] font-black uppercase tracking-[0.28em] text-slate-900 transition-all hover:border-brand-primary hover:text-brand-primary hover:bg-slate-50 hover:scale-105 active:scale-95"
                             >
                                 Shop All
                             </button>
@@ -1550,7 +1558,7 @@ export default function App() {
                                         <button
                                             type="button"
                                             role="menuitem"
-                                            onClick={() => { focusMarketplaceSection({ filter: 'all', sectionId: 'inventory-stream-section' }); setIsCollectionMenuOpen(false); }}
+                                            onClick={() => { navigate('/shop'); setIsCollectionMenuOpen(false); }}
                                             className="flex w-full items-center justify-between rounded-[1.25rem] px-4 py-3 text-left text-[10px] font-black uppercase tracking-[0.22em] text-brand-primary transition-colors hover:bg-brand-primary/5"
                                         >
                                             All Inventory
@@ -1698,6 +1706,8 @@ export default function App() {
                 {location.pathname === '/support/shipping' && <ShippingPolicy />}
                 {location.pathname === '/support/returns' && <ReturnsPolicy />}
                 {location.pathname === '/support/contact' && <Contact />}
+
+                {location.pathname === '/shop' && <ShipAll />}
 
                 {isDashboardPage && currentUser && <Dashboard userName={currentUser.name} email={currentUser.email} />}
 
@@ -2221,7 +2231,7 @@ export default function App() {
                                     <div className="space-y-6">
                                         <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-brand-primary">Collections</h3>
                                         <ul className="space-y-5">
-                                            <li className="flex items-center justify-between text-brand-primary font-black uppercase tracking-widest text-xs hover:text-white cursor-pointer transition-colors" onClick={() => { focusMarketplaceSection({ filter: 'all', sectionId: 'inventory-stream-section' }); setIsMenuOpen(false); }}>
+                                            <li className="flex items-center justify-between text-brand-primary font-black uppercase tracking-widest text-xs hover:text-white cursor-pointer transition-colors" onClick={() => { navigate('/shop'); setIsMenuOpen(false); }}>
                                                 All Inventory <ChevronRight className="w-4 h-4 text-brand-primary/50" />
                                             </li>
                                             <li className="flex items-center justify-between text-white font-black uppercase tracking-widest text-xs hover:text-brand-primary cursor-pointer transition-colors" onClick={() => { focusMarketplaceSection({ filter: 'all', sectionId: 'brand-showcase-section' }); setIsMenuOpen(false); }}>

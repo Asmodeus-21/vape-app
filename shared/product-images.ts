@@ -15,8 +15,8 @@ const PRODUCT_NAME_IMAGE_MAP: Array<{ pattern: RegExp; image: string }> = [
 ];
 
 const BRAND_IMAGE_MAP: Array<{ pattern: RegExp; image: string }> = [
-    { pattern: /^geekbar pulse x$/i, image: '/images/geek-bar-pulse-x-25000-clear.jpg' },
-    { pattern: /^geek bar pulse x 25k$/i, image: '/images/geek-bar-pulse-x-25000-clear.jpg' },
+    { pattern: /^geekbar pulse x$/i, image: '/images/products/geekbar-pulse-x/blackberry-b-burst.png' },
+    { pattern: /^geek bar pulse x 25k$/i, image: '/images/products/geekbar-pulse-x/cool-mint.png' },
     // Foger Pods: use a real flavor photo as the representative brand card image
     { pattern: /^foger pods?$/i, image: '/images/products/foger-pods/miami-mint.webp' },
     { pattern: /^foger switch pro pods?$/i, image: '/images/products/foger-pods/sour-blue-dust.webp' },
@@ -34,7 +34,7 @@ const BRAND_IMAGE_MAP: Array<{ pattern: RegExp; image: string }> = [
 ];
 
 const CATEGORY_IMAGE_MAP: Array<{ pattern: RegExp; image: string }> = [
-    { pattern: /^disposables$/i, image: '/images/devices/elf-bar-bc5000.png' },
+    { pattern: /^disposables$/i, image: '/images/products/geekbar-pulse-x/blackberry-b-burst.png' },
     { pattern: /^nicotine pouches$/i, image: '/images/2023-05-11.webp' },
     { pattern: /^supplements$/i, image: '/images/2023-05-11.webp' },
     { pattern: /^pod systems$/i, image: '/images/devices/uwell-caliburn-g2.webp' },

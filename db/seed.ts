@@ -132,6 +132,44 @@ const flumMelloFlavors = [
     'Miami Mint',
 ];
 
+const geekBarPulseX25KFlavors = [
+    'Blackberry B-Pop',
+    'Blue Razz Ice',
+    'Miami Mint',
+    'Sour Apple Ice',
+    'Watermelon Ice',
+];
+
+const utbarUT50KFlavors = [
+    'Banana Smoothy/Strawberry',
+    'Blue Razz Ice/Triple Berry',
+    'Green Apple/Fuji Apple',
+    'Watermelon/B-Pop',
+];
+
+const floatMelloPro50KFlavors = [
+    'Blue Razz Icy',
+    'Sour Apple Icy',
+    'Sour Mango Pineapple',
+    'Watermelon Peach Lime',
+];
+
+const fogerSwitchProKitFlavors = [
+    'Blue Rancher B-Pop',
+    'Gummy Bear',
+    'Miami Mint',
+    'Sour Blue Dust',
+    'Strawberry Kiwi',
+];
+
+const fogerSwitchProPodFlavors = [
+    'Cherry Slush',
+    'Cola Slush',
+    'Mexico Mango',
+    'OMG B-Pop',
+    'Pink Lemonade',
+];
+
 const hydroxieStrengths = ['10-15mg', '10-30mg', '5-15mg', '5-30mg', '5-60mg'];
 const bluesStrengths = ['35mg', '55mg', '75mg', '100mg', '120mg'];
 
@@ -198,5 +236,50 @@ export const seedProducts: SeedProduct[] = [
         bestseller: true,
         newArrival: true,
         descriptionPrefix: 'Strength-specific'
+    }),
+    ...createProducts('Geek Bar Pulse X 25K', 'Disposables', '5%', 15.99, geekBarPulseX25KFlavors, {
+        rating: 4.8,
+        reviews: 310,
+        stockQty: 200,
+        express: true,
+        bestseller: true,
+        newArrival: true,
+        descriptionPrefix: '25,000 Puffs | 18mL | 3D Curved Screen | Dual Mesh Coil | Pulse & Regular Modes —'
+    }),
+    ...createProducts('Utbar UT 50K', 'Disposables', '5%', 22.99, utbarUT50KFlavors, {
+        rating: 4.7,
+        reviews: 195,
+        stockQty: 160,
+        express: true,
+        bestseller: true,
+        newArrival: true,
+        descriptionPrefix: '50,000 Puffs (Eco) / 25,000 (Turbo) | 2.01" Display | Dual Tank | Dual Mesh Coil —'
+    }),
+    ...createProducts('Float Mello Pro 50K', 'Disposables', '5%', 20.99, floatMelloPro50KFlavors, {
+        rating: 4.7,
+        reviews: 155,
+        stockQty: 150,
+        express: true,
+        bestseller: false,
+        newArrival: true,
+        descriptionPrefix: '50,000 Max Puffs | Mesh Coils | Eco/Turbo Modes | Digital Display | Soft-Bite Mouthpiece —'
+    }),
+    ...createProducts('Foger Switch Pro', 'Disposables', '5%', 17.99, fogerSwitchProKitFlavors, {
+        rating: 4.6,
+        reviews: 130,
+        stockQty: 160,
+        express: true,
+        bestseller: true,
+        newArrival: true,
+        descriptionPrefix: '30,000 Puffs | 19mL | Rechargeable Base + Replaceable Pod System —'
+    }),
+    ...createProducts('Foger Switch Pro Pods', 'Disposables', '5%', 13.99, fogerSwitchProPodFlavors, {
+        rating: 4.6,
+        reviews: 115,
+        stockQty: 180,
+        express: true,
+        bestseller: false,
+        newArrival: true,
+        descriptionPrefix: '30,000 Puffs | Pre-filled 19mL Replacement Pods | Mesh Coil —'
     }),
 ];

@@ -3,6 +3,7 @@
     "outputDirectory": "dist",
     "functions": {
         "api/index.ts": {
+            "includeFiles": "db/schema.sql",
             "excludeFiles": "dist/images/**"
         }
     },

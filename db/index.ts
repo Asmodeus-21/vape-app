@@ -144,13 +144,32 @@ export function getPostgresClient(): Sql {
         if (!databaseUrl) {
             throw new Error('DATABASE_URL is required for Supabase/PostgreSQL runtime. Set it in .env or .env.local.');
         }
-        _postgres = postgres(databaseUrl, {
-            ssl: resolveSslMode(databaseUrl),
-            max: 10,
-            idle_timeout: 20,
-            connect_timeout: 15,
-            prepare: false, // Required for Supabase pgBouncer (transaction pooler, port 6543)
-        });
+        // Parse the URL manually so that percent-encoded characters (e.g. %23
+        // for '#') in the password are decoded exactly once and passed as plain
+        // strings rather than relying on the postgres package's own URL parser.
+        const parsed = parseDatabaseUrl(databaseUrl);
+        if (parsed) {
+            _postgres = postgres({
+                host: parsed.hostname,
+                port: parsed.port ? parseInt(parsed.port, 10) : 5432,
+                database: parsed.pathname.replace(/^\//, '') || 'postgres',
+                username: decodeURIComponent(parsed.username),
+                password: decodeURIComponent(parsed.password),
+                ssl: resolveSslMode(databaseUrl),
+                max: 10,
+                idle_timeout: 20,
+                connect_timeout: 15,
+                prepare: false, // Required for Supabase pgBouncer (transaction pooler, port 6543)
+            });
+        } else {
+            _postgres = postgres(databaseUrl, {
+                ssl: resolveSslMode(databaseUrl),
+                max: 10,
+                idle_timeout: 20,
+                connect_timeout: 15,
+                prepare: false,
+            });
+        }
     }
     return _postgres;
 }

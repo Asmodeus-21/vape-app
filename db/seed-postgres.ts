@@ -193,86 +193,29 @@ export async function seedPostgres(options?: { closeClient?: boolean }): Promise
         await sql`TRUNCATE TABLE products RESTART IDENTITY CASCADE`;
     }
 
-    for (const product of seedProducts) {
-        const resolvedImageUrl = resolveSeedImageUrl(product);
+    // Build a single bulk INSERT for all products — avoids Vercel function timeout
+    // that occurs when inserting 100+ rows one-at-a-time.
+    const columns = hasImageUrlColumn
+        ? ['name','brand','flavor','nicotine','price','rating','reviews','image','image_url','category','description','stock_qty','store_id','is_express_delivery','is_bestseller','is_new_arrival']
+        : ['name','brand','flavor','nicotine','price','rating','reviews','image','category','description','stock_qty','store_id','is_express_delivery','is_bestseller','is_new_arrival'];
 
-        if (hasImageUrlColumn) {
-            await sql`
-                INSERT INTO products (
-                    name,
-                    brand,
-                    flavor,
-                    nicotine,
-                    price,
-                    rating,
-                    reviews,
-                    image,
-                    image_url,
-                    category,
-                    description,
-                    stock_qty,
-                    store_id,
-                    is_express_delivery,
-                    is_bestseller,
-                    is_new_arrival
-                ) VALUES (
-                    ${product.name},
-                    ${product.brand},
-                    ${product.flavor},
-                    ${product.nicotine},
-                    ${product.price},
-                    ${product.rating},
-                    ${product.reviews},
-                    ${resolvedImageUrl},
-                    ${resolvedImageUrl},
-                    ${product.category},
-                    ${product.description},
-                    ${product.stock_qty},
-                    ${PRIMARY_STORE.id},
-                    ${Boolean(product.is_express_delivery)},
-                    ${Boolean(product.is_bestseller)},
-                    ${Boolean(product.is_new_arrival)}
-                )
-            `;
-            continue;
-        }
+    const values: any[] = [];
+    const placeholderRows: string[] = [];
 
-        await sql`
-            INSERT INTO products (
-                name,
-                brand,
-                flavor,
-                nicotine,
-                price,
-                rating,
-                reviews,
-                image,
-                category,
-                description,
-                stock_qty,
-                store_id,
-                is_express_delivery,
-                is_bestseller,
-                is_new_arrival
-            ) VALUES (
-                ${product.name},
-                ${product.brand},
-                ${product.flavor},
-                ${product.nicotine},
-                ${product.price},
-                ${product.rating},
-                ${product.reviews},
-                ${resolvedImageUrl},
-                ${product.category},
-                ${product.description},
-                ${product.stock_qty},
-                ${PRIMARY_STORE.id},
-                ${Boolean(product.is_express_delivery)},
-                ${Boolean(product.is_bestseller)},
-                ${Boolean(product.is_new_arrival)}
-            )
-        `;
-    }
+    seedProducts.forEach((product, i) => {
+        const img = resolveSeedImageUrl(product);
+        const row = hasImageUrlColumn
+            ? [product.name, product.brand, product.flavor, product.nicotine, product.price, product.rating, product.reviews, img, img, product.category, product.description, product.stock_qty, PRIMARY_STORE.id, Boolean(product.is_express_delivery), Boolean(product.is_bestseller), Boolean(product.is_new_arrival)]
+            : [product.name, product.brand, product.flavor, product.nicotine, product.price, product.rating, product.reviews, img, product.category, product.description, product.stock_qty, PRIMARY_STORE.id, Boolean(product.is_express_delivery), Boolean(product.is_bestseller), Boolean(product.is_new_arrival)];
+        const offset = i * columns.length;
+        placeholderRows.push(`(${row.map((_, j) => `$${offset + j + 1}`).join(',')})`);
+        values.push(...row);
+    });
+
+    await sql.unsafe(
+        `INSERT INTO products (${columns.join(',')}) VALUES ${placeholderRows.join(',')}`,
+        values,
+    );
 
     console.log(`[Seed:Postgres] Refreshed ${OFFICIAL_DEMO_USERS.length} demo users and seeded ${seedProducts.length} products${forceReseed ? ' (force reseed)' : ''}.`);
     console.log(`[Seed:Postgres] Homepage inventory brands verified: ${Array.from(HOMEPAGE_INVENTORY_BRANDS).join(', ')} (${homepageInventorySeedProducts.length} products).`);

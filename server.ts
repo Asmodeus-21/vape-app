@@ -6,7 +6,7 @@ import rateLimit from "express-rate-limit";
 import helmet from "helmet";
 import path from "path";
 import { fileURLToPath } from "url";
-import { createServer as createViteServer } from "vite";
+// vite is a devDependency — import dynamically to avoid crashing in production
 import { getPostgresClient, initializeDatabase } from "./db/index.js";
 import { seedPostgres } from "./db/seed-postgres.js";
 import { authMiddleware, createToken, loginUser, registerUser, verifyToken, type AuthPayload } from "./server/auth.js";
@@ -1032,6 +1032,7 @@ export async function createApp(options: { skipSeed?: boolean; skipVite?: boolea
 
     // ─── Vite Middleware ───────────────────────────────────────────────────────
     if (process.env.NODE_ENV !== "production" && !skipVite) {
+        const { createServer: createViteServer } = await import("vite");
         const vite = await createViteServer({
             server: { middlewareMode: true },
             appType: "spa",

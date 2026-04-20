@@ -141,6 +141,7 @@ export async function createApp(options: { skipSeed?: boolean; skipVite?: boolea
     // ─── Init DB ───────────────────────────────────────────────────────────────
     let sql!: ReturnType<typeof getPostgresClient>;
     let isDatabaseConnected = false;
+    let dbErrorDetail: string | null = null;
     const databaseWarningMessage = '⚠️ DATABASE NOT CONNECTED. Add DATABASE_URL to the environment, .env.production, .env.local, or .env and restart the server.';
 
     try {
@@ -151,6 +152,7 @@ export async function createApp(options: { skipSeed?: boolean; skipVite?: boolea
         sql = getPostgresClient();
         isDatabaseConnected = true;
     } catch (err) {
+        dbErrorDetail = err instanceof Error ? err.message : String(err);
         console.error(databaseWarningMessage);
         console.error('[db]', err);
     }
@@ -246,6 +248,7 @@ export async function createApp(options: { skipSeed?: boolean; skipVite?: boolea
         res.status(isDatabaseConnected ? 200 : 503).json({
             ok: isDatabaseConnected,
             error: isDatabaseConnected ? null : databaseWarningMessage,
+            detail: isDatabaseConnected ? null : dbErrorDetail,
         });
     });
 

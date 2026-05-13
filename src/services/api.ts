@@ -1,12 +1,6 @@
-import { createClient } from '@supabase/supabase-js';
 import { ParentVariantGroup, Product, Store } from '../types';
 
 const MAX_PRODUCTS_LIMIT = 1000;
-
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || import.meta.env.SUPABASE_URL || '';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || import.meta.env.SUPABASE_ANON_KEY || '';
-
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 /** Parse a fetch Response as JSON safely; logs status + raw body on failure. */
 async function safeJson(res: Response): Promise<any> {

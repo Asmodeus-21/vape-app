@@ -92,7 +92,8 @@ export async function registerUser(
     password: string,
     name: string,
     role: string = 'customer',
-    storeInput?: { name?: string; address?: string }
+    storeInput?: { name?: string; address?: string },
+    userMeta?: { ageVerified?: boolean }
 ): Promise<RegisterResult> {
     const sql = getPostgresClient();
     const normalizedEmail = email.toLowerCase().trim();
@@ -111,6 +112,8 @@ export async function registerUser(
     const normalizedRoleInput = roleAliasMap[role] || role;
     const validRole = ['customer', 'vendor', 'admin'].includes(normalizedRoleInput) ? normalizedRoleInput : 'customer';
     const normalizedName = name.trim();
+
+    const ageVerified = Boolean(userMeta?.ageVerified);
 
     let result: { userId: number; storeId: number | null };
     try {
@@ -139,8 +142,8 @@ export async function registerUser(
             }
 
             const userRows = await tx.unsafe<any[]>(
-                'INSERT INTO users (email, password_hash, name, role, store_id) VALUES ($1, $2, $3, $4, $5) RETURNING id',
-                [normalizedEmail, hash, normalizedName, validRole, storeId]
+                'INSERT INTO users (email, password_hash, name, role, store_id, age_verified) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id',
+                [normalizedEmail, hash, normalizedName, validRole, storeId, ageVerified]
             );
             const userId = Number(userRows[0].id);
 

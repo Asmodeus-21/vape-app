@@ -126,6 +126,22 @@ function parseProductInput(body: any, fallbackVendorId: number, storeId: number)
     };
 }
 
+function isTwentyOneOrOlder(dob: string): boolean {
+    const birthDate = new Date(dob);
+    if (Number.isNaN(birthDate.getTime())) {
+        return false;
+    }
+
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+        age -= 1;
+    }
+
+    return age >= 21;
+}
+
 export async function createApp(options: { skipSeed?: boolean; skipVite?: boolean } = {}) {
     const { skipSeed = false, skipVite = false } = options;
 
@@ -311,15 +327,21 @@ export async function createApp(options: { skipSeed?: boolean; skipVite?: boolea
 
     // ─── AUTH ROUTES ──────────────────────────────────────────────────────────
     app.post("/api/auth/register", async (req, res) => {
-        const { email, password, name, role, storeName, storeAddress } = req.body;
+        const { email, password, name, role, storeName, storeAddress, dob, ageVerified } = req.body;
         if (!email || !password || !name) {
             res.status(400).json({ error: "Email, password, and name are required." });
             return;
         }
+
+        if (!dob || typeof dob !== 'string' || !isTwentyOneOrOlder(dob) || ageVerified !== true) {
+            res.status(400).json({ error: 'You must be 21 years of age or older to register.' });
+            return;
+        }
+
         const result = await registerUser(email, password, name, role || "customer", {
             name: storeName,
             address: storeAddress,
-        });
+        }, { ageVerified: true });
         if (!result.success) {
             res.status(400).json({ error: result.error });
             return;
@@ -656,7 +678,7 @@ export async function createApp(options: { skipSeed?: boolean; skipVite?: boolea
     });
 
     app.post("/api/auth/register-with-otp", async (req, res) => {
-        const { email, code, name, password, isVendor, storeName, storeAddress } = req.body;
+        const { email, code, name, password, isVendor, storeName, storeAddress, dob, ageVerified } = req.body;
         if (!email || !code || !name || !password) {
             res.status(400).json({ error: 'email, code, name, and password are required' });
             return;
@@ -665,6 +687,12 @@ export async function createApp(options: { skipSeed?: boolean; skipVite?: boolea
             res.status(400).json({ error: 'Password must be at least 8 characters' });
             return;
         }
+
+        if (!dob || typeof dob !== 'string' || !isTwentyOneOrOlder(dob) || ageVerified !== true) {
+            res.status(400).json({ error: 'You must be 21 years of age or older to register.' });
+            return;
+        }
+
         const normalizedEmail = String(email).toLowerCase().trim();
         try {
             const otp = await getValidOtp(sql, normalizedEmail, String(code).trim());
@@ -677,7 +705,7 @@ export async function createApp(options: { skipSeed?: boolean; skipVite?: boolea
             const storeInput = isVendor
                 ? { name: storeName || `${name}'s Franchise`, address: storeAddress || '' }
                 : undefined;
-            const result = await registerUser(normalizedEmail, password, name, role, storeInput);
+            const result = await registerUser(normalizedEmail, password, name, role, storeInput, { ageVerified: true });
             if (!result.success) {
                 res.status(400).json({ error: result.error });
                 return;
@@ -689,7 +717,8 @@ export async function createApp(options: { skipSeed?: boolean; skipVite?: boolea
     });
 
     // ─── AI PROXY (keeps API key server-side) ─────────────────────────────────
-    app.post("/api/ai/chat", authMiddleware, aiLimiter, async (req, res) => {
+    // Public AI chat endpoint — no auth required so unauthenticated visitors can use the bot
+    app.post("/api/ai/chat", aiLimiter, async (req, res) => {
         if (!isDatabaseConnected) {
             res.json({
                 text: AI_MAINTENANCE_MESSAGE,
@@ -698,14 +727,64 @@ export async function createApp(options: { skipSeed?: boolean; skipVite?: boolea
             return;
         }
 
-        const { prompt, systemInstruction } = req.body;
-        if (!prompt || !systemInstruction) {
-            res.status(400).json({ error: "prompt and systemInstruction are required." });
+        const prompt = typeof req.body?.prompt === 'string'
+            ? req.body.prompt
+            : typeof req.body?.message === 'string'
+                ? req.body.message
+                : '';
+        const systemInstruction = typeof req.body?.systemInstruction === 'string'
+            ? req.body.systemInstruction
+            : 'You are a helpful Banana Leaf Store assistant for vape products and flavors.';
+
+        if (
+            !prompt || typeof prompt !== 'string' || prompt.length > 2000 ||
+            !systemInstruction || typeof systemInstruction !== 'string' || systemInstruction.length > 4000
+        ) {
+            res.status(400).json({ error: "prompt and systemInstruction are required and must be strings." });
             return;
         }
         const text = await callGemini(prompt, systemInstruction);
         res.json({ text });
     });
+
+    // Public lead capture endpoint — stores visitor contact info from the AI bot flow
+    const persistLeadHandler: express.RequestHandler = async (req, res) => {
+        if (!isDatabaseConnected) {
+            res.status(503).json({ error: "Service temporarily unavailable." });
+            return;
+        }
+
+        const { name, email, phone, flavorQuery, aiResponse, source } = req.body;
+
+        if (email && (typeof email !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))) {
+            res.status(400).json({ error: "Invalid email address." });
+            return;
+        }
+        if (phone && (typeof phone !== 'string' || !/^\+?[\d\s\-().]{7,20}$/.test(phone))) {
+            res.status(400).json({ error: "Invalid phone number." });
+            return;
+        }
+
+        try {
+            await sql`
+                INSERT INTO chat_leads (name, email, phone, flavor_query, ai_response, source)
+                VALUES (
+                    ${typeof name === 'string' ? name.slice(0, 200) : null},
+                    ${typeof email === 'string' ? email.slice(0, 254) : null},
+                    ${typeof phone === 'string' ? phone.slice(0, 30) : null},
+                    ${typeof flavorQuery === 'string' ? flavorQuery.slice(0, 2000) : null},
+                    ${typeof aiResponse === 'string' ? aiResponse.slice(0, 5000) : null},
+                    ${typeof source === 'string' ? source.slice(0, 100) : 'flavor_explorer'}
+                )
+            `;
+            res.status(201).json({ success: true });
+        } catch (err: any) {
+            sendSafeError(res, err, 'Failed to save lead.');
+        }
+    };
+
+    app.post("/api/leads", aiLimiter, persistLeadHandler);
+    app.post("/api/ai/leads", aiLimiter, persistLeadHandler);
 
     // ─── ADMIN ROUTES (restricted) ───────────────────────────────────────────
     app.get("/api/admin/stats", authMiddleware, async (req, res) => {
@@ -729,6 +808,28 @@ export async function createApp(options: { skipSeed?: boolean; skipVite?: boolea
             res.json(await listAdminUsers(sql));
         } catch (err: any) {
             sendSafeError(res, err, 'Failed to fetch admin users');
+        }
+    });
+
+    app.get("/api/admin/leads", authMiddleware, async (req, res) => {
+        if (!isSuperAdminRole(req.user?.role)) {
+            res.status(403).json({ error: "Admin access required" });
+            return;
+        }
+
+        const parsedLimit = Number.parseInt(String(req.query.limit ?? '100'), 10);
+        const limit = Number.isInteger(parsedLimit) && parsedLimit > 0 ? Math.min(parsedLimit, 500) : 100;
+
+        try {
+            const leads = await sql`
+                SELECT id, name, email, phone, flavor_query AS "flavorQuery", ai_response AS "aiResponse", source, created_at AS "createdAt"
+                FROM chat_leads
+                ORDER BY created_at DESC
+                LIMIT ${limit}
+            `;
+            res.json(leads);
+        } catch (err: any) {
+            sendSafeError(res, err, 'Failed to fetch chat leads');
         }
     });
 

@@ -1,6 +1,12 @@
+import { createClient } from '@supabase/supabase-js';
 import { ParentVariantGroup, Product, Store } from '../types';
 
 const MAX_PRODUCTS_LIMIT = 1000;
+
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || import.meta.env.SUPABASE_URL || '';
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || import.meta.env.SUPABASE_ANON_KEY || '';
+
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 /** Parse a fetch Response as JSON safely; logs status + raw body on failure. */
 async function safeJson(res: Response): Promise<any> {
@@ -78,10 +84,12 @@ export async function registerUser(
     name: string,
     isVendor: boolean = false,
     storeName?: string,
-    storeAddress?: string
+    storeAddress?: string,
+    dob?: string,
+    ageVerified?: boolean
 ): Promise<AuthResponse> {
     const role = isVendor ? 'store_manager' : 'customer';
-    const payload: Record<string, unknown> = { email, password, name, role };
+    const payload: Record<string, unknown> = { email, password, name, role, dob, ageVerified };
     if (isVendor) {
         payload.storeName = storeName || `${name}'s Franchise`;
         payload.storeAddress = storeAddress || '';
@@ -304,6 +312,26 @@ export async function fetchAdminStores(token: string): Promise<Store[]> {
     return res.json();
 }
 
+export interface ChatLead {
+    id: number;
+    name: string | null;
+    email: string | null;
+    phone: string | null;
+    flavorQuery: string | null;
+    aiResponse: string | null;
+    source: string;
+    createdAt: string;
+}
+
+export async function fetchAdminLeads(token: string, limit: number = 100): Promise<ChatLead[]> {
+    const safeLimit = Number.isInteger(limit) && limit > 0 ? Math.min(limit, 500) : 100;
+    const res = await fetch(`/api/admin/leads?limit=${safeLimit}`, {
+        headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) throw new Error('Failed to fetch chat leads');
+    return res.json();
+}
+
 // ─── CART API ────────────────────────────────────────────────────────────────
 
 export interface CartApiItem {
@@ -390,12 +418,14 @@ export async function registerWithOtp(
     password: string,
     isVendor: boolean = false,
     storeName?: string,
-    storeAddress?: string
+    storeAddress?: string,
+    dob?: string,
+    ageVerified?: boolean
 ): Promise<AuthResponse> {
     const res = await fetch('/api/auth/register-with-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, code, name, password, isVendor, storeName, storeAddress }),
+        body: JSON.stringify({ email, code, name, password, isVendor, storeName, storeAddress, dob, ageVerified }),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Registration failed');

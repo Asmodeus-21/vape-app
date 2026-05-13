@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from 'motion/react';
 import React, { useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { loginUser, registerWithOtp, requestLoginOtp, requestOtp, verifyLoginOtp } from '../services/api';
+import AgeVerification from './AgeVerification';
 
 interface AuthUser {
     id: number;
@@ -28,6 +29,8 @@ export default function AuthModal({ onClose, onAuthSuccess }: AuthModalProps) {
     const [regStep, setRegStep] = useState<'form' | 'otp'>('form');
     const [regOtpCode, setRegOtpCode] = useState('');
     const [resendCountdown, setResendCountdown] = useState(0);
+    const [regDob, setRegDob] = useState('');
+    const [isAgeVerified, setIsAgeVerified] = useState(false);
 
     // Login fields
     const [loginEmail, setLoginEmail] = useState('');
@@ -40,6 +43,21 @@ export default function AuthModal({ onClose, onAuthSuccess }: AuthModalProps) {
     const [isVendor, setIsVendor] = useState(false);
     const [storeName, setStoreName] = useState('');
     const [storeAddress, setStoreAddress] = useState('');
+
+    const isTwentyOneOrOlder = (dob: string): boolean => {
+        if (!dob) return false;
+        const birthDate = new Date(dob);
+        if (Number.isNaN(birthDate.getTime())) return false;
+
+        const today = new Date();
+        let age = today.getFullYear() - birthDate.getFullYear();
+        const monthDiff = today.getMonth() - birthDate.getMonth();
+        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+            age -= 1;
+        }
+
+        return age >= 21;
+    };
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -99,6 +117,9 @@ export default function AuthModal({ onClose, onAuthSuccess }: AuthModalProps) {
     const handleSendOtp = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
+        if (!regDob) { setError('Date of birth is required.'); return; }
+        if (!isTwentyOneOrOlder(regDob)) { setError('You must be 21 years of age or older to register.'); return; }
+        if (!isAgeVerified) { setError('Please complete age verification before registration.'); return; }
         if (regPassword.length < 8) { setError('Password must be at least 8 characters.'); return; }
         if (isVendor && !storeName.trim()) { setError('Store name is required for franchise onboarding.'); return; }
         setLoading(true);
@@ -128,7 +149,7 @@ export default function AuthModal({ onClose, onAuthSuccess }: AuthModalProps) {
         if (!regOtpCode.trim() || regOtpCode.length !== 6) { setError('Enter the 6-digit code from your email.'); return; }
         setLoading(true);
         try {
-            const { user, token } = await registerWithOtp(regEmail, regOtpCode, regName, regPassword, isVendor, storeName, storeAddress);
+            const { user, token } = await registerWithOtp(regEmail, regOtpCode, regName, regPassword, isVendor, storeName, storeAddress, regDob, true);
             localStorage.setItem('vapeshub_token', token);
             toast.success(`Welcome to Banana Leaf Store, ${user.name}! 🎉`);
             onAuthSuccess(user, token);
@@ -178,7 +199,7 @@ export default function AuthModal({ onClose, onAuthSuccess }: AuthModalProps) {
                         {(['login', 'register'] as Tab[]).map((t) => (
                             <button
                                 key={t}
-                                onClick={() => { setTab(t); setError(''); setLoginMode('password'); setLoginOtpCode(''); setRegStep('form'); setRegOtpCode(''); }}
+                                onClick={() => { setTab(t); setError(''); setLoginMode('password'); setLoginOtpCode(''); setRegStep('form'); setRegOtpCode(''); setRegDob(''); setIsAgeVerified(false); }}
                                 className={`flex-1 py-3 text-[10px] font-black uppercase tracking-[0.2em] rounded-xl transition-all ${tab === t ? 'bg-white text-slate-900 shadow-xl' : 'text-white/40 hover:text-white'
                                     }`}
                             >
@@ -381,6 +402,16 @@ export default function AuthModal({ onClose, onAuthSuccess }: AuthModalProps) {
                                             </button>
                                         </div>
                                     </div>
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-2">Date Of Birth</label>
+                                        <input
+                                            type="date"
+                                            required
+                                            value={regDob}
+                                            onChange={(e) => setRegDob(e.target.value)}
+                                            className="w-full px-4 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:outline-none focus:border-brand-primary focus:bg-white focus:ring-4 focus:ring-brand-primary/10 transition-all text-sm font-bold"
+                                        />
+                                    </div>
                                     <label className="flex items-center gap-4 mt-6 mb-2 cursor-pointer bg-slate-50 p-4 rounded-2xl border border-slate-100 hover:border-brand-primary transition-all">
                                         <input type="checkbox" checked={isVendor} onChange={(e) => { const checked = e.target.checked; setIsVendor(checked); if (!checked) { setStoreName(''); setStoreAddress(''); } }} className="w-5 h-5 text-brand-primary rounded-lg border-slate-300 focus:ring-brand-primary" />
                                         <div className="flex flex-col">
@@ -467,6 +498,10 @@ export default function AuthModal({ onClose, onAuthSuccess }: AuthModalProps) {
                     </AnimatePresence>
                 </div>
             </motion.div>
+
+            {tab === 'register' && !isAgeVerified && (
+                <AgeVerification onVerified={() => setIsAgeVerified(true)} />
+            )}
         </div>
     );
 }

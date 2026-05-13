@@ -47,7 +47,7 @@ import OurStory from './pages/OurStory';
 import Press from './pages/Press';
 import ReturnsPolicy from './pages/ReturnsPolicy';
 import ShippingPolicy from './pages/ShippingPolicy';
-import ShipAll from './pages/ShopAll';
+import ShopAll from './pages/ShopAll';
 import PulseXSeries from './pages/shop/PulseXSeries';
 import TheKits from './pages/shop/TheKits';
 import TheOriginals from './pages/shop/TheOriginals';
@@ -170,6 +170,11 @@ function parseProductIdFromPath(pathname: string): number | null {
 
     const productId = Number(match[1]);
     return Number.isInteger(productId) && productId > 0 ? productId : null;
+}
+
+function normalizePathname(pathname: string): string {
+    const normalized = pathname.replace(/\/+$/, '');
+    return normalized || '/';
 }
 
 function seededUnitValue(seed: number): number {
@@ -443,6 +448,7 @@ const HOMEPAGE_FAQS = [
 
 export default function App() {
     const location = useLocation();
+    const currentPath = normalizePathname(location.pathname);
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
     const [activeTab, setActiveTab] = useState<'marketplace' | 'vendor' | 'admin'>('marketplace');
@@ -1081,9 +1087,9 @@ export default function App() {
         '/shop/the-kits',
         '/shop/the-originals',
         '/admin/leads',
-    ].includes(location.pathname);
+    ].includes(currentPath);
 
-    const isDashboardPage = location.pathname === '/dashboard';
+    const isDashboardPage = currentPath === '/dashboard';
 
     const featureBannerPrices = useMemo(() => {
         const pricesByBrand: Record<string, number> = {};
@@ -1641,21 +1647,21 @@ export default function App() {
 
             {/* Main Content */}
             <main className="flex-1 max-w-[1500px] mx-auto w-full pb-12">
-                {location.pathname === '/about/our-story' && <OurStory />}
-                {location.pathname === '/about/authenticity' && <Authenticity />}
-                {location.pathname === '/about/press' && <Press />}
-                {location.pathname === '/support/help-center' && <HelpCenter />}
-                {location.pathname === '/support/shipping' && <ShippingPolicy />}
-                {location.pathname === '/support/returns' && <ReturnsPolicy />}
-                {location.pathname === '/support/contact' && <Contact />}
-                {location.pathname === '/admin/leads' && currentUser?.role === 'admin' && (
+                {currentPath === '/about/our-story' && <OurStory />}
+                {currentPath === '/about/authenticity' && <Authenticity />}
+                {currentPath === '/about/press' && <Press />}
+                {currentPath === '/support/help-center' && <HelpCenter />}
+                {currentPath === '/support/shipping' && <ShippingPolicy />}
+                {currentPath === '/support/returns' && <ReturnsPolicy />}
+                {currentPath === '/support/contact' && <Contact />}
+                {currentPath === '/admin/leads' && currentUser?.role === 'admin' && (
                     <AdminLeads token={localStorage.getItem('vapeshub_token') || ''} />
                 )}
 
-                {location.pathname === '/shop' && <ShipAll />}
-                {location.pathname === '/shop/pulse-x-series' && <PulseXSeries />}
-                {location.pathname === '/shop/the-kits' && <TheKits />}
-                {location.pathname === '/shop/the-originals' && <TheOriginals />}
+                {currentPath === '/shop' && <ShopAll />}
+                {currentPath === '/shop/pulse-x-series' && <PulseXSeries />}
+                {currentPath === '/shop/the-kits' && <TheKits />}
+                {currentPath === '/shop/the-originals' && <TheOriginals />}
 
                 {isDashboardPage && currentUser && <Dashboard userName={currentUser.name} email={currentUser.email} />}
 

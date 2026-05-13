@@ -21,6 +21,17 @@ const makePlaceholderImage = (brand: string, variant: string): string => {
     return resolveCatalogImage({ brand, name: `${brand} - ${variant}` });
 };
 
+const toImageSlug = (value: string): string => value
+    .toLowerCase()
+    .replace(/[/\\]/g, '-')
+    .replace(/[^a-z0-9-]/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+
+const buildProductImagePath = (brand: string, flavor: string): string => {
+    return `/images/products/${toImageSlug(brand)}/${toImageSlug(flavor)}.png`;
+};
+
 const createProducts = (
     brand: string,
     category: string,
@@ -35,6 +46,7 @@ const createProducts = (
         bestseller?: boolean;
         newArrival?: boolean;
         descriptionPrefix?: string;
+        imagePathBuilder?: (brand: string, flavor: string) => string;
     }
 ): SeedProduct[] => {
     const rating = options?.rating ?? 4.7;
@@ -44,6 +56,7 @@ const createProducts = (
     const bestseller = options?.bestseller ?? false;
     const newArrival = options?.newArrival ?? false;
     const descriptionPrefix = options?.descriptionPrefix ?? 'Premium';
+    const imagePathBuilder = options?.imagePathBuilder;
 
     return flavors.map((flavor) => ({
         name: `${brand} - ${flavor}`,
@@ -53,7 +66,12 @@ const createProducts = (
         price,
         rating,
         reviews,
-        image: resolveCatalogImage({ image: makePlaceholderImage(brand, flavor), brand, category, name: `${brand} - ${flavor}` }),
+        image: resolveCatalogImage({
+            image: imagePathBuilder ? imagePathBuilder(brand, flavor) : makePlaceholderImage(brand, flavor),
+            brand,
+            category,
+            name: `${brand} - ${flavor}`,
+        }),
         category,
         description: `${descriptionPrefix} ${brand} profile in ${flavor}.`,
         stock_qty: stockQty,
@@ -190,6 +208,75 @@ const fogerSwitchProPodFlavors = [
     'Pink Lemonade',
 ];
 
+const geekBarPulseXSeriesFlavors = [
+    'Raspberry Peach Lime',
+    'Pink Berry Lemonade',
+    'Raspberry Jam',
+    'Strawberry Kiwi Ice',
+    'Sour Straws',
+    'Strawberry Bee Burst',
+    'Sour Fab',
+    'Cool Mint',
+    'Peach Jam',
+    'Blue Razz Ice',
+    'Blackberry Burst',
+    'Miami Mint',
+    'Blue Rancher',
+];
+
+const foggerPodsOriginalsFlavors = [
+    'Kiwi Dragon Berry',
+    'Strawberry Cupcake',
+    'Sour Blue Dust',
+    'Mexico Mango',
+    'Gummy Bear',
+    'Sour Fab',
+    'Blue Rancher',
+    'Bee Pop',
+    'Watermelon Bubble Gum',
+    'Cherry Bomb',
+    'Strawberry Banana',
+    'Meta Moon',
+    'White Gummy',
+    'Blueberry Watermelon',
+];
+
+const foggerKitFlavors = [
+    'Gummy Bear',
+    'Blue Rancher',
+    'Juicy Peach Ice',
+    'Cool Mint',
+    'Blue Razz Ice',
+];
+
+const flumMellowOriginalsFlavors = [
+    'Straw Melon',
+    'Cool Mint',
+    'Peach Icy',
+    'Blue Razz Icy',
+    'Straw Guava',
+    'Miami Mint',
+    'Watermelon Icy',
+    'Watermelon Peach Lime',
+    'Sour Mango Mint',
+    'Blue Razz Ice',
+    'Strawberry Watermelon',
+    'Sour Peach',
+    'Mexico Mango',
+    'White Gummy',
+    'Cherry',
+    'Blue Rancher Lemonade',
+    'Cola Ice',
+    'Watermelon Ice',
+    'Wild Berry Drop',
+    'Passion Fruit Mango',
+];
+
+const numbzOriginalsFlavors = [
+    '500mg Berry Burst (Pack)',
+    '300mg Watermelon Rush (5-pack)',
+];
+
 const hydroxieStrengths = ['10-15mg', '10-30mg', '5-15mg', '5-30mg', '5-60mg'];
 const bluesStrengths = ['35mg', '55mg', '75mg', '100mg', '120mg'];
 
@@ -301,5 +388,55 @@ export const seedProducts: SeedProduct[] = [
         bestseller: false,
         newArrival: true,
         descriptionPrefix: '30,000 Puffs | Pre-filled 19mL Replacement Pods | Mesh Coil —'
+    }),
+    ...createProducts('Geek Bar Pulse X', 'Pulse X Series', '5%', 17.99, geekBarPulseXSeriesFlavors, {
+        rating: 4.8,
+        reviews: 260,
+        stockQty: 10,
+        express: true,
+        bestseller: true,
+        newArrival: true,
+        descriptionPrefix: 'Batch inventory add',
+        imagePathBuilder: buildProductImagePath,
+    }),
+    ...createProducts('Fogger Pods', 'The Originals', '5%', 13.99, foggerPodsOriginalsFlavors, {
+        rating: 4.7,
+        reviews: 190,
+        stockQty: 10,
+        express: true,
+        bestseller: true,
+        newArrival: true,
+        descriptionPrefix: 'Batch inventory add',
+        imagePathBuilder: buildProductImagePath,
+    }),
+    ...createProducts('Fogger Kit', 'The Kits', '5%', 16.99, foggerKitFlavors, {
+        rating: 4.7,
+        reviews: 140,
+        stockQty: 10,
+        express: true,
+        bestseller: true,
+        newArrival: true,
+        descriptionPrefix: 'Batch inventory add',
+        imagePathBuilder: buildProductImagePath,
+    }),
+    ...createProducts('Flum Mellow', 'The Originals', '5%', 21.99, flumMellowOriginalsFlavors, {
+        rating: 4.6,
+        reviews: 170,
+        stockQty: 10,
+        express: true,
+        bestseller: false,
+        newArrival: true,
+        descriptionPrefix: 'Batch inventory add',
+        imagePathBuilder: buildProductImagePath,
+    }),
+    ...createProducts('Numbz', 'The Originals', '5%', 21.99, numbzOriginalsFlavors, {
+        rating: 4.5,
+        reviews: 65,
+        stockQty: 10,
+        express: true,
+        bestseller: false,
+        newArrival: true,
+        descriptionPrefix: 'Specialty batch inventory add',
+        imagePathBuilder: buildProductImagePath,
     }),
 ];

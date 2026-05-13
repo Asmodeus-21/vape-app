@@ -163,16 +163,21 @@ function ShopProductCard({ product, onOpen }: { product: Product; onOpen: () => 
 
 // ─── Filter sidebar content ───────────────────────────────────────────────────
 
-const CATEGORIES = ['Disposables', 'Nicotine Pouches', 'Supplements'];
+const CATEGORIES = ['Disposables', 'Pulse X Series', 'The Kits', 'The Originals', 'Nicotine Pouches', 'Supplements'];
 const BRANDS = [
     'Geekbar Pulse X',
+    'Geek Bar Pulse X',
     'Geek Bar Pulse X 25K',
     'Foger Pods',
+    'Fogger Pods',
+    'Fogger Kit',
     'Foger Switch Pro Kit',
     'Foger Switch Pro Pod',
     'Utbar',
     'Utbar UT 50K',
     'Flum Mello',
+    'Flum Mellow',
+    'Numbz',
     'Zyns',
     'Hydroxie (7-OH)',
     'Blues',

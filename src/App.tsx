@@ -38,6 +38,7 @@ import VendorOrders from './components/VendorOrders';
 import VendorProductForm from './components/VendorProductForm';
 import VendorProductList from './components/VendorProductList';
 import { HOMEPAGE_FALLBACK_GROUPS } from './data/fallback-products';
+import AdminLeads from './pages/AdminLeads';
 import Authenticity from './pages/Authenticity';
 import Contact from './pages/Contact';
 import Dashboard from './pages/Dashboard';
@@ -47,6 +48,9 @@ import Press from './pages/Press';
 import ReturnsPolicy from './pages/ReturnsPolicy';
 import ShippingPolicy from './pages/ShippingPolicy';
 import ShipAll from './pages/ShopAll';
+import PulseXSeries from './pages/shop/PulseXSeries';
+import TheKits from './pages/shop/TheKits';
+import TheOriginals from './pages/shop/TheOriginals';
 import { getSmartAiResponse, SYSTEM_INSTRUCTIONS, vapeosAI } from './services/aiService';
 import { addCartItemApi, fetchAdminStats, fetchCart, fetchCurrentUser, fetchHomepageMasterListings, fetchProducts, fetchVendorStats, removeCartItemApi, updateCartItemApi } from './services/api';
 import { ParentVariantGroup, Product } from './types';
@@ -599,6 +603,16 @@ export default function App() {
     }, [authChecked, currentUser, location.pathname, navigate]);
 
     useEffect(() => {
+        if (location.pathname !== '/admin/leads' || !authChecked) {
+            return;
+        }
+
+        if (!currentUser || currentUser.role !== 'admin') {
+            navigate('/products', { replace: true });
+        }
+    }, [authChecked, currentUser, location.pathname, navigate]);
+
+    useEffect(() => {
         const routedProductId = parseProductIdFromPath(location.pathname);
 
         if (routedProductId !== null) {
@@ -1063,6 +1077,10 @@ export default function App() {
         '/support/returns',
         '/support/contact',
         '/shop',
+        '/shop/pulse-x-series',
+        '/shop/the-kits',
+        '/shop/the-originals',
+        '/admin/leads',
     ].includes(location.pathname);
 
     const isDashboardPage = location.pathname === '/dashboard';
@@ -1159,7 +1177,7 @@ export default function App() {
         {
             id: 'pulse-x-series',
             label: 'Pulse X Series',
-            onSelect: () => focusMarketplaceSection({ filter: 'all', search: 'Geekbar Pulse X', sectionId: 'inventory-stream-section' }),
+            onSelect: () => navigate('/shop/pulse-x-series'),
         },
         {
             id: 'start-your-session',
@@ -1630,8 +1648,14 @@ export default function App() {
                 {location.pathname === '/support/shipping' && <ShippingPolicy />}
                 {location.pathname === '/support/returns' && <ReturnsPolicy />}
                 {location.pathname === '/support/contact' && <Contact />}
+                {location.pathname === '/admin/leads' && currentUser?.role === 'admin' && (
+                    <AdminLeads token={localStorage.getItem('vapeshub_token') || ''} />
+                )}
 
                 {location.pathname === '/shop' && <ShipAll />}
+                {location.pathname === '/shop/pulse-x-series' && <PulseXSeries />}
+                {location.pathname === '/shop/the-kits' && <TheKits />}
+                {location.pathname === '/shop/the-originals' && <TheOriginals />}
 
                 {isDashboardPage && currentUser && <Dashboard userName={currentUser.name} email={currentUser.email} />}
 
@@ -1913,7 +1937,7 @@ export default function App() {
                 }
 
                 {
-                    activeTab === 'vendor' && (
+                    activeTab === 'vendor' && !isContentPage && !isDashboardPage && (
                         <div className="p-6 space-y-8" ref={(el) => {
                             if (el && !botsLoading && !botInsights.review) loadVendorBots();
                             if (el && !statsLoading && !vendorStats) loadVendorStats();
@@ -2106,11 +2130,22 @@ export default function App() {
                 }
 
                 {
-                    activeTab === 'admin' && (
+                    activeTab === 'admin' && !isContentPage && !isDashboardPage && (
                         <div className="p-4" ref={(el) => { if (el && !adminLoading && !adminStats) loadAdminStats(); }}>
                             <div className="mb-8">
-                                <h2 className="text-3xl font-black text-gray-900 uppercase tracking-tighter">Global Analytics & Admin OS</h2>
-                                <p className="text-gray-500 font-bold uppercase tracking-widest text-[10px]">Master Control Center — Restricted to Authorized Administrators</p>
+                                <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                                    <div>
+                                        <h2 className="text-3xl font-black text-gray-900 uppercase tracking-tighter">Global Analytics & Admin OS</h2>
+                                        <p className="text-gray-500 font-bold uppercase tracking-widest text-[10px]">Master Control Center - Restricted to Authorized Administrators</p>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => navigate('/admin/leads')}
+                                        className="inline-flex items-center justify-center rounded-xl border border-slate-200 px-4 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-slate-700 transition hover:bg-slate-50"
+                                    >
+                                        View Chat Leads
+                                    </button>
+                                </div>
                             </div>
 
                             <AdminDashboard token={localStorage.getItem('vapeshub_token') || ''} stats={adminStats} currentUser={currentUser} />
@@ -2427,9 +2462,9 @@ export default function App() {
                     <div className="space-y-6">
                         <h4 className="text-[11px] font-black uppercase tracking-[0.2em] text-brand-primary">Shop</h4>
                         <ul className="space-y-4 text-[11px] text-slate-400 font-black uppercase tracking-widest">
-                            <li><Link to={buildProductsUrl({ search: 'Pulse X' })} className="hover:text-white transition-colors">Pulse X Series</Link></li>
-                            <li><Link to={buildProductsUrl({ search: 'Kit' })} className="hover:text-white transition-colors">The Kits</Link></li>
-                            <li><Link to={buildProductsUrl({ search: 'Original' })} className="hover:text-white transition-colors">The Originals</Link></li>
+                            <li><Link to="/shop/pulse-x-series" className="hover:text-white transition-colors">Pulse X Series</Link></li>
+                            <li><Link to="/shop/the-kits" className="hover:text-white transition-colors">The Kits</Link></li>
+                            <li><Link to="/shop/the-originals" className="hover:text-white transition-colors">The Originals</Link></li>
                             <li><Link to={buildProductsUrl({ search: 'Cloud' })} className="hover:text-white transition-colors">Cloud Series</Link></li>
                         </ul>
                     </div>

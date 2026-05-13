@@ -1,12 +1,56 @@
 
+import { Loader2 } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { fetchProducts } from '../../services/api';
+import { Product } from '../../types';
+
 export default function TheOriginals() {
+    const [products, setProducts] = useState<Product[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        let mounted = true;
+        const load = async () => {
+            setLoading(true);
+            const data = await fetchProducts({ category: 'The Originals' });
+            if (mounted) {
+                setProducts(data);
+                setLoading(false);
+            }
+        };
+        void load();
+        return () => {
+            mounted = false;
+        };
+    }, []);
+
     return (
-        <main className="container mx-auto py-12">
-            <h1 className="text-3xl font-bold mb-6">The Originals</h1>
-            {/* TODO: Implement product listing with high-end filtering */}
-            <div className="bg-slate-100 rounded-xl p-8 text-slate-700">
-                <p>The Originals product listing coming soon.</p>
-            </div>
+        <main className="container mx-auto py-12 px-4">
+            <h1 className="text-3xl font-bold mb-2">The Originals</h1>
+            <p className="text-sm text-slate-500 mb-8">Live inventory from Supabase category: The Originals</p>
+
+            {loading ? (
+                <div className="bg-slate-100 rounded-xl p-8 text-slate-700 flex items-center gap-2">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Loading products...
+                </div>
+            ) : products.length === 0 ? (
+                <div className="bg-slate-100 rounded-xl p-8 text-slate-700">
+                    <p>No The Originals products found.</p>
+                </div>
+            ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {products.map((product) => (
+                        <Link key={product.id} to={`/product/${product.id}`} className="rounded-xl border border-slate-200 bg-white p-4 hover:border-slate-400 transition-colors">
+                            <p className="text-xs uppercase tracking-widest text-slate-400 font-bold">{product.brand}</p>
+                            <h2 className="mt-1 text-sm font-bold text-slate-900">{product.name}</h2>
+                            <p className="mt-1 text-xs text-slate-500">{product.flavor}</p>
+                            <p className="mt-2 text-sm font-black text-brand-primary">${product.price.toFixed(2)}</p>
+                        </Link>
+                    ))}
+                </div>
+            )}
         </main>
     );
 }

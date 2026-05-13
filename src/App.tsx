@@ -105,6 +105,12 @@ interface MarketplaceEmptyStateProps {
     onReset: () => void;
 }
 
+interface CollectionMenuItem {
+    id: string;
+    label: string;
+    onSelect: () => void;
+}
+
 const FALLBACK_DISCOUNT_PERCENT = {
     bestSeller: 17,
     newArrival: 15,
@@ -1132,12 +1138,49 @@ export default function App() {
         };
     }, [pendingScrollTarget, activeTab, selectedProductId, scrollToSection]);
 
-    const scrollToFlavorExplorer = () => {
+    const scrollToFlavorExplorer = useCallback(() => {
         focusMarketplaceSection({
             filter: activeFilter,
             sectionId: 'inventory-stream-section',
         });
-    };
+    }, [activeFilter, focusMarketplaceSection]);
+
+    const collectionMenuItems = useMemo<CollectionMenuItem[]>(() => ([
+        {
+            id: 'all-inventory',
+            label: 'All Inventory',
+            onSelect: () => navigate('/shop'),
+        },
+        {
+            id: 'shop-the-collection',
+            label: 'Shop The Collection',
+            onSelect: () => focusMarketplaceSection({ filter: 'all', sectionId: 'brand-showcase-section' }),
+        },
+        {
+            id: 'pulse-x-series',
+            label: 'Pulse X Series',
+            onSelect: () => focusMarketplaceSection({ filter: 'all', search: 'Geekbar Pulse X', sectionId: 'inventory-stream-section' }),
+        },
+        {
+            id: 'start-your-session',
+            label: 'Start Your Session',
+            onSelect: scrollToFlavorExplorer,
+        },
+        {
+            id: 'seamless-delivery',
+            label: 'Seamless Delivery',
+            onSelect: () => focusMarketplaceSection({ filter: 'express', sectionId: 'shipping-logistics-section' }),
+        },
+    ]), [focusMarketplaceSection, navigate, scrollToFlavorExplorer]);
+
+    const handleCollectionMenuSelect = useCallback((item: CollectionMenuItem, surface: 'desktop' | 'mobile') => {
+        item.onSelect();
+        if (surface === 'desktop') {
+            setIsCollectionMenuOpen(false);
+            return;
+        }
+        setIsMenuOpen(false);
+    }, []);
 
     // Server-side filtering — products are already filtered, just use them directly
     const filteredProducts = products;
@@ -1466,52 +1509,22 @@ export default function App() {
                                 </button>
                                 {isCollectionMenuOpen && (
                                     <div role="menu" className="absolute right-0 top-full z-[70] mt-3 w-[320px] overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white p-2 shadow-2xl shadow-slate-900/10">
-                                        <button
-                                            type="button"
-                                            role="menuitem"
-                                            onClick={() => { navigate('/shop'); setIsCollectionMenuOpen(false); }}
-                                            className="flex w-full items-center justify-between rounded-[1.25rem] px-4 py-3 text-left text-[10px] font-black uppercase tracking-[0.22em] text-brand-primary transition-colors hover:bg-brand-primary/5"
-                                        >
-                                            All Inventory
-                                            <ArrowRight className="h-4 w-4 text-brand-primary/50" />
-                                        </button>
-                                        <div className="mx-3 my-1 h-px bg-slate-100" />
-                                        <button
-                                            type="button"
-                                            role="menuitem"
-                                            onClick={() => focusMarketplaceSection({ filter: 'all', sectionId: 'brand-showcase-section' })}
-                                            className="flex w-full items-center justify-between rounded-[1.25rem] px-4 py-3 text-left text-[10px] font-black uppercase tracking-[0.22em] text-slate-900 transition-colors hover:bg-slate-100"
-                                        >
-                                            Shop The Collection
-                                            <ArrowRight className="h-4 w-4 text-slate-300" />
-                                        </button>
-                                        <button
-                                            type="button"
-                                            role="menuitem"
-                                            onClick={() => focusMarketplaceSection({ filter: 'all', search: 'Geekbar Pulse X', sectionId: 'inventory-stream-section' })}
-                                            className="flex w-full items-center justify-between rounded-[1.25rem] px-4 py-3 text-left text-[10px] font-black uppercase tracking-[0.22em] text-slate-900 transition-colors hover:bg-slate-100"
-                                        >
-                                            Pulse X Series
-                                            <ArrowRight className="h-4 w-4 text-slate-300" />
-                                        </button>
-                                        <button
-                                            type="button"
-                                            role="menuitem"
-                                            onClick={scrollToFlavorExplorer}
-                                            className="flex w-full items-center justify-between rounded-[1.25rem] px-4 py-3 text-left text-[10px] font-black uppercase tracking-[0.22em] text-slate-900 transition-colors hover:bg-slate-100"
-                                        >
-                                            Start Your Session
-                                            <ArrowRight className="h-4 w-4 text-slate-300" />
-                                        </button>
-                                        <button
-                                            type="button"
-                                            role="menuitem"
-                                            onClick={() => focusMarketplaceSection({ filter: 'express', sectionId: 'shipping-logistics-section' })}
-                                            className="flex w-full items-center justify-between rounded-[1.25rem] px-4 py-3 text-left text-[10px] font-black uppercase tracking-[0.22em] text-slate-900 transition-colors hover:bg-slate-100"
-                                        >
-                                            Seamless Delivery
-                                            <ArrowRight className="h-4 w-4 text-slate-300" />
-                                        </button>
+                                        {collectionMenuItems.map((item, index) => (
+                                            <React.Fragment key={item.id}>
+                                                <button
+                                                    type="button"
+                                                    role="menuitem"
+                                                    onClick={() => handleCollectionMenuSelect(item, 'desktop')}
+                                                    className={`flex w-full items-center justify-between rounded-[1.25rem] px-4 py-3 text-left text-[10px] font-black uppercase tracking-[0.22em] transition-colors ${index === 0
+                                                        ? 'text-brand-primary hover:bg-brand-primary/5'
+                                                        : 'text-slate-900 hover:bg-slate-100'}`}
+                                                >
+                                                    {item.label}
+                                                    <ArrowRight className={`h-4 w-4 ${index === 0 ? 'text-brand-primary/50' : 'text-slate-300'}`} />
+                                                </button>
+                                                {index === 0 && <div className="mx-3 my-1 h-px bg-slate-100" />}
+                                            </React.Fragment>
+                                        ))}
                                         {currentUser?.role === 'admin' && (
                                             <>
                                                 <div className="mx-3 my-2 h-px bg-slate-200" />
@@ -1530,7 +1543,7 @@ export default function App() {
                                             <button
                                                 type="button"
                                                 role="menuitem"
-                                                onClick={handleProfileNavigation}
+                                                onClick={() => { handleProfileNavigation(); setIsCollectionMenuOpen(false); }}
                                                 className="flex w-full items-center justify-between rounded-[1.25rem] px-4 py-3 text-left text-[10px] font-black uppercase tracking-[0.22em] text-rose-700 transition-colors hover:bg-rose-50"
                                             >
                                                 Admin Layer
@@ -2142,21 +2155,25 @@ export default function App() {
                                     <div className="space-y-6">
                                         <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-brand-primary">Collections</h3>
                                         <ul className="space-y-5">
-                                            <li className="flex items-center justify-between text-brand-primary font-black uppercase tracking-widest text-xs hover:text-white cursor-pointer transition-colors" onClick={() => { navigate('/shop'); setIsMenuOpen(false); }}>
-                                                All Inventory <ChevronRight className="w-4 h-4 text-brand-primary/50" />
-                                            </li>
-                                            <li className="flex items-center justify-between text-white font-black uppercase tracking-widest text-xs hover:text-brand-primary cursor-pointer transition-colors" onClick={() => { focusMarketplaceSection({ filter: 'all', sectionId: 'brand-showcase-section' }); setIsMenuOpen(false); }}>
-                                                Shop The Collection <ChevronRight className="w-4 h-4 text-slate-500" />
-                                            </li>
-                                            <li className="flex items-center justify-between text-white font-black uppercase tracking-widest text-xs hover:text-brand-primary cursor-pointer transition-colors" onClick={() => { focusMarketplaceSection({ filter: 'express', sectionId: 'shipping-logistics-section' }); setIsMenuOpen(false); }}>
-                                                Seamless Delivery <ChevronRight className="w-4 h-4 text-slate-500" />
-                                            </li>
-                                            <li className="flex items-center justify-between text-white font-black uppercase tracking-widest text-xs hover:text-brand-primary cursor-pointer transition-colors" onClick={() => { if (currentUser) { handleProfileNavigation(); } else { setShowAuthModal(true); } setIsMenuOpen(false); }}>
-                                                {currentUser ? 'My Account' : 'Sign In / Register'} <ChevronRight className="w-4 h-4 text-slate-500" />
-                                            </li>
-                                            <li className="flex items-center justify-between text-white font-black uppercase tracking-widest text-xs hover:text-brand-primary cursor-pointer transition-colors" onClick={() => { focusMarketplaceSection({ filter: 'all', search: 'Geekbar Pulse X', sectionId: 'inventory-stream-section' }); setIsMenuOpen(false); }}>
-                                                Pulse X Series <ChevronRight className="w-4 h-4 text-slate-500" />
-                                            </li>
+                                            {collectionMenuItems.map((item, index) => (
+                                                <li
+                                                    key={item.id}
+                                                    role="menuitem"
+                                                    tabIndex={0}
+                                                    className={`flex items-center justify-between font-black uppercase tracking-widest text-xs cursor-pointer transition-colors ${index === 0
+                                                        ? 'text-brand-primary hover:text-white'
+                                                        : 'text-white hover:text-brand-primary'}`}
+                                                    onClick={() => handleCollectionMenuSelect(item, 'mobile')}
+                                                    onKeyDown={(event) => {
+                                                        if (event.key === 'Enter' || event.key === ' ') {
+                                                            event.preventDefault();
+                                                            handleCollectionMenuSelect(item, 'mobile');
+                                                        }
+                                                    }}
+                                                >
+                                                    {item.label} <ChevronRight className={`w-4 h-4 ${index === 0 ? 'text-brand-primary/50' : 'text-slate-500'}`} />
+                                                </li>
+                                            ))}
                                         </ul>
                                     </div>
                                     <div className="space-y-6">
@@ -2174,7 +2191,7 @@ export default function App() {
                                                 </li>
                                             )}
                                             {currentUser?.role === 'admin' && (
-                                                <li onClick={handleProfileNavigation} className="text-rose-400 font-black uppercase tracking-widest text-xs hover:text-white cursor-pointer transition-colors flex items-center gap-2">
+                                                <li onClick={() => { handleProfileNavigation(); setIsMenuOpen(false); }} className="text-rose-400 font-black uppercase tracking-widest text-xs hover:text-white cursor-pointer transition-colors flex items-center gap-2">
                                                     <ShieldCheck className="w-4 h-4" />
                                                     Admin Layer
                                                 </li>

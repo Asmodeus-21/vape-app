@@ -103,23 +103,24 @@ export default function Registration() {
 
         setIsSubmitting(true);
         try {
-            const res = await registerWithOtp(formData.email, otp, {
-                fullName: formData.fullName,
-                isRetailer: false,
-                dob: formData.dob,
-                ageVerified: true,
-            });
+            const { user, token } = await registerWithOtp(
+                formData.email,
+                otp,
+                formData.fullName,
+                formData.password,
+                false,
+                undefined,
+                undefined,
+                formData.dob,
+                true
+            );
 
-            if (!res.success) {
-                setError(res.error || 'Invalid code. Please try again.');
-                return;
-            }
-
+            localStorage.setItem('vapeshub_token', token);
             toast.success('Account created successfully! You can now log in. 🎉');
             // Redirect to login or dashboard
             window.location.href = '/dashboard';
-        } catch {
-            setError('An unexpected error occurred. Please try again later.');
+        } catch (err: any) {
+            setError(err.message || 'Invalid code. Please try again.');
         } finally {
             setIsSubmitting(false);
         }

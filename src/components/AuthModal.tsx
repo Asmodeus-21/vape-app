@@ -169,12 +169,17 @@ export default function AuthModal({ onClose, onAuthSuccess }: AuthModalProps) {
         }
         setLoading(true);
         try {
-            const { user, token } = await registerWithOtp(regEmail, regOtpCode, {
-                fullName: regName,
-                isRetailer: false,
-                dob: regDob,
-                ageVerified: true,
-            });
+            const { user, token } = await registerWithOtp(
+                regEmail,
+                regOtpCode,
+                regName,
+                regPassword,
+                false,
+                undefined,
+                undefined,
+                regDob,
+                true
+            );
             localStorage.setItem('vapeshub_token', token);
             toast.success(`Welcome to Banana Leaf, ${user.name}! 🎉`);
             onAuthSuccess(user, token);
@@ -244,8 +249,8 @@ export default function AuthModal({ onClose, onAuthSuccess }: AuthModalProps) {
                                 key={t}
                                 onClick={() => handleTabSwitch(t)}
                                 className={`flex-1 py-2 px-3 text-xs font-bold rounded-lg transition-all ${tab === t
-                                        ? 'bg-blue-500 text-white'
-                                        : 'text-slate-300 hover:text-white'
+                                    ? 'bg-blue-500 text-white'
+                                    : 'text-slate-300 hover:text-white'
                                     }`}
                             >
                                 {t === 'login' ? 'Log In' : 'Sign Up'}

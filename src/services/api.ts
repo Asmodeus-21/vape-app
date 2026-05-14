@@ -17,6 +17,26 @@ async function safeJson(res: Response): Promise<any> {
     }
 }
 
+/** Convert HTTP errors to user-friendly messages */
+function getFriendlyErrorMessage(status: number, defaultMessage: string): string {
+    if (status === 503 || status === 502 || status === 504) {
+        return "We're having trouble connecting to the store. Please check your internet connection and try again in a moment.";
+    }
+    if (status === 500) {
+        return 'There was a server error. Please try again shortly.';
+    }
+    if (status === 401) {
+        return 'Your session has expired. Please log in again.';
+    }
+    if (status === 403) {
+        return 'You do not have permission to perform this action.';
+    }
+    if (status === 404) {
+        return 'The requested item was not found.';
+    }
+    return defaultMessage;
+}
+
 export async function fetchProducts(params?: {
     search?: string;
     filter?: 'all' | 'bestsellers' | 'newarrivals' | 'express';
@@ -105,7 +125,10 @@ export async function loginUser(email: string, password: string): Promise<AuthRe
         body: JSON.stringify({ email, password }),
     });
     const data = await safeJson(res);
-    if (!res.ok) throw new Error(data.error || 'Login failed');
+    if (!res.ok) {
+        const friendlyError = getFriendlyErrorMessage(res.status, data.error || 'Login failed');
+        throw new Error(friendlyError);
+    }
     return data as AuthResponse;
 }
 
@@ -381,7 +404,10 @@ export async function requestOtp(email: string): Promise<void> {
         body: JSON.stringify({ email }),
     });
     const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Failed to send OTP');
+    if (!res.ok) {
+        const friendlyError = getFriendlyErrorMessage(res.status, data.error || 'Failed to send verification code');
+        throw new Error(friendlyError);
+    }
 }
 
 export async function requestLoginOtp(email: string): Promise<void> {
@@ -391,7 +417,10 @@ export async function requestLoginOtp(email: string): Promise<void> {
         body: JSON.stringify({ email }),
     });
     const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Failed to send login code');
+    if (!res.ok) {
+        const friendlyError = getFriendlyErrorMessage(res.status, data.error || 'Failed to send login code');
+        throw new Error(friendlyError);
+    }
 }
 
 export async function verifyLoginOtp(email: string, code: string): Promise<AuthResponse> {
@@ -401,7 +430,10 @@ export async function verifyLoginOtp(email: string, code: string): Promise<AuthR
         body: JSON.stringify({ email, code }),
     });
     const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'OTP login failed');
+    if (!res.ok) {
+        const friendlyError = getFriendlyErrorMessage(res.status, data.error || 'Code verification failed');
+        throw new Error(friendlyError);
+    }
     return data as AuthResponse;
 }
 
@@ -422,6 +454,9 @@ export async function registerWithOtp(
         body: JSON.stringify({ email, code, name, password, isVendor, storeName, storeAddress, dob, ageVerified }),
     });
     const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Registration failed');
+    if (!res.ok) {
+        const friendlyError = getFriendlyErrorMessage(res.status, data.error || 'Registration failed');
+        throw new Error(friendlyError);
+    }
     return data as AuthResponse;
 }

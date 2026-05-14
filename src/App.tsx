@@ -395,6 +395,7 @@ const FEATURE_BANNERS: readonly FeatureBanner[] = [
         imageUrl: '/images/devices/pngtree-a-sleek-vaping-device-with-transparent-tank-glowing-orange-light-and-png-image_15912369.png',
         backgroundImageUrl: '/images/devices/geekvape-aegis-legend.jpg',
         category: 'Disposables',
+        search: 'RAZ',
     },
 ] as const;
 
@@ -1695,12 +1696,26 @@ export default function App() {
                                             </div>
                                             <button
                                                 type="button"
-                                                onClick={() => focusMarketplaceSection({
-                                                    filter: 'all',
-                                                    search: banner.brand,
-                                                    category: banner.category,
-                                                    sectionId: 'marketplace-grid-section',
-                                                })}
+                                                onClick={() => {
+                                                    // Find first product matching banner search term
+                                                    const matchingProduct = homepageGridProducts.find(p =>
+                                                        p.name.toLowerCase().includes(banner.search?.toLowerCase() || banner.brand.toLowerCase())
+                                                    );
+
+                                                    if (matchingProduct) {
+                                                        // Add to cart and show cart
+                                                        addToCart(matchingProduct, 1);
+                                                        setIsCartOpen(true);
+                                                    } else {
+                                                        // Fallback: search marketplace
+                                                        focusMarketplaceSection({
+                                                            filter: 'all',
+                                                            search: banner.brand,
+                                                            category: banner.category,
+                                                            sectionId: 'marketplace-grid-section',
+                                                        });
+                                                    }
+                                                }}
                                                 className="inline-flex h-12 items-center justify-center rounded-[1rem] bg-[#4AB1F4] px-6 text-[11px] font-black uppercase tracking-[0.18em] text-white shadow-[0_10px_22px_rgba(74,177,244,0.42)] transition-all hover:-translate-y-0.5 hover:bg-[#2f9ce5]"
                                             >
                                                 Claim Deal

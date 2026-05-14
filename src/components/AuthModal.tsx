@@ -1,9 +1,8 @@
-import { CheckCircle2, Eye, EyeOff, KeyRound, Loader2, Lock, Mail, MapPin, RefreshCw, ShoppingBag, User, X, Zap } from 'lucide-react';
+import { Eye, EyeOff, Loader2, Lock, Mail, X } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import React, { useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { loginUser, registerWithOtp, requestLoginOtp, requestOtp, verifyLoginOtp } from '../services/api';
-import AgeVerification from './AgeVerification';
 
 interface AuthUser {
     id: number;
@@ -18,44 +17,42 @@ interface AuthModalProps {
 }
 
 type Tab = 'login' | 'register';
+type LoginMode = 'password' | 'otp_verify';
+type RegStep = 'form' | 'otp';
 
 export default function AuthModal({ onClose, onAuthSuccess }: AuthModalProps) {
     const [tab, setTab] = useState<Tab>('login');
     const [loading, setLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState('');
-    const [loginMode, setLoginMode] = useState<'password' | 'otp_request' | 'otp_verify'>('password');
-    const [loginOtpCode, setLoginOtpCode] = useState('');
-    const [regStep, setRegStep] = useState<'form' | 'otp'>('form');
-    const [regOtpCode, setRegOtpCode] = useState('');
-    const [resendCountdown, setResendCountdown] = useState(0);
-    const [regDob, setRegDob] = useState('');
-    const [isAgeVerified, setIsAgeVerified] = useState(false);
+    const [rememberMe, setRememberMe] = useState(false);
 
-    // Login fields
+    // Login
+    const [loginMode, setLoginMode] = useState<LoginMode>('password');
     const [loginEmail, setLoginEmail] = useState('');
     const [loginPassword, setLoginPassword] = useState('');
+    const [loginOtpCode, setLoginOtpCode] = useState('');
 
-    // Register fields
+    // Register
+    const [regStep, setRegStep] = useState<RegStep>('form');
     const [regName, setRegName] = useState('');
     const [regEmail, setRegEmail] = useState('');
     const [regPassword, setRegPassword] = useState('');
-    const [isVendor, setIsVendor] = useState(false);
-    const [storeName, setStoreName] = useState('');
-    const [storeAddress, setStoreAddress] = useState('');
+    const [regDob, setRegDob] = useState('');
+    const [regOtpCode, setRegOtpCode] = useState('');
+    const [isAgeVerified, setIsAgeVerified] = useState(false);
+    const [resendCountdown, setResendCountdown] = useState(0);
 
     const isTwentyOneOrOlder = (dob: string): boolean => {
         if (!dob) return false;
         const birthDate = new Date(dob);
         if (Number.isNaN(birthDate.getTime())) return false;
-
         const today = new Date();
         let age = today.getFullYear() - birthDate.getFullYear();
         const monthDiff = today.getMonth() - birthDate.getMonth();
         if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
             age -= 1;
         }
-
         return age >= 21;
     };
 
@@ -66,6 +63,7 @@ export default function AuthModal({ onClose, onAuthSuccess }: AuthModalProps) {
         try {
             const { user, token } = await loginUser(loginEmail, loginPassword);
             localStorage.setItem('vapeshub_token', token);
+            if (rememberMe) localStorage.setItem('vapeshub_remember_email', loginEmail);
             toast.success(`Welcome back, ${user.name}! 👋`);
             onAuthSuccess(user, token);
             onClose();
@@ -79,12 +77,16 @@ export default function AuthModal({ onClose, onAuthSuccess }: AuthModalProps) {
     const handleSendLoginOtp = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
+        if (!loginEmail.trim()) {
+            setError('Please enter your email address.');
+            return;
+        }
         setLoading(true);
         setResendCountdown(60);
         try {
             await requestLoginOtp(loginEmail);
             setLoginMode('otp_verify');
-            toast.success('Login code sent. Check your email.', { duration: 4000 });
+            toast.success('Login code sent to your email.', { duration: 4000 });
         } catch (err: any) {
             setError(err.message || 'Failed to send login code. Please try again.');
             setResendCountdown(0);
@@ -97,13 +99,14 @@ export default function AuthModal({ onClose, onAuthSuccess }: AuthModalProps) {
         e.preventDefault();
         setError('');
         if (!loginOtpCode.trim() || loginOtpCode.length !== 6) {
-            setError('Enter the 6-digit login code from your email.');
+            setError('Please enter a valid 6-digit code.');
             return;
         }
         setLoading(true);
         try {
             const { user, token } = await verifyLoginOtp(loginEmail, loginOtpCode);
             localStorage.setItem('vapeshub_token', token);
+            if (rememberMe) localStorage.setItem('vapeshub_remember_email', loginEmail);
             toast.success(`Welcome back, ${user.name}! 👋`);
             onAuthSuccess(user, token);
             onClose();
@@ -114,20 +117,41 @@ export default function AuthModal({ onClose, onAuthSuccess }: AuthModalProps) {
         }
     };
 
-    const handleSendOtp = async (e: React.FormEvent) => {
+    const handleSendRegOtp = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
-        if (!regDob) { setError('Date of birth is required.'); return; }
-        if (!isTwentyOneOrOlder(regDob)) { setError('You must be 21 years of age or older to register.'); return; }
-        if (!isAgeVerified) { setError('Please complete age verification before registration.'); return; }
-        if (regPassword.length < 8) { setError('Password must be at least 8 characters.'); return; }
-        if (isVendor && !storeName.trim()) { setError('Store name is required for franchise onboarding.'); return; }
+
+        if (!regName.trim()) {
+            setError('Full name is required.');
+            return;
+        }
+        if (!regEmail.trim()) {
+            setError('Email address is required.');
+            return;
+        }
+        if (!regPassword || regPassword.length < 8) {
+            setError('Password must be at least 8 characters.');
+            return;
+        }
+        if (!regDob) {
+            setError('Date of birth is required.');
+            return;
+        }
+        if (!isTwentyOneOrOlder(regDob)) {
+            setError('You must be 21 years or older to register.');
+            return;
+        }
+        if (!isAgeVerified) {
+            setError('Please confirm your age by checking the box.');
+            return;
+        }
+
         setLoading(true);
         setResendCountdown(60);
         try {
             await requestOtp(regEmail);
             setRegStep('otp');
-            toast.success('Verification code sent! Check your inbox.', { duration: 4000 });
+            toast.success('Verification code sent to your email.', { duration: 4000 });
         } catch (err: any) {
             setError(err.message || 'Failed to send verification code. Please try again.');
             setResendCountdown(0);
@@ -136,22 +160,23 @@ export default function AuthModal({ onClose, onAuthSuccess }: AuthModalProps) {
         }
     };
 
-    // Countdown timer effect
-    React.useEffect(() => {
-        if (resendCountdown <= 0) return;
-        const timer = setTimeout(() => setResendCountdown(prev => prev - 1), 1000);
-        return () => clearTimeout(timer);
-    }, [resendCountdown]);
-
-    const handleVerifyOtp = async (e: React.FormEvent) => {
+    const handleVerifyRegOtp = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
-        if (!regOtpCode.trim() || regOtpCode.length !== 6) { setError('Enter the 6-digit code from your email.'); return; }
+        if (!regOtpCode.trim() || regOtpCode.length !== 6) {
+            setError('Please enter a valid 6-digit code.');
+            return;
+        }
         setLoading(true);
         try {
-            const { user, token } = await registerWithOtp(regEmail, regOtpCode, regName, regPassword, isVendor, storeName, storeAddress, regDob, true);
+            const { user, token } = await registerWithOtp(regEmail, regOtpCode, {
+                fullName: regName,
+                isRetailer: false,
+                dob: regDob,
+                ageVerified: true,
+            });
             localStorage.setItem('vapeshub_token', token);
-            toast.success(`Welcome to Banana Leaf Store, ${user.name}! 🎉`);
+            toast.success(`Welcome to Banana Leaf, ${user.name}! 🎉`);
             onAuthSuccess(user, token);
             onClose();
         } catch (err: any) {
@@ -161,64 +186,88 @@ export default function AuthModal({ onClose, onAuthSuccess }: AuthModalProps) {
         }
     };
 
+    // Countdown timer
+    React.useEffect(() => {
+        if (resendCountdown <= 0) return;
+        const timer = setTimeout(() => setResendCountdown(prev => prev - 1), 1000);
+        return () => clearTimeout(timer);
+    }, [resendCountdown]);
+
+    const resetForm = () => {
+        setError('');
+        setLoginEmail('');
+        setLoginPassword('');
+        setLoginOtpCode('');
+        setLoginMode('password');
+        setRegName('');
+        setRegEmail('');
+        setRegPassword('');
+        setRegDob('');
+        setRegOtpCode('');
+        setIsAgeVerified(false);
+        setRegStep('form');
+        setShowPassword(false);
+    };
+
+    const handleTabSwitch = (newTab: Tab) => {
+        resetForm();
+        setTab(newTab);
+    };
+
     return (
         <div
-            className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/80 backdrop-blur-xl p-4"
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/80 backdrop-blur-sm p-4"
             onClick={(e) => e.target === e.currentTarget && onClose()}
         >
             <motion.div
                 initial={{ opacity: 0, scale: 0.95, y: 20 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                className="bg-white w-full max-w-md rounded-[2.5rem] shadow-[0_32px_64px_-16px_rgba(0,0,0,0.3)] overflow-hidden relative border border-white/20"
+                className="bg-white w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden"
             >
                 {/* Header */}
-                <div className="bg-slate-900 px-10 pt-10 pb-8 relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-brand-primary/10 rounded-full blur-3xl -mr-16 -mt-16" />
-                    <button
-                        onClick={onClose}
-                        className="absolute top-6 right-6 p-2.5 text-white/40 hover:text-white hover:bg-white/10 rounded-2xl transition-all"
-                    >
-                        <X className="w-5 h-5" />
-                    </button>
-                    <div className="flex items-center gap-3 mb-6">
-                        <div className="bg-brand-primary p-2 rounded-xl shadow-lg shadow-brand-primary/20 rotate-3">
-                            <Zap className="text-white w-5 h-5" />
-                        </div>
-                        <span className="text-xl font-black text-white tracking-tighter uppercase italic">Banana Leaf<span className="text-brand-primary">.</span></span>
+                <div className="bg-gradient-to-r from-slate-900 to-slate-800 px-6 pt-6 pb-4">
+                    <div className="flex items-center justify-between mb-6">
+                        <h1 className="text-lg font-black text-white">Banana Leaf</h1>
+                        <button
+                            onClick={onClose}
+                            className="p-1.5 hover:bg-white/10 rounded-lg transition-colors"
+                        >
+                            <X className="w-5 h-5 text-white" />
+                        </button>
                     </div>
-                    <h2 className="text-3xl font-black text-white mb-2 uppercase tracking-tighter">
-                        {tab === 'login' ? 'Authentication' : 'Registration'}
-                    </h2>
-                    <p className="text-[10px] text-white/40 font-black uppercase tracking-[0.2em]">
-                        {tab === 'login' ? 'Authorized Access Required' : 'Initialize Hub Credentials'}
-                    </p>
 
                     {/* Tab Switcher */}
-                    <div className="flex mt-8 bg-white/5 rounded-2xl p-1 gap-1 border border-white/10">
+                    <div className="flex gap-2">
                         {(['login', 'register'] as Tab[]).map((t) => (
                             <button
                                 key={t}
-                                onClick={() => { setTab(t); setError(''); setLoginMode('password'); setLoginOtpCode(''); setRegStep('form'); setRegOtpCode(''); setRegDob(''); setIsAgeVerified(false); }}
-                                className={`flex-1 py-3 text-[10px] font-black uppercase tracking-[0.2em] rounded-xl transition-all ${tab === t ? 'bg-white text-slate-900 shadow-xl' : 'text-white/40 hover:text-white'
+                                onClick={() => handleTabSwitch(t)}
+                                className={`flex-1 py-2 px-3 text-xs font-bold rounded-lg transition-all ${tab === t
+                                        ? 'bg-blue-500 text-white'
+                                        : 'text-slate-300 hover:text-white'
                                     }`}
                             >
-                                {t === 'login' ? 'Auth Link' : 'New Entry'}
+                                {t === 'login' ? 'Log In' : 'Sign Up'}
                             </button>
                         ))}
                     </div>
                 </div>
 
-                {/* Form */}
-                <div className="p-8">
+                {/* Content */}
+                <div className="p-6">
                     {error && (
-                        <div className="mb-4 p-3 bg-red-50 border border-red-100 rounded-xl text-sm text-red-600 font-medium">
+                        <motion.div
+                            initial={{ opacity: 0, y: -10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600 font-medium"
+                        >
                             {error}
-                        </div>
+                        </motion.div>
                     )}
 
                     <AnimatePresence mode="wait">
-                        {tab === 'login' && loginMode === 'password' ? (
+                        {tab === 'login' && loginMode === 'password' && (
                             <motion.form
                                 key="login-password"
                                 initial={{ opacity: 0, x: 20 }}
@@ -227,281 +276,304 @@ export default function AuthModal({ onClose, onAuthSuccess }: AuthModalProps) {
                                 onSubmit={handleLogin}
                                 className="space-y-4"
                             >
-                                <div className="space-y-6">
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-2">Email Protocol</label>
-                                        <div className="relative group">
-                                            <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-brand-primary transition-colors" />
-                                            <input
-                                                type="email"
-                                                required
-                                                value={loginEmail}
-                                                onChange={(e) => setLoginEmail(e.target.value)}
-                                                placeholder="ID_VERIFIED@HUB.COM"
-                                                className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:outline-none focus:border-brand-primary focus:bg-white focus:ring-4 focus:ring-brand-primary/10 transition-all text-sm font-bold placeholder:text-slate-300"
-                                            />
-                                        </div>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-2">Access Key</label>
-                                        <div className="relative group">
-                                            <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-brand-primary transition-colors" />
-                                            <input
-                                                type={showPassword ? 'text' : 'password'}
-                                                required
-                                                value={loginPassword}
-                                                onChange={(e) => setLoginPassword(e.target.value)}
-                                                placeholder="••••••••"
-                                                className="w-full pl-12 pr-12 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:outline-none focus:border-brand-primary focus:bg-white focus:ring-4 focus:ring-brand-primary/10 transition-all text-sm font-bold placeholder:text-slate-300"
-                                            />
-                                            <button
-                                                type="button"
-                                                onClick={() => setShowPassword(!showPassword)}
-                                                className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-900 transition-colors"
-                                            >
-                                                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                                <button
-                                    type="submit"
-                                    disabled={loading}
-                                    className="w-full py-4 bg-[#40E0D0] text-white font-black uppercase tracking-[0.2em] rounded-2xl shadow-2xl shadow-[#40E0D0]/20 hover:bg-[#2bc7b8] transition-all flex items-center justify-center gap-3 mt-8 active:scale-95"
-                                >
-                                    {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-                                    {loading ? 'Decrypting...' : 'Initialize Session'}
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => { setLoginMode('otp_request'); setError(''); setLoginOtpCode(''); }}
-                                    className="w-full py-3 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 hover:text-slate-900 flex items-center justify-center gap-2 transition-colors"
-                                >
-                                    <Mail className="w-3 h-3" /> Sign In With Email OTP
-                                </button>
-                            </motion.form>
-                        ) : tab === 'login' && loginMode === 'otp_request' ? (
-                            <motion.form
-                                key="login-otp-request"
-                                initial={{ opacity: 0, x: 20 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                exit={{ opacity: 0, x: -20 }}
-                                onSubmit={handleSendLoginOtp}
-                                className="space-y-6"
-                            >
-                                <div className="text-center py-2">
-                                    <div className="w-14 h-14 bg-brand-primary/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                                        <Mail className="w-7 h-7 text-brand-primary" />
-                                    </div>
-                                    <p className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-500">Passwordless Login</p>
-                                </div>
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-2">Email Protocol</label>
-                                    <div className="relative group">
-                                        <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-brand-primary transition-colors" />
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-600 mb-2">Email Address</label>
+                                    <div className="relative">
+                                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                                         <input
                                             type="email"
                                             required
                                             value={loginEmail}
                                             onChange={(e) => setLoginEmail(e.target.value)}
-                                            placeholder="ID_VERIFIED@HUB.COM"
-                                            className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:outline-none focus:border-brand-primary focus:bg-white focus:ring-4 focus:ring-brand-primary/10 transition-all text-sm font-bold placeholder:text-slate-300"
+                                            placeholder="you@example.com"
+                                            className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm"
                                         />
                                     </div>
                                 </div>
-                                <button type="submit" disabled={loading} className="w-full py-4 bg-slate-900 text-white font-black uppercase tracking-[0.2em] rounded-2xl shadow-2xl shadow-slate-900/20 hover:bg-brand-primary transition-all flex items-center justify-center gap-3 active:scale-95">
-                                    {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mail className="w-4 h-4" />}
-                                    {loading ? 'Sending Code...' : 'Send Login Code'}
+
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-600 mb-2">Password</label>
+                                    <div className="relative">
+                                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                                        <input
+                                            type={showPassword ? 'text' : 'password'}
+                                            required
+                                            value={loginPassword}
+                                            onChange={(e) => setLoginPassword(e.target.value)}
+                                            placeholder="••••••••"
+                                            className="w-full pl-10 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowPassword(!showPassword)}
+                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                                        >
+                                            {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div className="flex items-center">
+                                    <input
+                                        type="checkbox"
+                                        id="remember"
+                                        checked={rememberMe}
+                                        onChange={(e) => setRememberMe(e.target.checked)}
+                                        className="w-4 h-4 border-slate-300 rounded"
+                                    />
+                                    <label htmlFor="remember" className="ml-2 text-xs text-slate-600">
+                                        Remember me
+                                    </label>
+                                </div>
+
+                                <button
+                                    type="submit"
+                                    disabled={loading}
+                                    className="w-full py-2.5 bg-blue-500 hover:bg-blue-600 text-white font-bold rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                                >
+                                    {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                                    {loading ? 'Signing in...' : 'Log In'}
                                 </button>
+
+                                <div className="flex items-center gap-2 my-3">
+                                    <div className="flex-1 h-px bg-slate-200" />
+                                    <span className="text-xs text-slate-500">or</span>
+                                    <div className="flex-1 h-px bg-slate-200" />
+                                </div>
+
                                 <button
                                     type="button"
-                                    onClick={() => { setLoginMode('password'); setError(''); }}
-                                    className="w-full py-3 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 hover:text-slate-900 flex items-center justify-center gap-2 transition-colors"
+                                    onClick={() => {
+                                        setLoginMode('otp_verify');
+                                        setError('');
+                                    }}
+                                    className="w-full py-2.5 border border-slate-300 text-slate-700 font-semibold rounded-lg hover:bg-slate-50 transition-colors text-sm"
                                 >
-                                    <RefreshCw className="w-3 h-3" /> Use Password Instead
+                                    Sign in with Email Code
                                 </button>
+
+                                <p className="text-center text-xs text-slate-500">
+                                    <a href="#forgot" className="text-blue-500 hover:underline font-semibold">
+                                        Forgot password?
+                                    </a>
+                                </p>
                             </motion.form>
-                        ) : tab === 'login' && loginMode === 'otp_verify' ? (
+                        )}
+
+                        {tab === 'login' && loginMode === 'otp_verify' && (
                             <motion.form
-                                key="login-otp-verify"
+                                key="login-otp"
                                 initial={{ opacity: 0, x: 20 }}
                                 animate={{ opacity: 1, x: 0 }}
                                 exit={{ opacity: 0, x: -20 }}
                                 onSubmit={handleVerifyLoginOtp}
-                                className="space-y-6"
+                                className="space-y-4"
                             >
-                                <div className="text-center py-4">
-                                    <div className="w-14 h-14 bg-brand-primary/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                                        <CheckCircle2 className="w-7 h-7 text-brand-primary" />
-                                    </div>
-                                    <p className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-500">Login code sent to</p>
-                                    <p className="font-black text-slate-900 text-sm mt-1">{loginEmail}</p>
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-600 mb-2">Email Address</label>
+                                    <input
+                                        type="email"
+                                        required
+                                        value={loginEmail}
+                                        onChange={(e) => setLoginEmail(e.target.value)}
+                                        placeholder="you@example.com"
+                                        className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm"
+                                    />
                                 </div>
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-2">Login Code</label>
-                                    <div className="relative group">
-                                        <KeyRound className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-brand-primary transition-colors" />
-                                        <input
-                                            type="text"
-                                            required
-                                            maxLength={6}
-                                            inputMode="numeric"
-                                            pattern="[0-9]{6}"
-                                            value={loginOtpCode}
-                                            onChange={(e) => setLoginOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                                            placeholder="000000"
-                                            autoFocus
-                                            className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:outline-none focus:border-brand-primary focus:bg-white focus:ring-4 focus:ring-brand-primary/10 transition-all text-2xl font-black tracking-[0.5em] text-center placeholder:text-slate-300 placeholder:tracking-[0.3em]"
-                                        />
-                                    </div>
+
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-600 mb-2">Verification Code</label>
+                                    <input
+                                        type="text"
+                                        required
+                                        value={loginOtpCode}
+                                        onChange={(e) => setLoginOtpCode(e.target.value.slice(0, 6))}
+                                        placeholder="000000"
+                                        maxLength={6}
+                                        className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm tracking-widest"
+                                    />
+                                    <p className="text-xs text-slate-500 mt-1">
+                                        Check your email for the 6-digit code
+                                    </p>
                                 </div>
-                                <button type="submit" disabled={loading || loginOtpCode.length !== 6} className="w-full py-4 bg-slate-900 text-white font-black uppercase tracking-[0.2em] rounded-2xl shadow-2xl shadow-slate-900/20 hover:bg-brand-primary transition-all flex items-center justify-center gap-3 disabled:opacity-50 active:scale-95">
+
+                                <button
+                                    type="submit"
+                                    disabled={loading}
+                                    className="w-full py-2.5 bg-blue-500 hover:bg-blue-600 text-white font-bold rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                                >
                                     {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-                                    {loading ? 'Verifying...' : 'Verify & Sign In'}
+                                    {loading ? 'Verifying...' : 'Verify & Log In'}
                                 </button>
+
                                 <button
                                     type="button"
-                                    onClick={() => { setLoginMode('otp_request'); setLoginOtpCode(''); setError(''); setResendCountdown(0); }}
-                                    disabled={resendCountdown > 0}
-                                    className="w-full py-3 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 hover:text-slate-900 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-colors"
+                                    onClick={() => {
+                                        setLoginMode('password');
+                                        setError('');
+                                    }}
+                                    className="w-full py-2.5 text-slate-700 font-semibold text-sm hover:text-slate-900"
                                 >
-                                    <RefreshCw className="w-3 h-3" /> {resendCountdown > 0 ? `Resend in ${resendCountdown}s` : 'Change Email / Resend'}
+                                    ← Back to password login
                                 </button>
+
+                                {resendCountdown > 0 && (
+                                    <p className="text-center text-xs text-slate-500">
+                                        Resend code in {resendCountdown}s
+                                    </p>
+                                )}
                             </motion.form>
-                        ) : regStep === 'form' ? (
+                        )}
+
+                        {tab === 'register' && regStep === 'form' && (
                             <motion.form
                                 key="register-form"
                                 initial={{ opacity: 0, x: 20 }}
                                 animate={{ opacity: 1, x: 0 }}
                                 exit={{ opacity: 0, x: -20 }}
-                                onSubmit={handleSendOtp}
+                                onSubmit={handleSendRegOtp}
                                 className="space-y-4"
                             >
-                                <div className="space-y-5">
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-2">Identity Descriptor</label>
-                                        <div className="relative group">
-                                            <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-brand-primary transition-colors" />
-                                            <input type="text" required value={regName} onChange={(e) => setRegName(e.target.value)} placeholder="FULL_LEGAL_NAME" className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:outline-none focus:border-brand-primary focus:bg-white focus:ring-4 focus:ring-brand-primary/10 transition-all text-sm font-bold placeholder:text-slate-300" />
-                                        </div>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-2">Email Protocol</label>
-                                        <div className="relative group">
-                                            <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-brand-primary transition-colors" />
-                                            <input type="email" required value={regEmail} onChange={(e) => setRegEmail(e.target.value)} placeholder="ID_VERIFIED@HUB.COM" className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:outline-none focus:border-brand-primary focus:bg-white focus:ring-4 focus:ring-brand-primary/10 transition-all text-sm font-bold placeholder:text-slate-300" />
-                                        </div>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-2">Access Key</label>
-                                        <div className="relative group">
-                                            <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-brand-primary transition-colors" />
-                                            <input type={showPassword ? 'text' : 'password'} required value={regPassword} onChange={(e) => setRegPassword(e.target.value)} placeholder="MIN_8_CHARS" className="w-full pl-12 pr-12 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:outline-none focus:border-brand-primary focus:bg-white focus:ring-4 focus:ring-brand-primary/10 transition-all text-sm font-bold placeholder:text-slate-300" />
-                                            <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-900 transition-colors">
-                                                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                                            </button>
-                                        </div>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-2">Date Of Birth</label>
-                                        <input
-                                            type="date"
-                                            required
-                                            value={regDob}
-                                            onChange={(e) => setRegDob(e.target.value)}
-                                            className="w-full px-4 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:outline-none focus:border-brand-primary focus:bg-white focus:ring-4 focus:ring-brand-primary/10 transition-all text-sm font-bold"
-                                        />
-                                    </div>
-                                    <label className="flex items-center gap-4 mt-6 mb-2 cursor-pointer bg-slate-50 p-4 rounded-2xl border border-slate-100 hover:border-brand-primary transition-all">
-                                        <input type="checkbox" checked={isVendor} onChange={(e) => { const checked = e.target.checked; setIsVendor(checked); if (!checked) { setStoreName(''); setStoreAddress(''); } }} className="w-5 h-5 text-brand-primary rounded-lg border-slate-300 focus:ring-brand-primary" />
-                                        <div className="flex flex-col">
-                                            <span className="text-[11px] font-black text-slate-900 uppercase tracking-tight">Retailer Authorization</span>
-                                            <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">Enroll in Retailer OS ecosystem</span>
-                                        </div>
-                                    </label>
-                                    {isVendor && (
-                                        <div className="space-y-5 mt-4 rounded-2xl border border-brand-primary/20 bg-brand-primary/5 p-4">
-                                            <div className="space-y-2">
-                                                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 ml-2">Store Name</label>
-                                                <div className="relative group">
-                                                    <ShoppingBag className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-brand-primary transition-colors" />
-                                                    <input type="text" required={isVendor} value={storeName} onChange={(e) => setStoreName(e.target.value)} placeholder="DOWNTOWN FRANCHISE" className="w-full pl-12 pr-4 py-4 bg-white border border-slate-100 rounded-2xl focus:outline-none focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/10 transition-all text-sm font-bold placeholder:text-slate-300" />
-                                                </div>
-                                            </div>
-                                            <div className="space-y-2">
-                                                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 ml-2">Store Address</label>
-                                                <div className="relative group">
-                                                    <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-brand-primary transition-colors" />
-                                                    <input type="text" value={storeAddress} onChange={(e) => setStoreAddress(e.target.value)} placeholder="123 MAIN ST, CITY" className="w-full pl-12 pr-4 py-4 bg-white border border-slate-100 rounded-2xl focus:outline-none focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/10 transition-all text-sm font-bold placeholder:text-slate-300" />
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )}
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-600 mb-2">Full Name</label>
+                                    <input
+                                        type="text"
+                                        required
+                                        value={regName}
+                                        onChange={(e) => setRegName(e.target.value)}
+                                        placeholder="John Doe"
+                                        className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm"
+                                    />
                                 </div>
-                                <button type="submit" disabled={loading} className="w-full py-4 bg-slate-900 text-white font-black uppercase tracking-[0.2em] rounded-2xl shadow-2xl shadow-slate-900/20 hover:bg-brand-primary transition-all flex items-center justify-center gap-3 mt-8 active:scale-95">
-                                    {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mail className="w-4 h-4" />}
-                                    {loading ? 'Sending Code...' : 'Send Verification Code'}
+
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-600 mb-2">Email Address</label>
+                                    <input
+                                        type="email"
+                                        required
+                                        value={regEmail}
+                                        onChange={(e) => setRegEmail(e.target.value)}
+                                        placeholder="you@example.com"
+                                        className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-600 mb-2">Password</label>
+                                    <div className="relative">
+                                        <input
+                                            type={showPassword ? 'text' : 'password'}
+                                            required
+                                            value={regPassword}
+                                            onChange={(e) => setRegPassword(e.target.value)}
+                                            placeholder="••••••••"
+                                            className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowPassword(!showPassword)}
+                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                                        >
+                                            {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                        </button>
+                                    </div>
+                                    <p className="text-xs text-slate-500 mt-1">At least 8 characters</p>
+                                </div>
+
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-600 mb-2">Date of Birth</label>
+                                    <input
+                                        type="date"
+                                        required
+                                        value={regDob}
+                                        onChange={(e) => setRegDob(e.target.value)}
+                                        className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm"
+                                    />
+                                </div>
+
+                                <label className="flex items-start gap-2 p-3 border border-blue-100 bg-blue-50 rounded-lg">
+                                    <input
+                                        type="checkbox"
+                                        checked={isAgeVerified}
+                                        onChange={(e) => setIsAgeVerified(e.target.checked)}
+                                        className="w-4 h-4 mt-0.5"
+                                        required
+                                    />
+                                    <span className="text-xs text-slate-700">
+                                        I confirm I am of legal age to purchase in my jurisdiction
+                                    </span>
+                                </label>
+
+                                <button
+                                    type="submit"
+                                    disabled={loading}
+                                    className="w-full py-2.5 bg-blue-500 hover:bg-blue-600 text-white font-bold rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-2 mt-6"
+                                >
+                                    {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                                    {loading ? 'Creating account...' : 'Create Account'}
                                 </button>
-                                <p className="text-center text-[9px] text-slate-300 font-black uppercase tracking-widest pt-4">
-                                    By joining, you adhere to the <span className="text-slate-900">Hub Compliance Standards</span>.
-                                </p>
                             </motion.form>
-                        ) : (
+                        )}
+
+                        {tab === 'register' && regStep === 'otp' && (
                             <motion.form
-                                key="otp-verify"
+                                key="register-otp"
                                 initial={{ opacity: 0, x: 20 }}
                                 animate={{ opacity: 1, x: 0 }}
                                 exit={{ opacity: 0, x: -20 }}
-                                onSubmit={handleVerifyOtp}
-                                className="space-y-6"
+                                onSubmit={handleVerifyRegOtp}
+                                className="space-y-4"
                             >
-                                <div className="text-center py-4">
-                                    <div className="w-14 h-14 bg-brand-primary/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                                        <CheckCircle2 className="w-7 h-7 text-brand-primary" />
-                                    </div>
-                                    <p className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-500">Code sent to</p>
-                                    <p className="font-black text-slate-900 text-sm mt-1">{regEmail}</p>
+                                <div className="text-center py-2">
+                                    <p className="text-sm font-bold text-slate-900">Verify your email</p>
+                                    <p className="text-xs text-slate-500 mt-1">
+                                        We sent a code to<br />{regEmail}
+                                    </p>
                                 </div>
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-2">Verification Code</label>
-                                    <div className="relative group">
-                                        <KeyRound className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-brand-primary transition-colors" />
-                                        <input
-                                            type="text"
-                                            required
-                                            maxLength={6}
-                                            inputMode="numeric"
-                                            pattern="[0-9]{6}"
-                                            value={regOtpCode}
-                                            onChange={(e) => setRegOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                                            placeholder="000000"
-                                            autoFocus
-                                            className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:outline-none focus:border-brand-primary focus:bg-white focus:ring-4 focus:ring-brand-primary/10 transition-all text-2xl font-black tracking-[0.5em] text-center placeholder:text-slate-300 placeholder:tracking-[0.3em]"
-                                        />
-                                    </div>
-                                    <p className="text-[9px] text-slate-400 font-black uppercase tracking-widest ml-2">Code expires in 10 minutes</p>
+
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-600 mb-2">Verification Code</label>
+                                    <input
+                                        type="text"
+                                        required
+                                        value={regOtpCode}
+                                        onChange={(e) => setRegOtpCode(e.target.value.slice(0, 6))}
+                                        placeholder="000000"
+                                        maxLength={6}
+                                        className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm tracking-widest text-center text-lg"
+                                    />
                                 </div>
-                                <button type="submit" disabled={loading || regOtpCode.length !== 6} className="w-full py-4 bg-slate-900 text-white font-black uppercase tracking-[0.2em] rounded-2xl shadow-2xl shadow-slate-900/20 hover:bg-brand-primary transition-all flex items-center justify-center gap-3 disabled:opacity-50 active:scale-95">
+
+                                <button
+                                    type="submit"
+                                    disabled={loading}
+                                    className="w-full py-2.5 bg-blue-500 hover:bg-blue-600 text-white font-bold rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                                >
                                     {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-                                    {loading ? 'Verifying...' : 'Verify & Create Account'}
+                                    {loading ? 'Verifying...' : 'Complete Sign Up'}
                                 </button>
+
                                 <button
                                     type="button"
-                                    onClick={() => { setRegStep('form'); setRegOtpCode(''); setError(''); setResendCountdown(0); }}
-                                    disabled={resendCountdown > 0}
-                                    className="w-full py-3 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 hover:text-slate-900 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-colors"
+                                    onClick={() => {
+                                        setRegStep('form');
+                                        setError('');
+                                    }}
+                                    className="w-full py-2.5 text-slate-700 font-semibold text-sm hover:text-slate-900"
                                 >
-                                    <RefreshCw className="w-3 h-3" /> {resendCountdown > 0 ? `Resend in ${resendCountdown}s` : 'Change Email / Resend'}
+                                    ← Back
                                 </button>
+
+                                {resendCountdown > 0 && (
+                                    <p className="text-center text-xs text-slate-500">
+                                        Resend code in {resendCountdown}s
+                                    </p>
+                                )}
                             </motion.form>
                         )}
                     </AnimatePresence>
                 </div>
             </motion.div>
-
-            {tab === 'register' && !isAgeVerified && (
-                <AgeVerification onVerified={() => setIsAgeVerified(true)} />
-            )}
         </div>
     );
 }

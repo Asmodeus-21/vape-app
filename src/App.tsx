@@ -1203,31 +1203,26 @@ export default function App() {
 
     const collectionMenuItems = useMemo<CollectionMenuItem[]>(() => ([
         {
-            id: 'all-inventory',
-            label: 'All Inventory',
-            onSelect: () => navigate('/shop'),
-        },
-        {
-            id: 'shop-the-collection',
-            label: 'Shop The Collection',
-            onSelect: () => focusMarketplaceSection({ filter: 'all', sectionId: 'brand-showcase-section' }),
-        },
-        {
             id: 'pulse-x-series',
             label: 'Pulse X Series',
             onSelect: () => navigate('/shop/pulse-x-series'),
         },
         {
-            id: 'start-your-session',
-            label: 'Start Your Session',
-            onSelect: scrollToFlavorExplorer,
+            id: 'the-kits',
+            label: 'The Kits',
+            onSelect: () => navigate('/shop/the-kits'),
         },
         {
-            id: 'seamless-delivery',
-            label: 'Seamless Delivery',
-            onSelect: () => focusMarketplaceSection({ filter: 'express', sectionId: 'shipping-logistics-section' }),
+            id: 'the-originals',
+            label: 'The Originals',
+            onSelect: () => navigate('/shop/the-originals'),
         },
-    ]), [focusMarketplaceSection, navigate, scrollToFlavorExplorer]);
+        {
+            id: 'cloud-series',
+            label: 'Cloud Series',
+            onSelect: () => navigate('/shop?q=Cloud'),
+        },
+    ]), [navigate]);
 
     const handleCollectionMenuSelect = useCallback((item: CollectionMenuItem, surface: 'desktop' | 'mobile') => {
         item.onSelect();
@@ -2517,7 +2512,7 @@ export default function App() {
                             <li><Link to="/shop/pulse-x-series" className="hover:text-white transition-colors">Pulse X Series</Link></li>
                             <li><Link to="/shop/the-kits" className="hover:text-white transition-colors">The Kits</Link></li>
                             <li><Link to="/shop/the-originals" className="hover:text-white transition-colors">The Originals</Link></li>
-                            <li><Link to={buildProductsUrl({ search: 'Cloud' })} className="hover:text-white transition-colors">Cloud Series</Link></li>
+                            <li><Link to="/shop?q=Cloud" className="hover:text-white transition-colors">Cloud Series</Link></li>
                         </ul>
                     </div>
                     <div className="space-y-6">

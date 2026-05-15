@@ -158,6 +158,14 @@ function buildProductsUrl(params?: ProductRouteParams): string {
     return `/products${search ? `?${search}` : ''}`;
 }
 
+function buildShopUrl(params?: { search?: string; filter?: ProductFilter; category?: string }): string {
+    const query = new URLSearchParams();
+    if (params?.search) query.set('q', params.search);
+    if (params?.filter && params.filter !== 'all') query.set('tag', params.filter);
+    if (params?.category) query.set('cat', params.category);
+    return `/shop${query.toString() ? `?${query.toString()}` : ''}`;
+}
+
 function buildProductDetailUrl(productId: number): string {
     return `/product/${productId}`;
 }
@@ -271,6 +279,12 @@ function getSalePercentage(product: Product): number {
 
 function isHighDemandProduct(product: Product): boolean {
     return Boolean(product.isBestSeller || product.isNewArrival || product.stockQty <= 150);
+}
+
+function isComingSoonProduct(product: Product): boolean {
+    return /^(hydroxie|blues)/i.test(product.brand || product.name || '')
+        || /coming soon/i.test(product.name || '')
+        || /coming soon/i.test(product.brand || '');
 }
 
 function MarketplaceProductCard({ group, selectedVariant, onOpenProduct, onSelectVariant, cardMode = 'standard' }: MarketplaceProductCardProps) {
@@ -455,6 +469,7 @@ export default function App() {
     const [activeTab, setActiveTab] = useState<'marketplace' | 'vendor' | 'admin'>('marketplace');
     const [products, setProducts] = useState<Product[]>([]);
     const [homepageGridGroups, setHomepageGridGroups] = useState<ParentVariantGroup[]>([]);
+    const homepageGridProducts = useMemo(() => homepageGridGroups.flatMap((group) => group.variants), [homepageGridGroups]);
     const [productsLoading, setProductsLoading] = useState(true);
     const [homepageGridLoading, setHomepageGridLoading] = useState(true);
     const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
@@ -886,6 +901,11 @@ export default function App() {
     };
 
     const addToCart = (product: Product, quantity: number = 1, options?: { flavor: string; nicotine: string }) => {
+        if (isComingSoonProduct(product)) {
+            toast.error('This product is coming soon. Sign up to be notified when it becomes available.');
+            return;
+        }
+
         const itemToAdd = {
             ...product,
             flavor: options?.flavor || product.flavor,
@@ -1057,10 +1077,10 @@ export default function App() {
         setPendingScrollTarget(options.sectionId);
         setIsCollectionMenuOpen(false);
 
-        const nextUrl = buildProductsUrl({
+        const nextUrl = buildShopUrl({
             category: options.category,
             search: options.search,
-            tag: options.filter !== 'all' ? options.filter : undefined,
+            filter: options.filter,
         });
         const currentUrl = `${location.pathname}${location.search}`;
         if (nextUrl !== currentUrl) {
@@ -1719,13 +1739,8 @@ export default function App() {
                                                         addToCart(matchingProduct, 1);
                                                         setIsCartOpen(true);
                                                     } else {
-                                                        // Fallback: search marketplace
-                                                        focusMarketplaceSection({
-                                                            filter: 'all',
-                                                            search: banner.brand,
-                                                            category: banner.category,
-                                                            sectionId: 'marketplace-grid-section',
-                                                        });
+                                                        // Fallback: search the shop page
+                                                        navigate(buildShopUrl({ search: banner.search || banner.brand, filter: 'all', category: banner.category }));
                                                     }
                                                 }}
                                                 className="inline-flex h-12 items-center justify-center rounded-[1rem] bg-[#4AB1F4] px-6 text-[11px] font-black uppercase tracking-[0.18em] text-white shadow-[0_10px_22px_rgba(74,177,244,0.42)] transition-all hover:-translate-y-0.5 hover:bg-[#2f9ce5]"
@@ -2530,11 +2545,11 @@ export default function App() {
                 </div>
 
                 <div className="border-t border-white/5 py-16 flex flex-col items-center gap-8 bg-slate-950/50">
-                    <div className="flex items-center gap-4 group cursor-pointer">
+                    <div className="flex flex-col items-center gap-3 group cursor-pointer md:flex-row md:gap-4">
                         <img
                             src="/logo.png"
                             alt="Banana Leaf Store"
-                            className="h-12 w-auto object-contain brightness-0 invert"
+                            className="h-16 md:h-20 w-auto object-contain brightness-0 invert"
                             onError={(e) => {
                                 const img = e.currentTarget;
                                 img.style.display = 'none';
@@ -2542,7 +2557,7 @@ export default function App() {
                                 if (fallback) fallback.style.display = 'inline';
                             }}
                         />
-                        <span className="hidden text-3xl font-black tracking-tighter uppercase italic">Banana Leaf<span className="text-brand-primary">.</span></span>
+                        <span className="hidden md:inline-block text-3xl font-black tracking-tighter uppercase italic">Banana Leaf<span className="text-brand-primary">.</span></span>
                     </div>
                     <div className="text-center space-y-3 px-6">
                         <p className="text-[11px] font-black uppercase tracking-[0.35em] text-white">Banana Leaf // Authenticity First.</p>

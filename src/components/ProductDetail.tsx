@@ -96,7 +96,16 @@ export default function ProductDetail({ group, selectedVariantId, onBack, onVari
         );
     }
 
+    const isComingSoon = /^(hydroxie|blues)/i.test(selectedVariant.brand || selectedVariant.name || '')
+        || /coming soon/i.test(selectedVariant.name || '')
+        || /coming soon/i.test(selectedVariant.brand || '');
+
     const handleAddToCart = () => {
+        if (isComingSoon) {
+            toast.error('This product is coming soon. We’ll let you know when it’s available.');
+            return;
+        }
+
         if (selectedVariant.stockQty < quantity) {
             toast.error(`Only ${selectedVariant.stockQty} items left in stock.`);
             return;
@@ -278,14 +287,14 @@ export default function ProductDetail({ group, selectedVariantId, onBack, onVari
                                 {/* Add to Cart */}
                                 <button
                                     onClick={handleAddToCart}
-                                    disabled={selectedVariant.stockQty === 0}
-                                    className={`flex-1 w-full h-16 rounded-[2rem] flex items-center justify-center gap-3 font-black uppercase tracking-[0.2em] text-[11px] shadow-2xl transition-all active:scale-95 ${selectedVariant.stockQty > 0
+                                    disabled={selectedVariant.stockQty === 0 || isComingSoon}
+                                    className={`flex-1 w-full h-16 rounded-[2rem] flex items-center justify-center gap-3 font-black uppercase tracking-[0.2em] text-[11px] shadow-2xl transition-all active:scale-95 ${selectedVariant.stockQty > 0 && !isComingSoon
                                         ? 'bg-slate-900 text-white hover:bg-brand-primary shadow-slate-900/20'
                                         : 'bg-slate-100 text-slate-300 cursor-not-allowed'
                                         }`}
                                 >
                                     <Package className="w-5 h-5" />
-                                    {selectedVariant.stockQty > 0 ? 'Initialize Secure Order' : 'Asset Unavailable'}
+                                    {isComingSoon ? 'Coming Soon' : selectedVariant.stockQty > 0 ? 'Initialize Secure Order' : 'Asset Unavailable'}
                                 </button>
                             </div>
 

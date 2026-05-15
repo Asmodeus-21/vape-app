@@ -1729,19 +1729,7 @@ export default function App() {
                                             <button
                                                 type="button"
                                                 onClick={() => {
-                                                    // Find first product matching banner search term
-                                                    const matchingProduct = homepageGridProducts.find(p =>
-                                                        p.name.toLowerCase().includes(banner.search?.toLowerCase() || banner.brand.toLowerCase())
-                                                    );
-
-                                                    if (matchingProduct) {
-                                                        // Add to cart and show cart
-                                                        addToCart(matchingProduct, 1);
-                                                        setIsCartOpen(true);
-                                                    } else {
-                                                        // Fallback: search the shop page
-                                                        navigate(buildShopUrl({ search: banner.search || banner.brand, filter: 'all', category: banner.category }));
-                                                    }
+                                                    navigate(buildShopUrl({ search: banner.search || banner.brand, filter: 'all', category: banner.category }));
                                                 }}
                                                 className="inline-flex h-12 items-center justify-center rounded-[1rem] bg-[#4AB1F4] px-6 text-[11px] font-black uppercase tracking-[0.18em] text-white shadow-[0_10px_22px_rgba(74,177,244,0.42)] transition-all hover:-translate-y-0.5 hover:bg-[#2f9ce5]"
                                             >

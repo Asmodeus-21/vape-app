@@ -2537,7 +2537,7 @@ export default function App() {
                         <img
                             src="/logo.png"
                             alt="Banana Leaf Store"
-                            className="h-16 md:h-20 w-auto object-contain brightness-0 invert"
+                            className="h-16 md:h-[112px] w-auto object-contain brightness-0 invert"
                             onError={(e) => {
                                 const img = e.currentTarget;
                                 img.style.display = 'none';
@@ -2545,7 +2545,7 @@ export default function App() {
                                 if (fallback) fallback.style.display = 'inline';
                             }}
                         />
-                        <span className="hidden md:inline-block text-3xl font-black tracking-tighter uppercase italic">Banana Leaf<span className="text-brand-primary">.</span></span>
+                        <span className="hidden text-3xl font-black tracking-tighter uppercase italic">Banana Leaf<span className="text-brand-primary">.</span></span>
                     </div>
                     <div className="text-center space-y-3 px-6">
                         <p className="text-[11px] font-black uppercase tracking-[0.35em] text-white">Banana Leaf // Authenticity First.</p>

@@ -974,6 +974,27 @@ export default function App() {
         setIsCollectionMenuOpen(false);
     };
 
+    const handleHeaderSearchSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        const trimmedSearch = searchQuery.trim();
+
+        setActiveTab('marketplace');
+        setSelectedProductId(null);
+
+        if (location.pathname !== '/products') {
+            setActiveFilter('all');
+            setActiveCategory(undefined);
+            navigate(buildProductsUrl({ search: trimmedSearch }));
+            return;
+        }
+
+        const params = new URLSearchParams();
+        if (activeFilter !== 'all') params.set('filter', activeFilter);
+        if (activeCategory) params.set('category', toCategoryParam(activeCategory));
+        if (trimmedSearch) params.set('search', trimmedSearch);
+        navigate(`/products${params.toString() ? `?${params.toString()}` : ''}`);
+    };
+
     const handleSessionAccessClick = () => {
         if (currentUser) {
             handleSignOut();
@@ -1499,7 +1520,7 @@ export default function App() {
 
                         <div className="hidden sm:flex flex-1 items-center gap-3">
                             {/* Search Bar */}
-                            <div className="flex flex-1 max-w-md h-12 rounded-2xl overflow-hidden bg-slate-50 border border-slate-200 focus-within:ring-4 focus-within:ring-brand-primary/10 transition-all">
+                            <form onSubmit={handleHeaderSearchSubmit} className="flex flex-1 max-w-md h-12 rounded-2xl overflow-hidden bg-slate-50 border border-slate-200 focus-within:ring-4 focus-within:ring-brand-primary/10 transition-all">
                                 <div className="bg-slate-100 flex items-center px-4 border-r border-slate-200 cursor-pointer hover:bg-slate-200 transition-colors">
                                     <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 whitespace-nowrap">Inventory</span>
                                 </div>
@@ -1510,10 +1531,10 @@ export default function App() {
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
                                 />
-                                <button className="h-12 flex items-center bg-slate-900 px-6 hover:bg-brand-primary transition-colors">
+                                <button type="submit" className="h-12 flex items-center bg-slate-900 px-6 hover:bg-brand-primary transition-colors" aria-label="Search inventory">
                                     <Search className="w-5 h-5 text-white" />
                                 </button>
-                            </div>
+                            </form>
                             <button
                                 type="button"
                                 onClick={() => navigate('/shop')}
@@ -1630,7 +1651,7 @@ export default function App() {
 
                 {/* Mobile Search - Visible only on mobile */}
                 <div className={`relative z-[60] md:hidden px-3 pb-3 ${isMobileSearchOpen ? 'block' : 'hidden'}`}>
-                    <div className="mx-1 flex h-10 rounded-full overflow-hidden border border-gray-200 bg-white shadow-sm">
+                    <form onSubmit={handleHeaderSearchSubmit} className="mx-1 flex h-10 rounded-full overflow-hidden border border-gray-200 bg-white shadow-sm">
                         <input
                             type="text"
                             className="flex-1 px-3 text-sm focus:outline-none"
@@ -1639,10 +1660,10 @@ export default function App() {
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                         />
-                        <button className="bg-brand-primary px-4">
+                        <button type="submit" className="bg-brand-primary px-4" aria-label="Search products">
                             <Search className="w-4 h-4 text-white" />
                         </button>
-                    </div>
+                    </form>
                 </div>
             </header>
 

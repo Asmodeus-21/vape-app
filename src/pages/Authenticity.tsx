@@ -12,7 +12,7 @@ export default function Authenticity() {
         <PageLayout
             eyebrow="About"
             title="Authenticity"
-            subtitle="Every SKU on Banana Leaf passes a documented authenticity workflow before it appears in the marketplace1."
+            subtitle="Every SKU on Banana Leaf passes a documented authenticity workflow before it appears in the marketplace."
         >
             <ul className="grid gap-4 md:grid-cols-2">
                 {CHECKS.map((item) => (

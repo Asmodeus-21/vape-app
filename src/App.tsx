@@ -997,19 +997,12 @@ export default function App() {
 
         setActiveTab('marketplace');
         setSelectedProductId(null);
-
-        if (location.pathname !== '/products') {
-            setActiveFilter('all');
-            setActiveCategory(undefined);
-            navigate(buildProductsUrl({ search: trimmedSearch }));
-            return;
-        }
+        setActiveFilter('all');
+        setActiveCategory(undefined);
 
         const params = new URLSearchParams();
-        if (activeFilter !== 'all') params.set('filter', activeFilter);
-        if (activeCategory) params.set('category', toCategoryParam(activeCategory));
-        if (trimmedSearch) params.set('search', trimmedSearch);
-        navigate(`/products${params.toString() ? `?${params.toString()}` : ''}`);
+        if (trimmedSearch) params.set('q', trimmedSearch);
+        navigate(`/shop${params.toString() ? `?${params.toString()}` : ''}`);
     };
 
     const handleSessionAccessClick = () => {

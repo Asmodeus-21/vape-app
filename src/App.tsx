@@ -991,20 +991,6 @@ export default function App() {
         setIsCollectionMenuOpen(false);
     };
 
-    const handleHeaderSearchSubmit = (event: React.FormEvent<HTMLFormElement>) => {
-        event.preventDefault();
-        const trimmedSearch = searchQuery.trim();
-
-        setActiveTab('marketplace');
-        setSelectedProductId(null);
-        setActiveFilter('all');
-        setActiveCategory(undefined);
-
-        const params = new URLSearchParams();
-        if (trimmedSearch) params.set('q', trimmedSearch);
-        navigate(`/shop${params.toString() ? `?${params.toString()}` : ''}`);
-    };
-
     const handleSessionAccessClick = () => {
         if (currentUser) {
             handleSignOut();

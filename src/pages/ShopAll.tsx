@@ -201,8 +201,15 @@ function buildFiltersFromParams(params: URLSearchParams): FilterState {
         categories: params.getAll('cat'),
         brands: params.getAll('brand'),
         tag: params.get('tag') ?? 'all',
-        search: params.get('q') ?? '',
+        search: params.get('q') ?? params.get('search') ?? '',
     };
+}
+
+function areFiltersEqual(a: FilterState, b: FilterState): boolean {
+    if (a.tag !== b.tag || a.search !== b.search) return false;
+    if (a.categories.length !== b.categories.length || a.brands.length !== b.brands.length) return false;
+    return a.categories.every((value, index) => value === b.categories[index])
+        && a.brands.every((value, index) => value === b.brands[index]);
 }
 
 function toggle(arr: string[], value: string): string[] {
@@ -322,6 +329,14 @@ export default function ShopAll() {
     const [localSearch, setLocalSearch] = useState(filters.search);
     const sortRef = useRef<HTMLDivElement>(null);
 
+    useEffect(() => {
+        const nextFilters = buildFiltersFromParams(searchParams);
+        if (!areFiltersEqual(filters, nextFilters)) {
+            setFilters(nextFilters);
+            setLocalSearch(nextFilters.search);
+        }
+    }, [searchParams, filters]);
+
     // Fetch ALL products — retry once on cold-start empty response
     useEffect(() => {
         let cancelled = false;
@@ -415,13 +430,17 @@ export default function ShopAll() {
         ...(filters.search ? [{ label: `"${filters.search}"`, remove: () => { setFilters((f) => ({ ...f, search: '' })); setLocalSearch(''); } }] : []),
     ];
 
+    const pageHeaderTitle = filters.search.trim()
+        ? `Search results for "${filters.search.trim()}"`
+        : 'All Products';
+
     return (
         <div className="mx-4 mt-4 mb-12">
             {/* ── Page header ─────────────────────────────────────────── */}
             <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                     <p className="text-[10px] font-black uppercase tracking-[0.4em] text-[#4AB1F4]">Banana Leaf</p>
-                    <h1 className="text-2xl font-black uppercase tracking-tighter text-slate-900 sm:text-3xl">All Products</h1>
+                    <h1 className="text-2xl font-black uppercase tracking-tighter text-slate-900 sm:text-3xl">{pageHeaderTitle}</h1>
                     {!loading && (
                         <p className="mt-1 text-[11px] font-semibold text-slate-400">
                             {displayProducts.length} {displayProducts.length === 1 ? 'product' : 'products'}

@@ -588,6 +588,10 @@ export default function App() {
         if (location.pathname === '/products') {
             applyMarketplaceStateFromUrl(searchParams);
         }
+
+        if (location.pathname === '/shop') {
+            setSearchQuery(searchParams.get('q') ?? '');
+        }
     }, [applyMarketplaceStateFromUrl, location.pathname, searchParams]);
 
     useEffect(() => {
@@ -809,6 +813,19 @@ export default function App() {
         localStorage.removeItem('vapeshub_token');
         setCurrentUser(null);
         toast.success('Signed out successfully.');
+    };
+
+    const handleHeaderSearchSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        const trimmedSearch = searchQuery.trim();
+
+        setActiveTab('marketplace');
+        setSelectedProductId(null);
+
+        const params = new URLSearchParams();
+        if (trimmedSearch) params.set('q', trimmedSearch);
+
+        navigate(`/shop${params.toString() ? `?${params.toString()}` : ''}`);
     };
 
     // ── Live Vendor AI Bots ───────────────────────────────────────────

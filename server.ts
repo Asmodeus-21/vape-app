@@ -661,7 +661,7 @@ export async function createApp(options: { skipSeed?: boolean; skipVite?: boolea
 
     // ─── OTP AUTH ─────────────────────────────────────────────────────────────
     app.post("/api/auth/request-otp", async (req, res) => {
-        const { email } = req.body;
+        const { email, name } = req.body;
         if (!email || typeof email !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
             res.status(400).json({ error: 'Valid email is required' });
             return;
@@ -670,7 +670,7 @@ export async function createApp(options: { skipSeed?: boolean; skipVite?: boolea
         const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
         try {
             await createOtp(sql, email.toLowerCase().trim(), code, expiresAt);
-            await sendOtpEmail(email.toLowerCase().trim(), code);
+            await sendOtpEmail(email.toLowerCase().trim(), code, name);
             res.json({ success: true });
         } catch (err: any) {
             sendSafeError(res, err, 'Failed to send OTP');

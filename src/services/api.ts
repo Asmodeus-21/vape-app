@@ -397,11 +397,11 @@ export async function clearCartApi(token: string): Promise<void> {
 
 // ─── OTP AUTH ─────────────────────────────────────────────────────────────────
 
-export async function requestOtp(email: string): Promise<void> {
+export async function requestOtp(email: string, name?: string): Promise<void> {
     const res = await fetch('/api/auth/request-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email, name }),
     });
     const data = await res.json();
     if (!res.ok) {

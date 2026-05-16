@@ -48,9 +48,10 @@ export async function sendDeliveredNotification(to: string, orderId: number): Pr
     });
 }
 
-export async function sendOtpEmail(to: string, code: string): Promise<void> {
+export async function sendOtpEmail(to: string, code: string, name?: string): Promise<void> {
     await sendWebhookEvent('otp_verification', {
         email: to,
-        otp_code: code
+        otp_code: code,
+        name: name || undefined
     });
 }

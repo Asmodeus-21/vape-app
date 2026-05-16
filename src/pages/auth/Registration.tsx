@@ -76,7 +76,7 @@ export default function Registration() {
         setIsSubmitting(true);
         setResendCountdown(30);
         try {
-            await requestOtp(formData.email);
+            await requestOtp(formData.email, formData.fullName);
             setShowOtpVerification(true);
             toast.success('Verification code sent to your email.', { duration: 4000 });
         } catch {
@@ -92,7 +92,7 @@ export default function Registration() {
         setIsSubmitting(true);
         setResendCountdown(30);
         try {
-            await requestOtp(formData.email);
+            await requestOtp(formData.email, formData.fullName);
             toast.success('New verification code sent.', { duration: 4000 });
         } catch {
             setError('An unexpected error occurred. Please try again later.');

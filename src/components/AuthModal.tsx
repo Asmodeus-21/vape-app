@@ -164,7 +164,7 @@ export default function AuthModal({ onClose, onAuthSuccess }: AuthModalProps) {
         setLoading(true);
         setResendCountdown(30);
         try {
-            await requestOtp(regEmail);
+            await requestOtp(regEmail, regName);
             setRegStep('otp');
             toast.success('Verification code sent to your email.', { duration: 4000 });
         } catch (err: any) {
@@ -180,7 +180,7 @@ export default function AuthModal({ onClose, onAuthSuccess }: AuthModalProps) {
         setLoading(true);
         setResendCountdown(30);
         try {
-            await requestOtp(regEmail);
+            await requestOtp(regEmail, regName);
             toast.success('Verification code resent to your email.', { duration: 4000 });
         } catch (err: any) {
             setError(err.message || 'Failed to resend verification code. Please try again.');

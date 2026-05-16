@@ -267,6 +267,31 @@ export async function checkoutOrder(
     });
 }
 
+export async function calculateOrderTotal(
+    sql: Sql,
+    items: Array<{ productId: number; quantity: number }>,
+    deliveryMethod: 'standard' | 'express'
+) {
+    let subtotal = 0;
+    for (const item of items) {
+        const productRows = await sql<any[]>`
+            SELECT price, stock_qty FROM products WHERE id = ${item.productId}
+        `;
+        const product = productRows[0];
+        if (!product) {
+            throw new Error(`Product ${item.productId} not found`);
+        }
+        if (Number(product.stock_qty) < item.quantity) {
+            throw new Error(`Insufficient stock for product ${item.productId}`);
+        }
+
+        const unitPrice = Number(product.price);
+        subtotal += unitPrice * item.quantity;
+    }
+    const deliveryFee = deliveryMethod === 'express' ? 5.99 : 0;
+    return subtotal + deliveryFee;
+}
+
 export async function getAdminStats(sql: Sql) {
     const [rows] = await sql<any[]>`
         SELECT

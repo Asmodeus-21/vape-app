@@ -11,7 +11,9 @@ import { getPostgresClient, initializeDatabase } from "./db/index.js";
 import { seedPostgres } from "./db/seed-postgres.js";
 import { authMiddleware, createToken, loginUser, registerUser, verifyToken, type AuthPayload } from "./server/auth.js";
 import { sendDeliveredNotification, sendOrderConfirmation, sendOtpEmail } from "./server/email.js";
+import Stripe from 'stripe';
 import {
+    calculateOrderTotal,
     checkoutOrder,
     clearUserCart,
     createOtp,
@@ -86,6 +88,10 @@ function parseOptionalStoreId(rawStoreId: unknown): number | null {
 
     return parsed;
 }
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
+    apiVersion: '2025-02-24.acacia',
+});
 
 function sendSafeError(res: express.Response, err: any, fallback: string): void {
     const safeMessage = process.env.NODE_ENV === 'production' ? fallback : (err?.message || fallback);
@@ -507,6 +513,31 @@ export async function createApp(options: { skipSeed?: boolean; skipVite?: boolea
             res.status(201).json({ success: true, orderId });
         } catch (err: any) {
             res.status(400).json({ error: err.message });
+        }
+    });
+
+    app.post('/api/orders/create-payment-intent', async (req, res) => {
+        const { items, deliveryMethod } = req.body;
+        if (!Array.isArray(items) || items.length === 0) {
+            res.status(400).json({ error: 'Items array is required' });
+            return;
+        }
+
+        try {
+            const total = await calculateOrderTotal(sql, items, deliveryMethod || 'standard');
+            const amountInCents = Math.round(total * 100);
+
+            const paymentIntent = await stripe.paymentIntents.create({
+                amount: amountInCents,
+                currency: 'usd',
+                automatic_payment_methods: {
+                    enabled: true,
+                },
+            });
+
+            res.json({ clientSecret: paymentIntent.client_secret });
+        } catch (err: any) {
+            sendSafeError(res, err, 'Failed to create payment intent');
         }
     });
 

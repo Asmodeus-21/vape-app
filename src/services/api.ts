@@ -170,6 +170,17 @@ export async function createOrder(token: string | null | undefined, items: { pro
     return data;
 }
 
+export async function createPaymentIntent(items: { productId: number; quantity: number }[], deliveryMethod: string) {
+    const res = await fetch('/api/orders/create-payment-intent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items, deliveryMethod }),
+    });
+    const data = await safeJson(res);
+    if (!res.ok) throw new Error(data.error || 'Failed to initialize payment');
+    return data as { clientSecret: string };
+}
+
 export async function createGuestOrder(
     items: { productId: number; quantity: number }[],
     shippingAddress: string,

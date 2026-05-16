@@ -4,6 +4,12 @@ import { useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { createGuestOrder, createOrder, registerWithOtp, requestOtp, verifyLoginOtp } from '../services/api';
 import { Product } from '../types';
+import { Elements } from '@stripe/react-stripe-js';
+import { loadStripe } from '@stripe/stripe-js';
+import StripePaymentForm from './StripePaymentForm';
+import { createPaymentIntent } from '../services/api';
+
+const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '');
 
 interface AuthUser {
     id: number;
@@ -46,6 +52,7 @@ export default function CheckoutOverlay({
 }: CheckoutOverlayProps) {
     const [step, setStep] = useState<CheckoutStep>('shipping');
     const [isProcessing, setIsProcessing] = useState(false);
+    const [clientSecret, setClientSecret] = useState<string>('');
 
     const [fullName, setFullName] = useState(currentUser?.name || '');
     const [customerEmail, setCustomerEmail] = useState(currentUser?.email || '');
@@ -297,7 +304,24 @@ export default function CheckoutOverlay({
 
                                 <div className="flex gap-3">
                                     <button type="button" onClick={() => setStep('shipping')} className="inline-flex h-11 items-center justify-center rounded-xl border border-slate-200 px-5 text-[11px] font-black uppercase tracking-[0.2em] text-slate-600 hover:bg-slate-100 transition-colors">Back</button>
-                                    <button type="button" onClick={() => setStep('payment')} className="inline-flex h-11 items-center justify-center rounded-xl bg-slate-900 px-6 text-[11px] font-black uppercase tracking-[0.2em] text-white hover:bg-[#4AB1F4] transition-colors">Continue to Payment <ArrowRight className="ml-2 h-4 w-4" /></button>
+                                    <button type="button" onClick={async () => {
+                                        setIsProcessing(true);
+                                        try {
+                                            const itemsToOrder = cartItems.map((item) => ({
+                                                productId: item.product.id,
+                                                quantity: item.quantity,
+                                            }));
+                                            const { clientSecret: secret } = await createPaymentIntent(itemsToOrder, deliveryMethod);
+                                            setClientSecret(secret);
+                                            setStep('payment');
+                                        } catch (err: any) {
+                                            toast.error(err.message || 'Failed to initialize payment');
+                                        } finally {
+                                            setIsProcessing(false);
+                                        }
+                                    }} className="inline-flex h-11 items-center justify-center rounded-xl bg-slate-900 px-6 text-[11px] font-black uppercase tracking-[0.2em] text-white hover:bg-[#4AB1F4] transition-colors">
+                                        {isProcessing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <>Continue to Payment <ArrowRight className="ml-2 h-4 w-4" /></>}
+                                    </button>
                                 </div>
                             </motion.div>
                         )}
@@ -309,10 +333,6 @@ export default function CheckoutOverlay({
                                     <h3 className="text-xl font-black uppercase tracking-tight text-slate-900">Payment</h3>
                                 </div>
 
-                                <div className="rounded-xl border border-slate-200 bg-slate-50 p-5">
-                                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 flex items-center gap-2"><CreditCard className="w-4 h-4" /> Payment Placeholder</p>
-                                    <p className="mt-2 text-xs font-semibold text-slate-500">Stripe / credit card fields will mount here.</p>
-                                </div>
 
                                 {isGuestCheckout && (
                                     <div className="rounded-xl border border-slate-200 bg-white p-5 space-y-4">
@@ -349,22 +369,15 @@ export default function CheckoutOverlay({
                                     </div>
                                 )}
 
-                                <div className="rounded-xl border border-slate-200 bg-slate-50 p-5">
-                                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Order Total</p>
-                                    <div className="mt-2 space-y-1 text-sm font-semibold text-slate-600">
-                                        <p>Subtotal: ${subtotal.toFixed(2)}</p>
-                                        <p>Delivery: ${deliveryFee.toFixed(2)}</p>
-                                    </div>
-                                    <p className="mt-3 text-3xl font-black tracking-tight text-slate-900">${total.toFixed(2)}</p>
-                                </div>
-
-                                <div className="flex flex-wrap gap-3">
-                                    <button type="button" onClick={() => setStep('delivery')} className="inline-flex h-11 items-center justify-center rounded-xl border border-slate-200 px-5 text-[11px] font-black uppercase tracking-[0.2em] text-slate-600 hover:bg-slate-100 transition-colors">Back</button>
-                                    <button type="button" disabled={isProcessing} onClick={handleCompletePurchase} className="inline-flex h-11 items-center justify-center rounded-xl bg-[#4AB1F4] px-6 text-[11px] font-black uppercase tracking-[0.18em] text-white shadow-[0_10px_22px_rgba(74,177,244,0.42)] hover:bg-[#2f9ce5] transition-colors disabled:opacity-70">
-                                        {isProcessing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Truck className="mr-2 h-4 w-4" />}
-                                        Complete Purchase
-                                    </button>
-                                </div>
+                                {clientSecret && (
+                                    <Elements options={{ clientSecret, appearance: { theme: 'stripe' } }} stripe={stripePromise}>
+                                        <StripePaymentForm 
+                                            onPaymentSuccess={handleCompletePurchase}
+                                            totalAmount={total}
+                                            onBack={() => setStep('delivery')}
+                                        />
+                                    </Elements>
+                                )}
                             </motion.div>
                         )}
                     </AnimatePresence>

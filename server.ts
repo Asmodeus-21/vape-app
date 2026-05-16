@@ -90,7 +90,7 @@ function parseOptionalStoreId(rawStoreId: unknown): number | null {
 }
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_dummy_key_to_prevent_startup_crash', {
-    apiVersion: '2025-02-24.acacia',
+    apiVersion: '2026-04-22.dahlia',
 });
 
 function sendSafeError(res: express.Response, err: any, fallback: string): void {

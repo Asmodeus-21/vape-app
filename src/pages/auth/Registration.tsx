@@ -76,12 +76,7 @@ export default function Registration() {
         setIsSubmitting(true);
         setResendCountdown(30);
         try {
-            const otpRes = await requestOtp(formData.email);
-            if (!otpRes.success) {
-                setError(otpRes.error || 'Failed to send verification code.');
-                setResendCountdown(0);
-                return;
-            }
+            await requestOtp(formData.email);
             setShowOtpVerification(true);
             toast.success('Verification code sent to your email.', { duration: 4000 });
         } catch {
@@ -97,12 +92,7 @@ export default function Registration() {
         setIsSubmitting(true);
         setResendCountdown(30);
         try {
-            const otpRes = await requestOtp(formData.email);
-            if (!otpRes.success) {
-                setError(otpRes.error || 'Failed to resend verification code.');
-                setResendCountdown(0);
-                return;
-            }
+            await requestOtp(formData.email);
             toast.success('New verification code sent.', { duration: 4000 });
         } catch {
             setError('An unexpected error occurred. Please try again later.');

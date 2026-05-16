@@ -1,4 +1,4 @@
-const GHL_WEBHOOK_URL = process.env.GHL_WEBHOOK_URL?.trim();
+const GHL_WEBHOOK_URL = process.env.GHL_WEBHOOK_URL?.trim() || process.env.GOHIGHLEVEL_WEBHOOK_URL?.trim();
 
 function isWebhookConfigured(): boolean {
     return Boolean(GHL_WEBHOOK_URL);
@@ -51,6 +51,6 @@ export async function sendDeliveredNotification(to: string, orderId: number): Pr
 export async function sendOtpEmail(to: string, code: string): Promise<void> {
     await sendWebhookEvent('otp_verification', {
         email: to,
-        otpCode: code
+        otp_code: code
     });
 }

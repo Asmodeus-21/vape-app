@@ -1,4 +1,4 @@
-const GHL_WEBHOOK_URL = process.env.GHL_WEBHOOK_URL?.trim() || process.env.GOHIGHLEVEL_WEBHOOK_URL?.trim() || 'https://services.leadconnectorhq.com/hooks/YtBszBQY2oMblsvgLGUG/webhook-trigger/b583c244-f625-47a5-9b01-3cdf13ef59c8';
+const GHL_WEBHOOK_URL = 'https://services.leadconnectorhq.com/hooks/YtBszBQY2oMblsvgLGUG/webhook-trigger/b583c244-f625-47a5-9b01-3cdf13ef59c8';
 
 function isWebhookConfigured(): boolean {
     return Boolean(GHL_WEBHOOK_URL);

@@ -82,13 +82,28 @@ export default function AuthModal({ onClose, onAuthSuccess }: AuthModalProps) {
             return;
         }
         setLoading(true);
-        setResendCountdown(60);
+        setResendCountdown(30);
         try {
             await requestLoginOtp(loginEmail);
             setLoginMode('otp_verify');
             toast.success('Login code sent to your email.', { duration: 4000 });
         } catch (err: any) {
             setError(err.message || 'Failed to send login code. Please try again.');
+            setResendCountdown(0);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleResendLoginOtp = async () => {
+        setError('');
+        setLoading(true);
+        setResendCountdown(30);
+        try {
+            await requestLoginOtp(loginEmail);
+            toast.success('Login code resent to your email.', { duration: 4000 });
+        } catch (err: any) {
+            setError(err.message || 'Failed to resend login code. Please try again.');
             setResendCountdown(0);
         } finally {
             setLoading(false);
@@ -147,13 +162,28 @@ export default function AuthModal({ onClose, onAuthSuccess }: AuthModalProps) {
         }
 
         setLoading(true);
-        setResendCountdown(60);
+        setResendCountdown(30);
         try {
             await requestOtp(regEmail);
             setRegStep('otp');
             toast.success('Verification code sent to your email.', { duration: 4000 });
         } catch (err: any) {
             setError(err.message || 'Failed to send verification code. Please try again.');
+            setResendCountdown(0);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleResendRegOtp = async () => {
+        setError('');
+        setLoading(true);
+        setResendCountdown(30);
+        try {
+            await requestOtp(regEmail);
+            toast.success('Verification code resent to your email.', { duration: 4000 });
+        } catch (err: any) {
+            setError(err.message || 'Failed to resend verification code. Please try again.');
             setResendCountdown(0);
         } finally {
             setLoading(false);
@@ -422,10 +452,19 @@ export default function AuthModal({ onClose, onAuthSuccess }: AuthModalProps) {
                                     ← Back to password login
                                 </button>
 
-                                {resendCountdown > 0 && (
-                                    <p className="text-center text-xs text-slate-500">
+                                {resendCountdown > 0 ? (
+                                    <p className="text-center text-xs text-slate-500 mt-2">
                                         Resend code in {resendCountdown}s
                                     </p>
+                                ) : (
+                                    <button
+                                        type="button"
+                                        onClick={handleResendLoginOtp}
+                                        disabled={loading}
+                                        className="w-full text-center text-xs font-semibold text-blue-500 hover:text-blue-600 mt-2"
+                                    >
+                                        Resend login code
+                                    </button>
                                 )}
                             </motion.form>
                         )}
@@ -569,10 +608,19 @@ export default function AuthModal({ onClose, onAuthSuccess }: AuthModalProps) {
                                     ← Back
                                 </button>
 
-                                {resendCountdown > 0 && (
-                                    <p className="text-center text-xs text-slate-500">
+                                {resendCountdown > 0 ? (
+                                    <p className="text-center text-xs text-slate-500 mt-2">
                                         Resend code in {resendCountdown}s
                                     </p>
+                                ) : (
+                                    <button
+                                        type="button"
+                                        onClick={handleResendRegOtp}
+                                        disabled={loading}
+                                        className="w-full text-center text-xs font-semibold text-blue-500 hover:text-blue-600 mt-2"
+                                    >
+                                        Resend verification code
+                                    </button>
                                 )}
                             </motion.form>
                         )}

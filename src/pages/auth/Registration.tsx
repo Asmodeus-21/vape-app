@@ -74,7 +74,7 @@ export default function Registration() {
         }
 
         setIsSubmitting(true);
-        setResendCountdown(60);
+        setResendCountdown(30);
         try {
             const otpRes = await requestOtp(formData.email);
             if (!otpRes.success) {
@@ -84,6 +84,26 @@ export default function Registration() {
             }
             setShowOtpVerification(true);
             toast.success('Verification code sent to your email.', { duration: 4000 });
+        } catch {
+            setError('An unexpected error occurred. Please try again later.');
+            setResendCountdown(0);
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    const handleResendOtp = async () => {
+        setError('');
+        setIsSubmitting(true);
+        setResendCountdown(30);
+        try {
+            const otpRes = await requestOtp(formData.email);
+            if (!otpRes.success) {
+                setError(otpRes.error || 'Failed to resend verification code.');
+                setResendCountdown(0);
+                return;
+            }
+            toast.success('New verification code sent.', { duration: 4000 });
         } catch {
             setError('An unexpected error occurred. Please try again later.');
             setResendCountdown(0);
@@ -300,10 +320,19 @@ export default function Registration() {
                                 ← Back to registration
                             </button>
 
-                            {resendCountdown > 0 && (
-                                <p className="text-center text-xs text-slate-500">
+                            {resendCountdown > 0 ? (
+                                <p className="text-center text-xs text-slate-500 mt-2">
                                     Resend code in {resendCountdown}s
                                 </p>
+                            ) : (
+                                <button
+                                    type="button"
+                                    onClick={handleResendOtp}
+                                    disabled={isSubmitting}
+                                    className="w-full text-center text-xs font-semibold text-blue-500 hover:text-blue-600 mt-2"
+                                >
+                                    Resend verification code
+                                </button>
                             )}
                         </form>
                     )}

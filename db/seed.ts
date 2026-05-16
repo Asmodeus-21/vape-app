@@ -308,16 +308,16 @@ export const seedProducts: SeedProduct[] = [
         newArrival: true,
         descriptionPrefix: 'Juicefly-matched'
     }),
-    ...createProducts('Utbar', 'Disposables', '5%', 23.99, utbarFlavors, {
+    ...createProducts('Utbar', 'Disposables', '5%', 25.99, utbarFlavors, {
         rating: 4.6,
         reviews: 170,
         stockQty: 150,
         express: true,
         bestseller: true,
         newArrival: true,
-        descriptionPrefix: 'Juicefly-matched'
+        descriptionPrefix: 'Premium Clear Tank Edition'
     }),
-    ...createProducts('Flum Mello', 'Disposables', '5%', 19.92, flumMelloFlavors, {
+    ...createProducts('Flum Mello', 'Disposables', '5%', 20.00, flumMelloFlavors, {
         rating: 4.6,
         reviews: 145,
         stockQty: 140,
@@ -326,23 +326,23 @@ export const seedProducts: SeedProduct[] = [
         newArrival: true,
         descriptionPrefix: 'Juicefly-matched'
     }),
-    ...createProducts('Hydroxie (7-OH)', 'Supplements', '7-OH', 34.99, hydroxieStrengths, {
+    ...createProducts('Hydroxie (7-OH)', 'Specialty', '7-OH', 29.99, hydroxieStrengths, {
         rating: 4.7,
         reviews: 95,
         stockQty: 90,
         express: false,
         bestseller: false,
         newArrival: true,
-        descriptionPrefix: 'Strength-specific'
+        descriptionPrefix: 'Premium Alkaloid Strength Tier'
     }),
-    ...createProducts('Blues', 'Supplements', '7-OH', 19.99, bluesStrengths, {
+    ...createProducts('Blues', 'Specialty', '7-OH', 34.99, bluesStrengths, {
         rating: 4.6,
         reviews: 80,
         stockQty: 90,
         express: false,
         bestseller: true,
         newArrival: true,
-        descriptionPrefix: 'Strength-specific'
+        descriptionPrefix: 'Concentrate Scale Tiers'
     }),
     ...createProducts('Geek Bar Pulse X 25K', 'Disposables', '5%', 15.99, geekBarPulseX25KFlavors, {
         rating: 4.8,
@@ -389,54 +389,54 @@ export const seedProducts: SeedProduct[] = [
         newArrival: true,
         descriptionPrefix: '30,000 Puffs | Pre-filled 19mL Replacement Pods | Mesh Coil —'
     }),
-    ...createProducts('Geek Bar Pulse X', 'Pulse X Series', '5%', 17.99, geekBarPulseXSeriesFlavors, {
+    ...createProducts('Geek Bar Pulse X', 'Pulse X Series', '5%', 21.90, geekBarPulseXSeriesFlavors, {
         rating: 4.8,
         reviews: 260,
         stockQty: 10,
         express: true,
         bestseller: true,
         newArrival: true,
-        descriptionPrefix: 'Batch inventory add',
+        descriptionPrefix: 'Premium 3D Curved Smart Display Edition',
         imagePathBuilder: buildProductImagePath,
     }),
-    ...createProducts('Fogger Pods', 'The Originals', '5%', 13.99, foggerPodsOriginalsFlavors, {
+    ...createProducts('Fogger Pods', 'The Originals', '5%', 14.99, foggerPodsOriginalsFlavors, {
         rating: 4.7,
         reviews: 190,
         stockQty: 10,
         express: true,
         bestseller: true,
         newArrival: true,
-        descriptionPrefix: 'Batch inventory add',
+        descriptionPrefix: 'Replacement pre-filled replacement pods',
         imagePathBuilder: buildProductImagePath,
     }),
-    ...createProducts('Fogger Kit', 'The Kits', '5%', 16.99, foggerKitFlavors, {
+    ...createProducts('Fogger Kit', 'The Kits', '5%', 24.99, foggerKitFlavors, {
         rating: 4.7,
         reviews: 140,
         stockQty: 10,
         express: true,
         bestseller: true,
         newArrival: true,
-        descriptionPrefix: 'Batch inventory add',
+        descriptionPrefix: 'Full Closed-Loop Pod System Hardware Kit',
         imagePathBuilder: buildProductImagePath,
     }),
-    ...createProducts('Flum Mellow', 'The Originals', '5%', 21.99, flumMellowOriginalsFlavors, {
+    ...createProducts('Flum Mellow', 'The Originals', '5%', 20.00, flumMellowOriginalsFlavors, {
         rating: 4.6,
         reviews: 170,
         stockQty: 10,
         express: true,
         bestseller: false,
         newArrival: true,
-        descriptionPrefix: 'Batch inventory add',
+        descriptionPrefix: 'Up to 20,000 puffs High-Capacity line',
         imagePathBuilder: buildProductImagePath,
     }),
-    ...createProducts('Numbz', 'The Originals', '5%', 21.99, numbzOriginalsFlavors, {
+    ...createProducts('Numbz', 'Specialty', '5%', 19.99, numbzOriginalsFlavors, {
         rating: 4.5,
         reviews: 65,
         stockQty: 10,
         express: true,
         bestseller: false,
         newArrival: true,
-        descriptionPrefix: 'Specialty batch inventory add',
+        descriptionPrefix: 'Specialty Infused Packs',
         imagePathBuilder: buildProductImagePath,
     }),
 ];

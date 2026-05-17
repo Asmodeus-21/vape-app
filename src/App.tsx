@@ -804,6 +804,7 @@ export default function App() {
         localStorage.removeItem('vapeshub_token');
         setCurrentUser(null);
         toast.success('Signed out successfully.');
+        navigate('/products');
     };
 
     const handleHeaderSearchSubmit = (event: React.FormEvent<HTMLFormElement>) => {
@@ -946,6 +947,7 @@ export default function App() {
         setSelectedProductId(null);
         setIsMenuOpen(false);
         setIsCollectionMenuOpen(false);
+        navigate('/dashboard');
     };
 
     const handleProtectedDashboardLinkClick = (event: React.MouseEvent<HTMLAnchorElement>) => {
@@ -956,6 +958,15 @@ export default function App() {
             return;
         }
 
+        if (currentUser.role === 'admin') {
+            setActiveTab('admin');
+        } else if (currentUser.role === 'vendor') {
+            setActiveTab('vendor');
+        } else {
+            setActiveTab('marketplace');
+        }
+
+        setSelectedProductId(null);
         setIsMenuOpen(false);
         setIsCollectionMenuOpen(false);
     };
@@ -1332,6 +1343,9 @@ export default function App() {
                                 setCart(expanded);
                                 setActiveTab('marketplace');
                             }
+
+                            setSelectedProductId(null);
+                            navigate('/dashboard');
                         }}
                     />
                 )}

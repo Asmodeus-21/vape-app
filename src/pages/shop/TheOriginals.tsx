@@ -2,7 +2,7 @@
 import { Loader2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { resolveCatalogImage } from '../../shared/product-images';
+import { resolveCatalogImage } from '../../../shared/product-images';
 import { fetchProducts } from '../../services/api';
 import { Product } from '../../types';
 

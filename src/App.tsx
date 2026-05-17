@@ -2479,7 +2479,17 @@ export default function App() {
 
             <footer className="bg-slate-900 text-white mt-auto">
                 {/* Return to Top */}
-
+                <button
+                    onClick={() => {
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                        document.documentElement.scrollTop = 0;
+                    }}
+                    className="w-full py-5 bg-slate-800 hover:bg-slate-700 text-[11px] font-black uppercase tracking-[0.3em] transition-all border-b border-white/5 flex items-center justify-center gap-2 group"
+                >
+                    <svg className="w-3.5 h-3.5 group-hover:-translate-y-1 transition-transform duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" />
+                    </svg>
+                    Back To Top
                 </button>
 
                 <div className="max-w-[1500px] mx-auto px-8 py-20 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-16">

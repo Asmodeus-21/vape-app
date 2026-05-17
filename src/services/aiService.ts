@@ -1,103 +1,215 @@
-const GREETING_RESPONSE = 'Welcome to Banana Leaf Store. I can help you find the perfect flavor profile. Are you looking for Fruity, Icy, or Desserts?';
+import { GoogleGenAI } from '@google/genai';
 
-const FLAVOR_RESPONSE_MAP: Array<{ keywords: string[]; response: string }> = [
-    {
-        keywords: ['mint', 'menthol', 'icy', 'ice', 'cool mint'],
-        response: 'Analysis Complete: I recommend the Geekbar Pulse X - Cool Mint for your profile.',
-    },
-    {
-        keywords: ['mango', 'tropical'],
-        response: 'Analysis Complete: I recommend the Geekbar Pulse X - Mango Burst for your profile.',
-    },
-    {
-        keywords: ['dessert', 'vanilla', 'cream', 'custard'],
-        response: 'Analysis Complete: I recommend the Geekbar Pulse X - Vanilla Cream for your profile.',
-    },
-    {
-        keywords: ['fruit', 'fruity', 'berry', 'blueberry', 'strawberry', 'watermelon'],
-        response: 'Analysis Complete: I recommend the Geekbar Pulse X - Blue Razz for your profile.',
-    },
-];
+// ─── Gemini client ────────────────────────────────────────────────────────────
+const API_KEY = import.meta.env.VITE_GEMINI_API_KEY || (typeof process !== 'undefined' ? process.env.GEMINI_API_KEY : '');
+const genai = API_KEY ? new GoogleGenAI({ apiKey: API_KEY }) : null;
 
-function normalizePrompt(prompt: string) {
-    return prompt.trim().toLowerCase();
+// ─── Store context the AI knows about ────────────────────────────────────────
+const STORE_CONTEXT = `
+You are "Leaf", the friendly AI shopping assistant for Banana Leaf Store — a premium vape, nicotine pouch, and lifestyle products shop.
+
+STORE PRODUCTS (use these when making recommendations):
+- Geekbar Pulse X Series: Disposable vapes with flavors including Cool Mint, Blue Razz, Strawberry Kiwi Ice, Blackberry B-Burst, Pair of Thieves, Grapefruit Refresher, Tobacco, Jam Edition
+- Foger Pods: Pre-filled replacement pods with flavors including Miami Mint, Sour Blue Dust, Gummy Bear, Cherry Bomb, Watermelon Bubblegum, Triple Berry, Kiwi Dragon Berry
+- Foger Switch Pro: Device kit for pods
+- Utbar Disposables: Aloe Grape Watermelon, Blue Rancher, Strawberry Blast, White Gummy, Watermelon Icy
+- Flum Mello: Cool Mint, Sour Apple Icy, Watermelon Peach Lime, Blue Razz Icy
+- Zyns (Nicotine Pouches): Wintergreen, Peppermint, Citrus, Cool Mint, Cinnamon — tobacco-free
+- Blues (Kratom): 35mg, 55mg, 75mg, 100mg
+- Hydroxie (7-OH): 10-15mg, 10-30mg, 5-15mg
+
+PERSONALITY:
+- Friendly, warm, and conversational — NOT robotic or technical
+- Use normal everyday language, no jargon
+- Keep responses short and easy to read (2-4 sentences max unless listing products)
+- Use emojis sparingly but naturally 😊
+- You care about finding the perfect product for the customer
+
+DATA COLLECTION FLOW (only on first interaction):
+1. Greet the user warmly and ask their name
+2. Once you have their name, ask what they're looking for (flavor preference, nicotine level, device type)
+3. After gathering their preference, make a tailored recommendation
+4. Offer to answer follow-up questions
+
+IMPORTANT RULES:
+- NEVER recommend products to underage users (always mention age verification is required)
+- If someone asks about something unrelated to the store, politely redirect
+- Remember the user's name and preferences throughout the conversation
+- If you already know their name, use it naturally
+`;
+
+// ─── Conversation types ───────────────────────────────────────────────────────
+export interface ChatMessage {
+    role: 'user' | 'ai';
+    text: string;
 }
 
-function getFlavorExpertResponse(prompt: string) {
-    const normalizedPrompt = normalizePrompt(prompt);
+interface ConversationState {
+    userName: string | null;
+    hasGreeted: boolean;
+    hasAskedPreferences: boolean;
+    collectedPreferences: string[];
+    history: Array<{ role: 'user' | 'model'; parts: Array<{ text: string }> }>;
+}
 
-    if (!normalizedPrompt) {
-        return GREETING_RESPONSE;
+// ─── State (module-level, persists during session) ────────────────────────────
+const conversationState: ConversationState = {
+    userName: null,
+    hasGreeted: false,
+    hasAskedPreferences: false,
+    collectedPreferences: [],
+    history: [],
+};
+
+// ─── Extract user name from message ──────────────────────────────────────────
+function extractName(text: string): string | null {
+    const patterns = [
+        /(?:i'?m|my name is|call me|i am)\s+([A-Za-z]+)/i,
+        /^([A-Za-z]{2,15})(?:[,!.]?\s*(?:here|hi|hello))?$/i,
+    ];
+    for (const pattern of patterns) {
+        const match = text.match(pattern);
+        if (match?.[1] && match[1].length >= 2) return match[1];
+    }
+    return null;
+}
+
+// ─── Fallback responses (no API key) ─────────────────────────────────────────
+function getFallbackResponse(userText: string, state: ConversationState): string {
+    const lower = userText.toLowerCase();
+
+    if (!state.hasGreeted) {
+        state.hasGreeted = true;
+        return "Hey there! 👋 I'm Leaf, your Banana Leaf Store assistant. What's your name?";
     }
 
-    for (const entry of FLAVOR_RESPONSE_MAP) {
-        if (entry.keywords.some((keyword) => normalizedPrompt.includes(keyword))) {
-            return entry.response;
+    const name = state.userName;
+    const greeting = name ? `${name}, ` : '';
+
+    if (!state.userName) {
+        const extracted = extractName(userText);
+        if (extracted) {
+            state.userName = extracted;
+            state.hasAskedPreferences = true;
+            return `Nice to meet you, ${extracted}! 😊 Are you looking for disposable vapes, nicotine pouches, or something else? And do you prefer fruity, minty, or other flavours?`;
         }
+        return "I didn't catch your name — what should I call you? 😊";
     }
 
-    if (/\b(hi|hello|hey)\b/.test(normalizedPrompt)) {
-        return GREETING_RESPONSE;
+    if (!state.hasAskedPreferences) {
+        state.hasAskedPreferences = true;
+        return `What are you looking for today, ${name}? Disposables, pods, or nicotine pouches? Any favourite flavours?`;
     }
 
-    return 'Analysis Complete: Based on your profile, I recommend exploring the Geekbar Pulse X line, starting with Blue Razz, Cool Mint, Mango Burst, and Vanilla Cream.';
+    // Flavour-based recommendations
+    if (/mint|menthol|cool|icy|ice/.test(lower)) return `Great choice, ${greeting}minty flavours are super popular! I'd recommend the **Geekbar Pulse X - Cool Mint** or **Foger Pods - Miami Mint**. Both are really fresh and smooth. 🌿`;
+    if (/mango|tropical|fruit/.test(lower)) return `Tropical fan! 🥭 Check out the **Geekbar Pulse X - Pair of Thieves** (mango passion) or **Utbar - Strawmelon Peach**. Really refreshing.`;
+    if (/berry|blue razz|strawberry|blueberry/.test(lower)) return `Berry lover! 🫐 The **Geekbar Pulse X - Blue Razz** and **Foger Pods - Triple Berry** are both amazing. The Blue Razz is one of our bestsellers!`;
+    if (/watermelon/.test(lower)) return `Watermelon is always a hit! 🍉 Try the **Utbar - Aloe Grape Watermelon** or **Flum Mello - Watermelon Peach Lime**.`;
+    if (/pouch|nicotine pouch|tobacco.free|zyn/.test(lower)) return `Perfect — Zyns are great for a discreet nicotine hit without vaping! We have Wintergreen, Peppermint, Citrus, Cool Mint, and Cinnamon. Which sounds good, ${name}?`;
+    if (/price|cheap|cost|afford/.test(lower)) return `Our disposables start from around $14.99. Pods and pouches vary — want me to point you to a specific product?`;
+    if (/shipping|delivery|how long/.test(lower)) return `Standard delivery is 3–5 business days and free! Express is 1–2 days for £5.99. 📦`;
+
+    return `Happy to help, ${greeting}let me know more about what you're after — flavour, product type, nicotine strength — and I'll find the perfect match! 😊`;
 }
 
-function getGenericResponse(systemInstruction: string) {
-    if (systemInstruction === SYSTEM_INSTRUCTIONS.VENDOR_STRATEGIST) {
-        return 'Operational Signal: Prioritize disposables, cool mint profiles, and fast-moving pod systems for the next reorder cycle.';
+// ─── Main AI response function ────────────────────────────────────────────────
+export async function getChatbotResponse(userText: string): Promise<string> {
+    const state = conversationState;
+
+    // First message — greeting
+    if (!state.hasGreeted) {
+        state.hasGreeted = true;
+        const opening = "Hey there! 👋 I'm Leaf, your personal shopping assistant at Banana Leaf Store. I'm here to help you find exactly what you're looking for. What's your name?";
+
+        if (genai) {
+            state.history.push({ role: 'user', parts: [{ text: '__INIT__' }] });
+            state.history.push({ role: 'model', parts: [{ text: opening }] });
+        }
+        return opening;
     }
 
-    if (systemInstruction === SYSTEM_INSTRUCTIONS.REVIEW_SUMMARIZER) {
-        return 'Review Summary: Customers are responding best to clean mint, mango, and blue razz profiles with quick fulfillment and consistent stock.';
+    // Try to extract name if we don't have it yet
+    if (!state.userName) {
+        const extracted = extractName(userText);
+        if (extracted) state.userName = extracted;
     }
 
-    if (systemInstruction === SYSTEM_INSTRUCTIONS.INVENTORY_ANALYST) {
-        return 'Inventory Analysis Complete: Restock Geekbar Pulse X, mint-forward disposables, and premium pod systems first.';
+    if (!genai) {
+        // No API key — use smart fallback
+        state.history.push({ role: 'user', parts: [{ text: userText }] });
+        const resp = getFallbackResponse(userText, state);
+        state.history.push({ role: 'model', parts: [{ text: resp }] });
+        return resp;
     }
 
-    if (systemInstruction === SYSTEM_INSTRUCTIONS.MARKET_TREND_BOT) {
-        return 'Trend Signal: Icy fruit blends, cool mint, and compact disposables are leading current demand.';
-    }
+    // ── Use Gemini API ──
+    try {
+        state.history.push({ role: 'user', parts: [{ text: userText }] });
 
-    if (systemInstruction === SYSTEM_INSTRUCTIONS.REPORT_GENERATOR) {
-        return 'Executive Summary: Performance remains strongest in disposable hardware, flavor-led discovery, and fast-turnover inventory.';
-    }
+        const contextPrompt = `${STORE_CONTEXT}
 
-    return GREETING_RESPONSE;
+CONVERSATION SO FAR:
+${state.history.slice(0, -1).map(m => `${m.role === 'user' ? 'Customer' : 'Leaf'}: ${m.parts[0].text}`).join('\n')}
+
+${state.userName ? `Customer's name: ${state.userName}` : 'Name: not yet collected'}
+${state.collectedPreferences.length ? `Known preferences: ${state.collectedPreferences.join(', ')}` : ''}
+
+Customer just said: "${userText}"
+
+Respond as Leaf, keeping your reply short (2-4 sentences), friendly, and helpful. Use their name if you know it.`;
+
+        const response = await genai.models.generateContent({
+            model: 'gemini-2.0-flash',
+            contents: [{ role: 'user', parts: [{ text: contextPrompt }] }],
+        });
+
+        const aiText = response.text?.trim() || getFallbackResponse(userText, state);
+        state.history.push({ role: 'model', parts: [{ text: aiText }] });
+
+        // Extract preferences from both user message and AI response for future context
+        if (/mint|icy|fruit|berry|mango|watermelon|dessert|tobacco|pouch/.test(userText.toLowerCase())) {
+            state.collectedPreferences.push(userText);
+        }
+
+        return aiText;
+    } catch (err) {
+        console.error('Gemini API error:', err);
+        const fallback = getFallbackResponse(userText, state);
+        state.history.push({ role: 'model', parts: [{ text: fallback }] });
+        return fallback;
+    }
 }
 
-export function getSmartAiResponse(prompt: string, systemInstruction: string): string {
-    if (systemInstruction === SYSTEM_INSTRUCTIONS.FLAVOR_EXPERT) {
-        return getFlavorExpertResponse(prompt);
-    }
+// ─── Reset conversation (when chat is closed and reopened) ────────────────────
+export function resetChatbot(): void {
+    conversationState.userName = null;
+    conversationState.hasGreeted = false;
+    conversationState.hasAskedPreferences = false;
+    conversationState.collectedPreferences = [];
+    conversationState.history = [];
+}
 
-    return getGenericResponse(systemInstruction);
+// ─── Legacy exports (keep compatibility with vendor bots) ────────────────────
+export const SYSTEM_INSTRUCTIONS = {
+    FLAVOR_EXPERT: 'flavor_expert',
+    CUSTOMER_SUPPORT: 'customer_support',
+    VENDOR_STRATEGIST: 'vendor_strategist',
+    REVIEW_SUMMARIZER: 'review_summarizer',
+    INVENTORY_ANALYST: 'inventory_analyst',
+    MARKET_TREND_BOT: 'market_trend_bot',
+    REPORT_GENERATOR: 'report_generator',
+};
+
+export function getSmartAiResponse(prompt: string, _systemInstruction: string): string {
+    return getFallbackResponse(prompt, conversationState);
 }
 
 export const vapeosAI = {
     async generateResponse(prompt: string, systemInstruction: string): Promise<string> {
-        try {
-            return getSmartAiResponse(prompt, systemInstruction);
-        } catch (error) {
-            console.error('Banana Leaf AI Error:', error);
-            return getSmartAiResponse(prompt, systemInstruction);
+        if (systemInstruction === SYSTEM_INSTRUCTIONS.FLAVOR_EXPERT) {
+            return getChatbotResponse(prompt);
         }
-    }
-};
-
-export const SYSTEM_INSTRUCTIONS = {
-    FLAVOR_EXPERT: `You are the Banana Leaf Store Flavor Recommendation AI. You help customers find the perfect flavor based on their preferences. 
-  When a user describes their preferences, you should:
-  1. Analyze their flavor profile (sweet, icy, fruity, dessert, tobacco).
-  2. Consider their nicotine level and device type.
-  3. Recommend 2-3 specific products (you can invent realistic names if needed, or use: Cloud King Pro, Neon Stick 5000, Arctic Breeze Juice, Zen Pod System).
-  4. Provide a detailed explanation for WHY you recommended each product.
-  5. Format your response clearly with bold titles and bullet points.`,
-    CUSTOMER_SUPPORT: "You are the Banana Leaf Store Customer Support AI. You handle order tracking, shipping questions, and troubleshooting. Be professional, helpful, and concise.",
-    VENDOR_STRATEGIST: "You are the Banana Leaf Store Vendor Intelligence AI. You help store owners optimize sales, pricing, and inventory. Provide data-driven insights and actionable recommendations. Keep responses concise and actionable.",
-    REVIEW_SUMMARIZER: "You are the Banana Leaf Store Review Analyst AI. Your job is to analyze customer reviews for products and provide a concise summary of the sentiment, common pros, and common cons. Help vendors understand what customers love and what needs improvement. Be brief — 3-4 sentences max.",
-    INVENTORY_ANALYST: "You are the Banana Leaf Store Inventory Optimization AI. You analyze sales trends and stock levels to provide precise restock recommendations, identify slow-moving items, and predict future demand. Be brief and actionable.",
-    MARKET_TREND_BOT: "You are the Banana Leaf Store Market Trends AI in Ukiah, California. You monitor local and national industry trends, new flavor crazes, and regulatory changes to give vendors a competitive edge. Mention specific product categories and flavor trends. Be brief.",
-    REPORT_GENERATOR: "You are the Banana Leaf Store Executive Report AI. You take complex business data and summarize it into clear, actionable executive reports for store owners. Keep reports scannable with bullet points.",
+        return getSmartAiResponse(prompt, systemInstruction);
+    },
 };

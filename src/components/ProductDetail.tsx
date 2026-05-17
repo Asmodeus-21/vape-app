@@ -12,7 +12,6 @@ import { motion } from 'motion/react';
 import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { DEFAULT_CATALOG_IMAGE, resolveCatalogImage, resolveFlavorImage } from '../../shared/product-images';
-import { addSavedItem } from '../services/api';
 import { ParentVariantGroup, Product } from '../types';
 
 interface ProductDetailProps {
@@ -32,7 +31,6 @@ function selectNearestVariant(variants: Product[], nextFlavor: string, nextNicot
 
 export default function ProductDetail({ group, selectedVariantId, onBack, onVariantChange, onAddToCart }: ProductDetailProps) {
     const [quantity, setQuantity] = useState(1);
-    const [saving, setSaving] = useState(false);
     const selectedVariant = useMemo(() => {
         if (!group || group.variants.length === 0) {
             return null;
@@ -115,32 +113,6 @@ export default function ProductDetail({ group, selectedVariantId, onBack, onVari
         onAddToCart(selectedVariant, quantity, { flavor: selectedVariant.flavor, nicotine: selectedVariant.nicotine });
         toast.success('Added to cart!');
     };
-
-    const handleSaveItem = async () => {
-        const token = localStorage.getItem('vapeshub_token');
-        if (!token) {
-            toast.error('Please sign in to save items for later.');
-            return;
-        }
-
-        setSaving(true);
-        try {
-            await addSavedItem(token, selectedVariant.id);
-            toast.success('Saved to your items.');
-        } catch (err: any) {
-            toast.error(err?.message || 'Unable to save this item.');
-        } finally {
-            setSaving(false);
-        }
-    };
-
-    const addToCartButtonClassName = selectedVariant.stockQty > 0 && !isComingSoon
-        ? 'flex-1 w-full h-16 rounded-[2rem] flex items-center justify-center gap-3 font-black uppercase tracking-[0.14em] text-sm bg-slate-900 text-white hover:bg-brand-primary shadow-slate-900/25 transition-all active:scale-[0.97] hover:scale-[1.02]'
-        : 'flex-1 w-full h-16 rounded-[2rem] flex items-center justify-center gap-3 font-black uppercase tracking-[0.14em] text-sm bg-slate-100 text-slate-300 cursor-not-allowed transition-all active:scale-[0.97] hover:scale-[1.02]';
-
-    const saveButtonClassName = saving
-        ? 'mt-4 w-full h-16 rounded-[2rem] flex items-center justify-center gap-3 font-black uppercase tracking-[0.14em] text-sm bg-slate-200 text-slate-500 cursor-not-allowed transition-all active:scale-[0.97] hover:scale-[1.02]'
-        : 'mt-4 w-full h-16 rounded-[2rem] flex items-center justify-center gap-3 font-black uppercase tracking-[0.14em] text-sm bg-white text-slate-900 border border-slate-200 hover:bg-slate-100 transition-all active:scale-[0.97] hover:scale-[1.02]';
 
     return (
         <div className="flex-1 bg-bg-main pb-20">
@@ -250,10 +222,10 @@ export default function ProductDetail({ group, selectedVariantId, onBack, onVari
                                                         const nextVariant = selectNearestVariant(group.variants, selectedVariant.flavor, nicotine, selectedVariant);
                                                         onVariantChange(group.key, nextVariant.id);
                                                     }}
-                                                    className={isActive
-                                                        ? 'px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest border-2 transition-all border-slate-900 bg-slate-900 text-white shadow-lg shadow-slate-900/20'
-                                                        : 'px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest border-2 transition-all border-slate-100 bg-white text-slate-400 hover:border-slate-300 hover:text-slate-700'
-                                                    }
+                                                    className={`px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest border-2 transition-all ${isActive
+                                                        ? 'border-slate-900 bg-slate-900 text-white shadow-lg shadow-slate-900/20'
+                                                        : 'border-slate-100 bg-white text-slate-400 hover:border-slate-300 hover:text-slate-700'
+                                                        }`}
                                                 >
                                                     {nicotine}
                                                 </button>
@@ -279,10 +251,10 @@ export default function ProductDetail({ group, selectedVariantId, onBack, onVari
                                                         const nextVariant = selectNearestVariant(group.variants, flavor, selectedVariant.nicotine, selectedVariant);
                                                         onVariantChange(group.key, nextVariant.id);
                                                     }}
-                                                    className={isActive
-                                                        ? 'px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest border-2 transition-all border-slate-900 bg-slate-900 text-white shadow-lg shadow-slate-900/20'
-                                                        : 'px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest border-2 transition-all border-slate-100 bg-white text-slate-400 hover:border-slate-300 hover:text-slate-700'
-                                                    }
+                                                    className={`px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest border-2 transition-all ${isActive
+                                                        ? 'border-slate-900 bg-slate-900 text-white shadow-lg shadow-slate-900/20'
+                                                        : 'border-slate-100 bg-white text-slate-400 hover:border-slate-300 hover:text-slate-700'
+                                                        }`}
                                                 >
                                                     {flavor}
                                                 </button>
@@ -316,35 +288,30 @@ export default function ProductDetail({ group, selectedVariantId, onBack, onVari
                                 <button
                                     onClick={handleAddToCart}
                                     disabled={selectedVariant.stockQty === 0 || isComingSoon}
-                                    className={addToCartButtonClassName}
+                                    className={`flex-1 w-full h-16 rounded-[2rem] flex items-center justify-center gap-3 font-black uppercase tracking-[0.14em] text-sm shadow-2xl transition-all active:scale-[0.97] hover:scale-[1.02] ${selectedVariant.stockQty > 0 && !isComingSoon
+                                        ? 'bg-slate-900 text-white hover:bg-brand-primary shadow-slate-900/25'
+                                        : 'bg-slate-100 text-slate-300 cursor-not-allowed'
+                                        }`}
                                 >
                                     <Package className="w-6 h-6" />
                                     {isComingSoon ? 'Coming Soon' : selectedVariant.stockQty > 0 ? 'Add to Cart' : 'Out of Stock'}
                                 </button>
                             </div>
 
-                            <button
-                                onClick={handleSaveItem}
-                                disabled={saving}
-                                className={saveButtonClassName}
-                            >
-                                {saving ? 'Saving…' : 'Save for later'}
-                            </button>
-                        </div>
-
-                        {/* Guarantees */}
-                        <div className="grid grid-cols-2 gap-6 mt-10">
-                            <div className="flex items-center gap-3 text-[9px] font-black uppercase tracking-[0.3em] text-slate-400">
-                                <div className="w-8 h-8 bg-emerald-50 rounded-xl flex items-center justify-center">
-                                    <Shield className="w-4 h-4 text-emerald-500" />
+                            {/* Guarantees */}
+                            <div className="grid grid-cols-2 gap-6 mt-10">
+                                <div className="flex items-center gap-3 text-[9px] font-black uppercase tracking-[0.3em] text-slate-400">
+                                    <div className="w-8 h-8 bg-emerald-50 rounded-xl flex items-center justify-center">
+                                        <Shield className="w-4 h-4 text-emerald-500" />
+                                    </div>
+                                    100% Authentic
                                 </div>
-                                100% Authentic
-                            </div>
-                            <div className="flex items-center gap-3 text-[9px] font-black uppercase tracking-[0.3em] text-slate-400">
-                                <div className="w-8 h-8 bg-slate-50 rounded-xl flex items-center justify-center">
-                                    <Truck className="w-4 h-4 text-brand-primary" />
+                                <div className="flex items-center gap-3 text-[9px] font-black uppercase tracking-[0.3em] text-slate-400">
+                                    <div className="w-8 h-8 bg-slate-50 rounded-xl flex items-center justify-center">
+                                        <Truck className="w-4 h-4 text-brand-primary" />
+                                    </div>
+                                    Fast Delivery
                                 </div>
-                                Fast Delivery
                             </div>
                         </div>
                     </div>

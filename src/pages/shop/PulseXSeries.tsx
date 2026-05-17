@@ -2,6 +2,7 @@
 import { Loader2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { resolveCatalogImage } from '../../../shared/product-images';
 import { fetchProducts } from '../../services/api';
 import { Product } from '../../types';
 
@@ -42,9 +43,12 @@ export default function PulseXSeries() {
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {products.map((product) => (
-                        <Link key={product.id} to={`/product/${product.id}`} className="rounded-xl border border-slate-200 bg-white p-4 hover:border-slate-400 transition-colors">
+                        <Link key={product.id} to={`/product/${product.id}`} className="rounded-xl border border-slate-200 bg-white p-4 hover:border-slate-400 transition-colors flex flex-col group cursor-pointer relative z-10">
+                            <div className="aspect-square bg-slate-50 rounded-lg mb-4 overflow-hidden relative">
+                                <img src={resolveCatalogImage(product.image)} alt={product.name} className="w-full h-full object-contain p-4 group-hover:scale-105 transition-transform duration-500" />
+                            </div>
                             <p className="text-xs uppercase tracking-widest text-slate-400 font-bold">{product.brand}</p>
-                            <h2 className="mt-1 text-sm font-bold text-slate-900">{product.name}</h2>
+                            <h2 className="mt-1 text-sm font-bold text-slate-900 line-clamp-1">{product.name}</h2>
                             <p className="mt-1 text-xs text-slate-500">{product.flavor}</p>
                             <p className="mt-2 text-sm font-black text-brand-primary">${product.price.toFixed(2)}</p>
                         </Link>

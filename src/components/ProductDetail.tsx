@@ -308,10 +308,10 @@ export default function ProductDetail({ group, selectedVariantId, onBack, onVari
                                 <button
                                     onClick={handleAddToCart}
                                     disabled={selectedVariant.stockQty === 0 || isComingSoon}
-                                    className={`flex-1 w-full h-16 rounded-[2rem] flex items-center justify-center gap-3 font-black uppercase tracking-[0.14em] text-sm shadow-2xl transition-all active:scale-[0.97] hover:scale-[1.02] ${selectedVariant.stockQty > 0 && !isComingSoon
-                                        ? 'bg-slate-900 text-white hover:bg-brand-primary shadow-slate-900/25'
-                                        : 'bg-slate-100 text-slate-300 cursor-not-allowed'
-                                        }`}
+                                    className={selectedVariant.stockQty > 0 && !isComingSoon
+                                        ? 'flex-1 w-full h-16 rounded-[2rem] flex items-center justify-center gap-3 font-black uppercase tracking-[0.14em] text-sm bg-slate-900 text-white hover:bg-brand-primary shadow-slate-900/25 transition-all active:scale-[0.97] hover:scale-[1.02]'
+                                        : 'flex-1 w-full h-16 rounded-[2rem] flex items-center justify-center gap-3 font-black uppercase tracking-[0.14em] text-sm bg-slate-100 text-slate-300 cursor-not-allowed transition-all active:scale-[0.97] hover:scale-[1.02]'
+                                    }
                                 >
                                     <Package className="w-6 h-6" />
                                     {isComingSoon ? 'Coming Soon' : selectedVariant.stockQty > 0 ? 'Add to Cart' : 'Out of Stock'}
@@ -321,16 +321,16 @@ export default function ProductDetail({ group, selectedVariantId, onBack, onVari
                             <button
                                 onClick={handleSaveItem}
                                 disabled={saving}
-                                className={`flex-1 w-full h-16 rounded-[2rem] flex items-center justify-center gap-3 font-black uppercase tracking-[0.14em] text-sm transition-all active:scale-[0.97] hover:scale-[1.02] ${saving
-                                    ? 'bg-slate-200 text-slate-500 cursor-not-allowed'
-                                    : 'bg-white text-slate-900 border border-slate-200 hover:bg-slate-100'
-                                }`}
+                                className={saving
+                                    ? 'mt-4 w-full h-16 rounded-[2rem] flex items-center justify-center gap-3 font-black uppercase tracking-[0.14em] text-sm bg-slate-200 text-slate-500 cursor-not-allowed transition-all active:scale-[0.97] hover:scale-[1.02]'
+                                    : 'mt-4 w-full h-16 rounded-[2rem] flex items-center justify-center gap-3 font-black uppercase tracking-[0.14em] text-sm bg-white text-slate-900 border border-slate-200 hover:bg-slate-100 transition-all active:scale-[0.97] hover:scale-[1.02]'
+                                }
                             >
                                 {saving ? 'Saving…' : 'Save for later'}
                             </button>
                         </div>
 
-                            {/* Guarantees */}
+                        {/* Guarantees */}
                             <div className="grid grid-cols-2 gap-6 mt-10">
                                 <div className="flex items-center gap-3 text-[9px] font-black uppercase tracking-[0.3em] text-slate-400">
                                     <div className="w-8 h-8 bg-emerald-50 rounded-xl flex items-center justify-center">

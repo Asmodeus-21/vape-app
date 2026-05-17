@@ -76,6 +76,90 @@ export async function findUserByEmail(sql: Sql, email: string) {
     return rows[0] ?? null;
 }
 
+export async function getUserOrders(sql: Sql, userId: number) {
+    const rows = await sql<any[]>`
+        SELECT
+            o.id AS order_id,
+            o.status,
+            o.total_amount,
+            o.shipping_address,
+            o.created_at AS order_created_at,
+            oi.id AS order_item_id,
+            oi.quantity,
+            oi.price_at_time,
+            p.*
+        FROM orders o
+        JOIN order_items oi ON oi.order_id = o.id
+        JOIN products p ON p.id = oi.product_id
+        WHERE o.user_id = ${userId}
+        ORDER BY o.created_at DESC, oi.id ASC
+    `;
+
+    const ordersMap = new Map<number, {
+        id: number;
+        status: string;
+        totalAmount: number;
+        shippingAddress: string;
+        createdAt: string;
+        items: Array<{ id: number; product: ReturnType<typeof mapProductRow>; quantity: number; priceAtTime: number }>;
+    }>();
+
+    for (const row of rows) {
+        const orderId = Number(row.order_id);
+        const order = ordersMap.get(orderId);
+        const product = mapProductRow(row);
+        const item = {
+            id: Number(row.order_item_id),
+            product,
+            quantity: Number(row.quantity),
+            priceAtTime: Number(row.price_at_time),
+        };
+
+        if (!order) {
+            ordersMap.set(orderId, {
+                id: orderId,
+                status: row.status,
+                totalAmount: Number(row.total_amount),
+                shippingAddress: row.shipping_address,
+                createdAt: row.order_created_at,
+                items: [item],
+            });
+            continue;
+        }
+
+        order.items.push(item);
+    }
+
+    return Array.from(ordersMap.values());
+}
+
+export async function getUserSavedItems(sql: Sql, userId: number) {
+    const rows = await sql<any[]>`
+        SELECT p.*
+        FROM saved_items si
+        JOIN products p ON p.id = si.product_id
+        WHERE si.user_id = ${userId}
+        ORDER BY si.created_at DESC
+    `;
+    return rows.map(mapProductRow);
+}
+
+export async function addSavedItem(sql: Sql, userId: number, productId: number) {
+    await sql`
+        INSERT INTO saved_items (user_id, product_id)
+        VALUES (${userId}, ${productId})
+        ON CONFLICT (user_id, product_id) DO NOTHING
+    `;
+}
+
+export async function removeSavedItem(sql: Sql, userId: number, productId: number) {
+    await sql`
+        DELETE FROM saved_items
+        WHERE user_id = ${userId}
+          AND product_id = ${productId}
+    `;
+}
+
 export async function storeExists(sql: Sql, storeId: number) {
     const rows = await sql<any[]>`SELECT id FROM stores WHERE id = ${storeId} LIMIT 1`;
     return Boolean(rows[0]);

@@ -28,6 +28,22 @@ export interface ParentVariantGroup {
     variants: Product[];
 }
 
+export interface UserOrderItem {
+    id: number;
+    product: Product;
+    quantity: number;
+    priceAtTime: number;
+}
+
+export interface UserOrder {
+    id: number;
+    status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
+    totalAmount: number;
+    shippingAddress: string;
+    createdAt: string;
+    items: UserOrderItem[];
+}
+
 export interface Store {
     id: number;
     name: string;

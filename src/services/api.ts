@@ -1,4 +1,4 @@
-import { ParentVariantGroup, Product, Store } from '../types';
+import { ParentVariantGroup, Product, Store, UserOrder } from '../types';
 
 const MAX_PRODUCTS_LIMIT = 1000;
 
@@ -149,6 +149,50 @@ export async function fetchProductById(id: string | number): Promise<Product | n
     } catch (err) {
         console.error(`[api] fetchProductById failed for id ${id}:`, err);
         return null;
+    }
+}
+
+export async function fetchUserOrders(token: string): Promise<UserOrder[]> {
+    const res = await fetch('/api/orders', {
+        headers: { Authorization: `Bearer ${token}` },
+    });
+    const data = await safeJson(res);
+    if (!res.ok) throw new Error(data.error || 'Failed to load order history');
+    return data as UserOrder[];
+}
+
+export async function fetchSavedItems(token: string): Promise<Product[]> {
+    const res = await fetch('/api/saved-items', {
+        headers: { Authorization: `Bearer ${token}` },
+    });
+    const data = await safeJson(res);
+    if (!res.ok) throw new Error(data.error || 'Failed to load saved items');
+    return data as Product[];
+}
+
+export async function addSavedItem(token: string, productId: number): Promise<void> {
+    const res = await fetch('/api/saved-items', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ productId }),
+    });
+    if (!res.ok) {
+        const data = await safeJson(res);
+        throw new Error(data.error || 'Failed to save item');
+    }
+}
+
+export async function removeSavedItem(token: string, productId: number): Promise<void> {
+    const res = await fetch(`/api/saved-items/${productId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) {
+        const data = await safeJson(res);
+        throw new Error(data.error || 'Failed to remove saved item');
     }
 }
 

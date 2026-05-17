@@ -25,6 +25,8 @@ import {
     getCartItems,
     getOrderWithUser,
     getProductById,
+    getUserOrders,
+    getUserSavedItems,
     getValidOtp,
     getVendorStats,
     listAdminOrders,
@@ -37,6 +39,8 @@ import {
     listVendorProducts,
     markOtpUsed,
     removeCartItem,
+    removeSavedItem,
+    addSavedItem,
     setCartItemQuantity,
     storeExists,
     updateUserRole,
@@ -687,6 +691,54 @@ export async function createApp(options: { skipSeed?: boolean; skipVite?: boolea
             res.json({ success: true });
         } catch (err: any) {
             sendSafeError(res, err, 'Failed to remove cart item');
+        }
+    });
+
+    app.get('/api/orders', authMiddleware, async (req, res) => {
+        try {
+            const orders = await getUserOrders(sql, req.user!.userId);
+            res.json(orders);
+        } catch (err: any) {
+            sendSafeError(res, err, 'Failed to fetch order history');
+        }
+    });
+
+    app.get('/api/saved-items', authMiddleware, async (req, res) => {
+        try {
+            const items = await getUserSavedItems(sql, req.user!.userId);
+            res.json(items);
+        } catch (err: any) {
+            sendSafeError(res, err, 'Failed to fetch saved items');
+        }
+    });
+
+    app.post('/api/saved-items', authMiddleware, async (req, res) => {
+        const { productId } = req.body;
+        if (!Number.isInteger(productId) || productId <= 0) {
+            res.status(400).json({ error: 'Invalid productId' });
+            return;
+        }
+
+        try {
+            await addSavedItem(sql, req.user!.userId, productId);
+            res.json({ success: true });
+        } catch (err: any) {
+            sendSafeError(res, err, 'Failed to save item');
+        }
+    });
+
+    app.delete('/api/saved-items/:productId', authMiddleware, async (req, res) => {
+        const productId = Number(req.params.productId);
+        if (!Number.isInteger(productId) || productId <= 0) {
+            res.status(400).json({ error: 'Invalid productId' });
+            return;
+        }
+
+        try {
+            await removeSavedItem(sql, req.user!.userId, productId);
+            res.json({ success: true });
+        } catch (err: any) {
+            sendSafeError(res, err, 'Failed to remove saved item');
         }
     });
 

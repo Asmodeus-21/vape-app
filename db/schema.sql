@@ -99,6 +99,16 @@ CREATE TABLE IF NOT EXISTS email_otps (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+CREATE TABLE IF NOT EXISTS saved_items (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  product_id INTEGER NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE (user_id, product_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_saved_items_user_id ON saved_items(user_id);
+
 CREATE INDEX IF NOT EXISTS idx_users_store_id ON users(store_id);
 CREATE INDEX IF NOT EXISTS idx_products_store_id ON products(store_id);
 CREATE INDEX IF NOT EXISTS idx_orders_store_id ON orders(store_id);

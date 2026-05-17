@@ -177,35 +177,22 @@ export function getPostgresClient(): Sql {
 export async function initializePostgresSchema(sql: Sql = getPostgresClient()): Promise<void> {
     const databaseUrl = resolveDatabaseUrl();
     try {
-        let schemaPath = POSTGRES_SCHEMA_PATH;
-        if (!fs.existsSync(schemaPath)) {
-            const fallbackPath = path.join(process.cwd(), 'db', 'schema.sql');
-            if (fs.existsSync(fallbackPath)) {
-                schemaPath = fallbackPath;
-            }
-        }
-
-        if (!fs.existsSync(schemaPath)) {
-            if (process.env.NODE_ENV === 'production') {
-                throw new Error(`Database schema file not found at ${POSTGRES_SCHEMA_PATH}`);
-            }
-            console.warn('[db] schema.sql not found, skipping schema initialization.');
-            return;
-        }
-
-        const schemaSql = fs.readFileSync(schemaPath, 'utf8');
-        await sql.unsafe(schemaSql);
+        // Try to apply schema.sql if available. In development this ensures fresh DBs
+        // get all required tables. In production, it's safe to run IF NOT EXISTS statements.
+        await sql.file(POSTGRES_SCHEMA_PATH);
     } catch (error: any) {
+        // If schema.sql doesn't exist, that's okay — assume the DB is already set up.
         if (error?.code === 'ENOENT') {
-            if (process.env.NODE_ENV === 'production') {
-                throw new Error(`Database schema file not found at ${POSTGRES_SCHEMA_PATH}`);
-            }
-            console.warn('[db] schema.sql not found, skipping schema initialization.');
+            console.warn('[db] schema.sql file not found. Skipping schema initialization (assuming DB is already set up).');
             return;
         }
+
+        // If it's a DB connection error, fail loudly so we catch startup issues.
         if (databaseUrl) {
             throw buildDatabaseConnectionError(databaseUrl, error);
         }
+
+        // Any other error is re-thrown.
         throw error;
     }
 }

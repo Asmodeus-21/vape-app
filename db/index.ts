@@ -177,16 +177,28 @@ export function getPostgresClient(): Sql {
 export async function initializePostgresSchema(sql: Sql = getPostgresClient()): Promise<void> {
     const databaseUrl = resolveDatabaseUrl();
     try {
-        // Apply schema initialization whenever the SQL schema file is available.
-        // This ensures fresh databases get the required tables without relying
-        // on a separate migration step in production.
-        await sql.file(POSTGRES_SCHEMA_PATH);
+        let schemaPath = POSTGRES_SCHEMA_PATH;
+        if (!fs.existsSync(schemaPath)) {
+            const fallbackPath = path.join(process.cwd(), 'db', 'schema.sql');
+            if (fs.existsSync(fallbackPath)) {
+                schemaPath = fallbackPath;
+            }
+        }
+
+        if (!fs.existsSync(schemaPath)) {
+            if (process.env.NODE_ENV === 'production') {
+                throw new Error(`Database schema file not found at ${POSTGRES_SCHEMA_PATH}`);
+            }
+            console.warn('[db] schema.sql not found, skipping schema initialization.');
+            return;
+        }
+
+        const schemaSql = fs.readFileSync(schemaPath, 'utf8');
+        await sql.unsafe(schemaSql);
     } catch (error: any) {
         if (error?.code === 'ENOENT') {
             if (process.env.NODE_ENV === 'production') {
-                // In production, if schema.sql is not bundled, just verify the DB connection.
-                await sql`SELECT 1 AS health_check`;
-                return;
+                throw new Error(`Database schema file not found at ${POSTGRES_SCHEMA_PATH}`);
             }
             console.warn('[db] schema.sql not found, skipping schema initialization.');
             return;

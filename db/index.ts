@@ -177,16 +177,17 @@ export function getPostgresClient(): Sql {
 export async function initializePostgresSchema(sql: Sql = getPostgresClient()): Promise<void> {
     const databaseUrl = resolveDatabaseUrl();
     try {
-        // Only run schema initialization in development. In production (Vercel), 
-        // the database is already migrated, and reading files can fail due to lambda flattening.
-        if (process.env.NODE_ENV !== 'production') {
-            await sql.file(POSTGRES_SCHEMA_PATH);
-        } else {
-            // Do a simple connection check instead
-            await sql`SELECT 1 AS health_check`;
-        }
+        // Apply schema initialization whenever the SQL schema file is available.
+        // This ensures fresh databases get the required tables without relying
+        // on a separate migration step in production.
+        await sql.file(POSTGRES_SCHEMA_PATH);
     } catch (error: any) {
         if (error?.code === 'ENOENT') {
+            if (process.env.NODE_ENV === 'production') {
+                // In production, if schema.sql is not bundled, just verify the DB connection.
+                await sql`SELECT 1 AS health_check`;
+                return;
+            }
             console.warn('[db] schema.sql not found, skipping schema initialization.');
             return;
         }

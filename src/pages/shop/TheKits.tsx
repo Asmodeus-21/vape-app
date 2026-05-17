@@ -45,7 +45,7 @@ export default function TheKits() {
                     {products.map((product) => (
                         <Link key={product.id} to={`/product/${product.id}`} className="rounded-xl border border-slate-200 bg-white p-4 hover:border-slate-400 transition-colors flex flex-col group cursor-pointer relative z-10">
                             <div className="aspect-square bg-slate-50 rounded-lg mb-4 overflow-hidden relative">
-                                <img src={resolveCatalogImage(product.image)} alt={product.name} className="w-full h-full object-contain p-4 group-hover:scale-105 transition-transform duration-500" />
+                                <img src={resolveCatalogImage({ image: product.image, brand: product.brand, flavor: product.flavor, category: product.category, name: product.name })} alt={product.name} className="w-full h-full object-contain p-4 group-hover:scale-105 transition-transform duration-500" />
                             </div>
                             <p className="text-xs uppercase tracking-widest text-slate-400 font-bold">{product.brand}</p>
                             <h2 className="mt-1 text-sm font-bold text-slate-900 line-clamp-1">{product.name}</h2>

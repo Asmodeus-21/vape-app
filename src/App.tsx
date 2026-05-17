@@ -9,6 +9,7 @@ import {
     ChevronDown,
     ChevronRight,
     Globe,
+    Lock,
     Loader2,
     LogOut,
     MapPin,
@@ -33,6 +34,7 @@ import { DEFAULT_CATALOG_IMAGE, resolveCatalogImage } from '../shared/product-im
 import AdminDashboard from './components/AdminDashboard';
 import AuthModal from './components/AuthModal';
 import CheckoutOverlay from './components/CheckoutOverlay';
+import IdVerification from './components/IdVerification';
 import ProductDetail from './components/ProductDetail';
 import VendorOrders from './components/VendorOrders';
 import VendorProductForm from './components/VendorProductForm';
@@ -51,7 +53,7 @@ import ShopAll from './pages/ShopAll';
 import PulseXSeries from './pages/shop/PulseXSeries';
 import TheKits from './pages/shop/TheKits';
 import TheOriginals from './pages/shop/TheOriginals';
-import { getChatbotResponse, getSmartAiResponse, resetChatbot, SYSTEM_INSTRUCTIONS, vapeosAI } from './services/aiService';
+
 import { addCartItemApi, fetchAdminStats, fetchCart, fetchCurrentUser, fetchHomepageMasterListings, fetchProducts, fetchVendorStats, removeCartItemApi, updateCartItemApi } from './services/api';
 import { ParentVariantGroup, Product } from './types';
 
@@ -479,10 +481,9 @@ export default function App() {
     const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
     const [showCheckoutOverlay, setShowCheckoutOverlay] = useState(false);
     const [checkoutSummary, setCheckoutSummary] = useState<CheckoutSummary | null>(null);
+    const [showIdVerification, setShowIdVerification] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
-    const [aiChatOpen, setAiChatOpen] = useState(false);
-    const [aiMessages, setAiMessages] = useState<{ role: 'user' | 'ai', text: string }[]>([]);
-    const [chatInput, setChatInput] = useState('');
+
     const [isCartOpen, setIsCartOpen] = useState(false);
     const [activeFilter, setActiveFilter] = useState<ProductFilter>('all');
     const [activeCategory, setActiveCategory] = useState<string | undefined>(undefined);
@@ -526,13 +527,6 @@ export default function App() {
         setActiveCategory(category);
         setSearchQuery(search);
 
-        if (assistant === 'flavor') {
-            setAiChatOpen(true);
-            setAiMessages((prev) => {
-                if (prev.length > 0) return prev;
-                return [{ role: 'ai', text: "Hey! I'm Banana Leaf AI — tell me what flavors you usually like and I'll recommend your best match." }];
-            });
-        }
 
         if (resolvedFilter === 'express') {
             requestAnimationFrame(() => {
@@ -551,10 +545,7 @@ export default function App() {
     const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
     const [showAuthModal, setShowAuthModal] = useState(false);
     const [vendorQuery, setVendorQuery] = useState('');
-    const [vendorAiLoading, setVendorAiLoading] = useState(false);
-    const [vendorAiResponse, setVendorAiResponse] = useState('');
-    const [botInsights, setBotInsights] = useState<{ review: string; inventory: string; trends: string }>({ review: '', inventory: '', trends: '' });
-    const [botsLoading, setBotsLoading] = useState(false);
+
     const [showVendorProductForm, setShowVendorProductForm] = useState(false);
     const [vendorStats, setVendorStats] = useState<any>(null);
     const [statsLoading, setStatsLoading] = useState(false);
@@ -749,21 +740,6 @@ export default function App() {
         };
     }, []);
 
-    useEffect(() => {
-        // AI Pop-up after 5s — only once per browser session (survives refresh, clears on tab close)
-        // Flag is set immediately so a re-render/StrictMode double-invoke never queues a second popup
-        if (sessionStorage.getItem('chatPopupShown')) return;
-        sessionStorage.setItem('chatPopupShown', 'true');
-        const timer = setTimeout(() => {
-            setAiChatOpen(true);
-            setAiMessages((prev) => {
-                if (prev.length > 0) return prev;
-                return [{ role: 'ai', text: "Hey! I'm Banana Leaf AI — tell me what you're looking for and I'll find the perfect match! 🌿" }];
-            });
-        }, 5000);
-        return () => clearTimeout(timer);
-    }, []);
-
     // ── PWA: Service Worker Registration ──────────────────────────────
     useEffect(() => {
         if ('serviceWorker' in navigator) {
@@ -843,25 +819,6 @@ export default function App() {
         navigate(`/shop${params.toString() ? `?${params.toString()}` : ''}`);
     };
 
-    // ── Live Vendor AI Bots ───────────────────────────────────────────
-    const loadVendorBots = async () => {
-        if (botsLoading || botInsights.review) return;
-        setBotsLoading(true);
-
-        const token = localStorage.getItem('vapeshub_token');
-        let context = 'a local vape shop';
-        if (vendorStats) {
-            context = `a shop with $${vendorStats.todaySales} in today's sales, ${vendorStats.openOrders} open orders, and ${vendorStats.lowStockItems} low stock items. Total earnings are $${vendorStats.totalEarnings}.`;
-        }
-
-        const [review, inventory, trends] = await Promise.all([
-            vapeosAI.generateResponse(`Based on our current business status (${context}), summarize what our customers are likely saying about our service and disposables.`, SYSTEM_INSTRUCTIONS.REVIEW_SUMMARIZER),
-            vapeosAI.generateResponse(`We have ${vendorStats?.lowStockItems || 0} items low on stock. Suggest a restock priority list for high-performance pod systems and disposables based on current volume.`, SYSTEM_INSTRUCTIONS.INVENTORY_ANALYST),
-            vapeosAI.generateResponse(`With total volume at $${vendorStats?.totalEarnings || 0}, identify 3 critical market trends we should pivot towards to increase our cycle velocity.`, SYSTEM_INSTRUCTIONS.MARKET_TREND_BOT),
-        ]);
-        setBotInsights({ review, inventory, trends });
-        setBotsLoading(false);
-    };
 
     const loadVendorStats = async () => {
         const token = localStorage.getItem('vapeshub_token');
@@ -891,14 +848,6 @@ export default function App() {
         }
     };
 
-    const handleVendorAiQuery = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!vendorQuery.trim() || vendorAiLoading) return;
-        setVendorAiLoading(true);
-        const response = await vapeosAI.generateResponse(vendorQuery, SYSTEM_INSTRUCTIONS.VENDOR_STRATEGIST);
-        setVendorAiResponse(response);
-        setVendorAiLoading(false);
-    };
 
     const addToCart = (product: Product, quantity: number = 1, options?: { flavor: string; nicotine: string }) => {
         if (isComingSoonProduct(product)) {
@@ -1035,29 +984,6 @@ export default function App() {
         });
     };
 
-    const handleAiChat = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!chatInput.trim()) return;
-        const userMsg = chatInput.trim();
-        setAiMessages(prev => [...prev, { role: 'user', text: userMsg }]);
-        setChatInput('');
-        setAiMessages(prev => [...prev, { role: 'ai', text: '...' }]);
-        try {
-            const response = await getChatbotResponse(userMsg);
-            setAiMessages(prev => {
-                const next = [...prev];
-                next[next.length - 1] = { role: 'ai', text: response };
-                return next;
-            });
-        } catch (error) {
-            console.error('Chat error:', error);
-            setAiMessages(prev => {
-                const next = [...prev];
-                next[next.length - 1] = { role: 'ai', text: getSmartAiResponse(userMsg, SYSTEM_INSTRUCTIONS.FLAVOR_EXPERT) };
-                return next;
-            });
-        }
-    };
 
     const scrollToSection = useCallback((sectionId: string) => {
         const target = document.getElementById(sectionId);
@@ -1088,7 +1014,7 @@ export default function App() {
         }
 
         if (options.openAssistant) {
-            setAiChatOpen(true);
+            // AI removed
         }
     }, [location.pathname, location.search, navigate]);
 
@@ -1425,10 +1351,23 @@ export default function App() {
                         onOrderComplete={(summary) => {
                             setCheckoutSummary(summary);
                             navigate('/checkout/success');
+                            // Trigger ID verification immediately after payment
+                            setShowIdVerification(true);
                         }}
                         onSuccess={() => {
                             setCart([]);
                         }}
+                    />
+                )}
+            </AnimatePresence>
+            {/* ID Verification Overlay */}
+            <AnimatePresence>
+                {showIdVerification && checkoutSummary && (
+                    <IdVerification
+                        orderId={checkoutSummary.orderId}
+                        customerEmail={checkoutSummary.customerEmail}
+                        onVerified={() => setShowIdVerification(false)}
+                        onClose={() => setShowIdVerification(false)}
                     />
                 )}
             </AnimatePresence>
@@ -1975,7 +1914,6 @@ export default function App() {
                 {
                     activeTab === 'vendor' && !isContentPage && !isDashboardPage && (
                         <div className="p-6 space-y-8" ref={(el) => {
-                            if (el && !botsLoading && !botInsights.review) loadVendorBots();
                             if (el && !statsLoading && !vendorStats) loadVendorStats();
                         }}>
                             <div className="bg-white p-8 md:p-10 premium-card flex flex-col md:flex-row items-center justify-between gap-8 border-b-8 border-brand-primary">
@@ -2024,105 +1962,6 @@ export default function App() {
                                 ))}
                             </div>
 
-                            {/* Banana Leaf Intelligence Center - Multiple AI Bots */}
-                            <div className="bg-white p-8 md:p-12 premium-card">
-                                <div className="flex items-center gap-6 mb-12">
-                                    <div className="w-16 h-16 bg-brand-primary rounded-2xl flex items-center justify-center shadow-2xl shadow-brand-primary/20 rotate-3">
-                                        <Sparkles className="text-white w-8 h-8" />
-                                    </div>
-                                    <div>
-                                        <h3 className="text-2xl md:text-3xl font-black uppercase tracking-tighter text-slate-900">AI Insights</h3>
-                                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mt-1">Smart analysis of your store performance</p>
-                                    </div>
-                                </div>
-
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                                    {/* Review Analyst Bot */}
-                                    <div className="bg-slate-50 p-8 rounded-3xl border border-slate-100 space-y-6 group hover:bg-white hover:shadow-2xl hover:shadow-slate-200/50 transition-all">
-                                        <div className="flex items-center gap-4">
-                                            <div className="w-12 h-12 bg-blue-500 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/20 group-hover:rotate-6 transition-transform">
-                                                <MessageSquare className="text-white w-6 h-6" />
-                                            </div>
-                                            <div>
-                                                <h4 className="font-black text-[11px] uppercase tracking-widest text-slate-900">Customer Reviews</h4>
-                                                <span className="text-[9px] text-blue-500 font-black uppercase tracking-[0.2em]">{botsLoading ? 'Analysing...' : 'Analysis Ready'}</span>
-                                            </div>
-                                        </div>
-                                        {botsLoading ? (
-                                            <div className="flex items-center gap-3 text-[10px] text-slate-400 font-black uppercase tracking-widest">
-                                                <Loader2 className="w-4 h-4 animate-spin" /> Synthesizing...
-                                            </div>
-                                        ) : (
-                                            <p className="text-xs text-slate-500 font-medium leading-relaxed italic line-clamp-5 border-l-2 border-slate-200 pl-4">{botInsights.review || 'Awaiting stream...'}</p>
-                                        )}
-                                    </div>
-
-                                    {/* Inventory Analyst Bot */}
-                                    <div className="bg-slate-50 p-8 rounded-3xl border border-slate-100 space-y-6 group hover:bg-white hover:shadow-2xl hover:shadow-slate-200/50 transition-all">
-                                        <div className="flex items-center gap-4">
-                                            <div className="w-12 h-12 bg-brand-primary rounded-2xl flex items-center justify-center shadow-lg shadow-brand-primary/20 group-hover:scale-110 transition-transform">
-                                                <Package className="text-white w-6 h-6" />
-                                            </div>
-                                            <div>
-                                                <h4 className="font-black text-[11px] uppercase tracking-widest text-slate-900">Stock Tracker</h4>
-                                                <span className="text-[9px] text-brand-primary font-black uppercase tracking-[0.2em]">{botsLoading ? 'Checking...' : 'Live Stock Data'}</span>
-                                            </div>
-                                        </div>
-                                        {botsLoading ? (
-                                            <div className="flex items-center gap-3 text-[10px] text-slate-400 font-black uppercase tracking-widest">
-                                                <Loader2 className="w-4 h-4 animate-spin" /> Calculating...
-                                            </div>
-                                        ) : (
-                                            <p className="text-xs text-slate-500 font-medium leading-relaxed italic line-clamp-5 border-l-2 border-slate-200 pl-4">{botInsights.inventory || 'Awaiting stream...'}</p>
-                                        )}
-                                    </div>
-
-                                    {/* Market Trend Bot */}
-                                    <div className="bg-slate-50 p-8 rounded-3xl border border-slate-100 space-y-6 group hover:bg-white hover:shadow-2xl hover:shadow-slate-200/50 transition-all">
-                                        <div className="flex items-center gap-4">
-                                            <div className="w-12 h-12 bg-slate-900 rounded-2xl flex items-center justify-center shadow-lg shadow-slate-900/20 group-hover:-rotate-6 transition-transform">
-                                                <TrendingUp className="text-brand-primary w-6 h-6" />
-                                            </div>
-                                            <div>
-                                                <h4 className="font-black text-[11px] uppercase tracking-widest text-slate-900">Market Trends</h4>
-                                                <span className="text-[9px] text-slate-400 font-black uppercase tracking-[0.2em]">{botsLoading ? 'Analyzing...' : 'External Data Linked'}</span>
-                                            </div>
-                                        </div>
-                                        {botsLoading ? (
-                                            <div className="flex items-center gap-3 text-[10px] text-slate-400 font-black uppercase tracking-widest">
-                                                <Loader2 className="w-4 h-4 animate-spin" /> Fetching Trends...
-                                            </div>
-                                        ) : (
-                                            <p className="text-xs text-slate-500 font-medium leading-relaxed italic line-clamp-5 border-l-2 border-slate-200 pl-4">{botInsights.trends || 'Awaiting stream...'}</p>
-                                        )}
-                                    </div>
-                                </div>
-
-                                <div className="mt-8 p-6 bg-brand-secondary text-white rounded-2xl flex flex-col md:flex-row items-center justify-between gap-6">
-                                    <div className="space-y-2 text-center md:text-left">
-                                        <h4 className="text-lg font-black uppercase tracking-widest">Ask Banana Leaf AI</h4>
-                                        <p className="text-sm text-gray-300">Get custom reports or business advice from our AI network.</p>
-                                    </div>
-                                    <form onSubmit={handleVendorAiQuery} className="flex w-full md:w-auto gap-3">
-                                        <input
-                                            type="text"
-                                            value={vendorQuery}
-                                            onChange={(e) => setVendorQuery(e.target.value)}
-                                            placeholder="e.g. 'What should I restock this week?'"
-                                            className="flex-1 md:w-80 bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-sm focus:outline-none focus:bg-white/20"
-                                        />
-                                        <button type="submit" disabled={vendorAiLoading} className="bg-brand-primary text-white p-3 rounded-xl disabled:opacity-60">
-                                            {vendorAiLoading ? <Loader2 className="w-6 h-6 animate-spin" /> : <ChevronRight className="w-6 h-6" />}
-                                        </button>
-                                    </form>
-                                </div>
-                                {vendorAiResponse && (
-                                    <div className="mt-4 p-5 bg-gray-50 border border-gray-100 rounded-2xl">
-                                        <p className="text-[10px] font-black uppercase tracking-widest text-brand-primary mb-2">AI Response</p>
-                                        <p className="text-sm text-gray-700 font-medium leading-relaxed">{vendorAiResponse}</p>
-                                    </div>
-                                )}
-                            </div>
 
                             {showVendorProductForm && currentUser && (
                                 <VendorProductForm
@@ -2407,109 +2246,6 @@ export default function App() {
                 }
             </AnimatePresence >
 
-            {/* Floating AI Chat - Bottom Right */}
-            < div className="fixed bottom-4 right-4 md:bottom-8 md:right-8 z-[100] flex flex-col items-end gap-5 pointer-events-none w-[calc(100vw-2rem)] md:w-auto" >
-                <AnimatePresence>
-                    {aiChatOpen && (
-                        <motion.div
-                            initial={{ opacity: 0, scale: 0.9, y: 40 }}
-                            animate={{ opacity: 1, scale: 1, y: 0 }}
-                            exit={{ opacity: 0, scale: 0.9, y: 40 }}
-                            className="w-full md:w-[380px] h-[450px] md:h-[550px] bg-slate-900 rounded-[2.5rem] shadow-2xl border border-white/10 flex flex-col overflow-hidden pointer-events-auto"
-                        >
-                            <div className="bg-slate-950 p-6 flex items-center justify-between border-b border-white/5">
-                                <div className="flex items-center gap-4">
-                                    <div className="w-10 h-10 bg-brand-primary rounded-xl flex items-center justify-center shadow-lg shadow-brand-primary/20">
-                                        <Sparkles className="text-white w-5 h-5" />
-                                    </div>
-                                    <div className="flex flex-col">
-                                        <span className="text-white font-black uppercase tracking-tighter">Banana Leaf AI</span>
-                                        <div className="flex items-center gap-1.5">
-                                            <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
-                                            <span className="text-[9px] font-black uppercase tracking-widest text-slate-500">AI Assistant</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <button onClick={() => setAiChatOpen(false)} className="p-2 hover:bg-white/5 rounded-xl transition-colors">
-                                    <X className="w-5 h-5 text-slate-400" />
-                                </button>
-                            </div>
-
-                            <div className="flex-1 overflow-y-auto p-5 space-y-4 bg-slate-900/50" id="chat-messages">
-                                {aiMessages.length === 0 && (
-                                    <div className="flex items-center justify-center h-full">
-                                        <p className="text-slate-600 text-xs text-center">Starting conversation...</p>
-                                    </div>
-                                )}
-                                {aiMessages.map((msg, i) => (
-                                    <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} items-end gap-2`}>
-                                        {msg.role === 'ai' && (
-                                            <div className="w-7 h-7 rounded-xl bg-brand-primary flex items-center justify-center shrink-0 mb-0.5">
-                                                <Sparkles className="w-3.5 h-3.5 text-white" />
-                                            </div>
-                                        )}
-                                        <div className={`max-w-[80%] px-4 py-3 rounded-2xl text-sm leading-relaxed shadow-sm ${
-                                            msg.role === 'user'
-                                                ? 'bg-brand-primary text-slate-900 font-semibold rounded-br-none'
-                                                : msg.text === '...'
-                                                    ? 'bg-white/8 border border-white/8 text-slate-400 rounded-bl-none'
-                                                    : 'bg-white/10 text-slate-200 border border-white/8 rounded-bl-none'
-                                        }`}>
-                                            {msg.text === '...' ? (
-                                                <span className="flex gap-1 items-center">
-                                                    <span className="w-1.5 h-1.5 bg-slate-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                                                    <span className="w-1.5 h-1.5 bg-slate-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                                                    <span className="w-1.5 h-1.5 bg-slate-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-                                                </span>
-                                            ) : (
-                                                <span dangerouslySetInnerHTML={{ __html: msg.text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br/>') }} />
-                                            )}
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-
-                            <form onSubmit={handleAiChat} className="p-4 bg-slate-950/80 border-t border-white/5">
-                                <div className="flex gap-2">
-                                    <input
-                                        type="text"
-                                        placeholder="Type your message..."
-                                        className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-brand-primary focus:bg-white/10 transition-all placeholder:text-slate-600"
-                                        value={chatInput}
-                                        onChange={(e) => setChatInput(e.target.value)}
-                                    />
-                                    <button type="submit" className="bg-brand-primary text-slate-900 p-2.5 rounded-xl shadow-xl shadow-brand-primary/20 hover:scale-105 active:scale-95 transition-all">
-                                        <ArrowRight className="w-5 h-5" />
-                                    </button>
-                                </div>
-                            </form>
-                        </motion.div>
-                    )}
-                </AnimatePresence>
-
-                {/* Floating Toggle Button */}
-                <motion.button
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.9 }}
-                    onClick={async () => {
-                        const opening = !aiChatOpen;
-                        setAiChatOpen(opening);
-                        if (opening && aiMessages.length === 0) {
-                            // Auto-trigger greeting
-                            setAiMessages([{ role: 'ai', text: '...' }]);
-                            const greeting = await getChatbotResponse('__OPEN__');
-                            setAiMessages([{ role: 'ai', text: greeting }]);
-                        } else if (!opening) {
-                            // Reset so next open starts fresh
-                            resetChatbot();
-                            setAiMessages([]);
-                        }
-                    }}
-                    className="bg-[#4AB1F4] text-white p-5 md:p-6 rounded-[2rem] shadow-2xl shadow-[#4AB1F4]/30 pointer-events-auto flex items-center justify-center group relative transition-all hover:bg-[#2f9ce5]"
-                >
-                    {aiChatOpen ? <X className="w-6 h-6 md:w-7 md:h-7" /> : <MessageSquare className="w-6 h-6 md:w-7 md:h-7 text-white" />}
-                </motion.button>
-            </div >
 
             <footer className="bg-slate-900 text-white mt-auto">
                 {/* Return to Top */}

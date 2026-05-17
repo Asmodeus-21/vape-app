@@ -32,6 +32,7 @@ export default function AuthModal({ onClose, onAuthSuccess }: AuthModalProps) {
     const [loginEmail, setLoginEmail] = useState('');
     const [loginPassword, setLoginPassword] = useState('');
     const [loginOtpCode, setLoginOtpCode] = useState('');
+    const [loginOtpSent, setLoginOtpSent] = useState(false);
 
     // Register
     const [regStep, setRegStep] = useState<RegStep>('form');
@@ -74,7 +75,7 @@ export default function AuthModal({ onClose, onAuthSuccess }: AuthModalProps) {
         }
     };
 
-    const handleSendLoginOtp = async (e: React.FormEvent) => {
+    const handleSendLoginOtp = async (e: React.FormEvent | React.MouseEvent<HTMLButtonElement>) => {
         e.preventDefault();
         setError('');
         if (!loginEmail.trim()) {
@@ -86,6 +87,7 @@ export default function AuthModal({ onClose, onAuthSuccess }: AuthModalProps) {
         try {
             await requestLoginOtp(loginEmail);
             setLoginMode('otp_verify');
+            setLoginOtpSent(true);
             toast.success('Login code sent to your email.', { duration: 4000 });
         } catch (err: any) {
             setError(err.message || 'Failed to send login code. Please try again.');
@@ -101,6 +103,7 @@ export default function AuthModal({ onClose, onAuthSuccess }: AuthModalProps) {
         setResendCountdown(30);
         try {
             await requestLoginOtp(loginEmail);
+            setLoginOtpSent(true);
             toast.success('Login code resent to your email.', { duration: 4000 });
         } catch (err: any) {
             setError(err.message || 'Failed to resend login code. Please try again.');
@@ -113,6 +116,10 @@ export default function AuthModal({ onClose, onAuthSuccess }: AuthModalProps) {
     const handleVerifyLoginOtp = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
+        if (!loginEmail.trim()) {
+            setError('Please enter your email address.');
+            return;
+        }
         if (!loginOtpCode.trim() || loginOtpCode.length !== 6) {
             setError('Please enter a valid 6-digit code.');
             return;
@@ -234,12 +241,7 @@ export default function AuthModal({ onClose, onAuthSuccess }: AuthModalProps) {
         setLoginPassword('');
         setLoginOtpCode('');
         setLoginMode('password');
-        setRegName('');
-        setRegEmail('');
-        setRegPassword('');
-        setRegDob('');
-        setRegOtpCode('');
-        setIsAgeVerified(false);
+            setLoginOtpSent(false);
         setRegStep('form');
         setShowPassword(false);
     };
@@ -416,6 +418,22 @@ export default function AuthModal({ onClose, onAuthSuccess }: AuthModalProps) {
                                     />
                                 </div>
 
+                                <button
+                                    type="button"
+                                    onClick={handleSendLoginOtp}
+                                    disabled={loading || !loginEmail.trim()}
+                                    className="w-full py-2.5 bg-slate-900 text-white font-bold rounded-lg transition-colors hover:bg-slate-800 disabled:opacity-50"
+                                >
+                                    {loading ? <Loader2 className="w-4 h-4 animate-spin inline-block mr-2" /> : null}
+                                    Get OTP
+                                </button>
+
+                                {loginOtpSent && (
+                                    <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">
+                                        A 6-digit verification code was sent to your email. Enter it below to sign in.
+                                    </div>
+                                )}
+
                                 <div>
                                     <label className="block text-xs font-bold text-slate-600 mb-2">Verification Code</label>
                                     <input
@@ -446,6 +464,7 @@ export default function AuthModal({ onClose, onAuthSuccess }: AuthModalProps) {
                                     onClick={() => {
                                         setLoginMode('password');
                                         setError('');
+                                        setLoginOtpSent(false);
                                     }}
                                     className="w-full py-2.5 text-slate-700 font-semibold text-sm hover:text-slate-900"
                                 >
@@ -460,7 +479,7 @@ export default function AuthModal({ onClose, onAuthSuccess }: AuthModalProps) {
                                     <button
                                         type="button"
                                         onClick={handleResendLoginOtp}
-                                        disabled={loading}
+                                        disabled={loading || !loginEmail.trim()}
                                         className="w-full text-center text-xs font-semibold text-blue-500 hover:text-blue-600 mt-2"
                                     >
                                         Resend login code

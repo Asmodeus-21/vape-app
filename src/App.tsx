@@ -1652,7 +1652,7 @@ export default function App() {
                                     <span className="absolute -top-1 -right-1 bg-brand-primary text-slate-900 text-[10px] font-black w-6 h-6 rounded-full flex items-center justify-center border-4 border-white group-hover:scale-110 transition-all">{cart.length}</span>
                                 </div>
                                 <div className="hidden lg:flex flex-col">
-                                    <span className="text-[9px] text-slate-400 font-black uppercase tracking-widest leading-none mb-1">Ledger Total</span>
+                                    <span className="text-[9px] text-slate-400 font-black uppercase tracking-widest leading-none mb-1">Cart Total</span>
                                     <span className="text-sm font-black text-slate-900">${cart.reduce((sum, item) => sum + item.price, 0).toFixed(2)}</span>
                                 </div>
                             </div>
@@ -1980,7 +1980,7 @@ export default function App() {
                         }}>
                             <div className="bg-white p-8 md:p-10 premium-card flex flex-col md:flex-row items-center justify-between gap-8 border-b-8 border-brand-primary">
                                 <div>
-                                    <h2 className="text-3xl md:text-4xl font-black uppercase tracking-tighter text-slate-900">Retailer OS</h2>
+                                    <h2 className="text-3xl md:text-4xl font-black uppercase tracking-tighter text-slate-900">Vendor Dashboard</h2>
                                     <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mt-2">Inventory Management & Intelligence Layer</p>
                                 </div>
                                 <div className="flex items-center gap-4 w-full md:w-auto">
@@ -1995,23 +1995,23 @@ export default function App() {
                                         onClick={sendTestNotification}
                                         className="px-6 py-4 bg-slate-100 text-slate-900 font-black uppercase tracking-widest text-[9px] rounded-2xl hover:bg-slate-900 hover:text-white transition-all"
                                     >
-                                        Logistics Test
+                                        Notify Me
                                     </button>
                                     <button
                                         className="px-8 py-4 bg-brand-primary text-white font-black uppercase tracking-widest text-[10px] rounded-2xl shadow-2xl shadow-brand-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all flex-1 md:flex-none"
                                         onClick={() => setShowVendorProductForm(true)}
                                     >
-                                        Initialize Product Node
+                                        Add New Product
                                     </button>
                                 </div>
                             </div>
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
                                 {[
-                                    { label: 'Cycle Velocity', value: `$${vendorStats?.todaySales?.toFixed(2) || '0.00'}`, change: 'Real-time Sales' },
-                                    { label: 'Active Pipeline', value: vendorStats?.openOrders || '0', change: 'Orders in fulfillment' },
-                                    { label: 'Critical Assets', value: vendorStats?.lowStockItems || '0', change: 'Restock required' },
-                                    { label: 'Total Volume', value: `$${vendorStats?.totalEarnings?.toLocaleString() || '0'}`, change: 'Lifetime Revenue' },
+                                    { label: "Today's Sales", value: `$${vendorStats?.todaySales?.toFixed(2) || '0.00'}`, change: 'Real-time Sales' },
+                                    { label: 'Open Orders', value: vendorStats?.openOrders || '0', change: 'Orders in progress' },
+                                    { label: 'Low Stock Items', value: vendorStats?.lowStockItems || '0', change: 'Needs restocking' },
+                                    { label: 'Total Revenue', value: `$${vendorStats?.totalEarnings?.toLocaleString() || '0'}`, change: 'Lifetime Earnings' },
                                 ].map((stat, i) => (
                                     <div key={i} className="premium-card p-6 md:p-8 bg-white group hover:border-brand-primary transition-all">
                                         <div className="text-[10px] text-slate-400 uppercase font-black tracking-[0.2em] mb-4">{stat.label}</div>
@@ -2031,8 +2031,8 @@ export default function App() {
                                         <Sparkles className="text-white w-8 h-8" />
                                     </div>
                                     <div>
-                                        <h3 className="text-2xl md:text-3xl font-black uppercase tracking-tighter text-slate-900">Intelligence Nexus</h3>
-                                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mt-1">Strategic AI Layer — Real-time Market Synthesis</p>
+                                        <h3 className="text-2xl md:text-3xl font-black uppercase tracking-tighter text-slate-900">AI Insights</h3>
+                                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mt-1">Smart analysis of your store performance</p>
                                     </div>
                                 </div>
 
@@ -2044,8 +2044,8 @@ export default function App() {
                                                 <MessageSquare className="text-white w-6 h-6" />
                                             </div>
                                             <div>
-                                                <h4 className="font-black text-[11px] uppercase tracking-widest text-slate-900">Sentiment Engine</h4>
-                                                <span className="text-[9px] text-blue-500 font-black uppercase tracking-[0.2em]">{botsLoading ? 'Syncing...' : 'Encrypted & Active'}</span>
+                                                <h4 className="font-black text-[11px] uppercase tracking-widest text-slate-900">Customer Reviews</h4>
+                                                <span className="text-[9px] text-blue-500 font-black uppercase tracking-[0.2em]">{botsLoading ? 'Analysing...' : 'Analysis Ready'}</span>
                                             </div>
                                         </div>
                                         {botsLoading ? (
@@ -2064,8 +2064,8 @@ export default function App() {
                                                 <Package className="text-white w-6 h-6" />
                                             </div>
                                             <div>
-                                                <h4 className="font-black text-[11px] uppercase tracking-widest text-slate-900">Inventory Pulse</h4>
-                                                <span className="text-[9px] text-brand-primary font-black uppercase tracking-[0.2em]">{botsLoading ? 'Optimizing...' : 'Live Ledger Active'}</span>
+                                                <h4 className="font-black text-[11px] uppercase tracking-widest text-slate-900">Stock Tracker</h4>
+                                                <span className="text-[9px] text-brand-primary font-black uppercase tracking-[0.2em]">{botsLoading ? 'Checking...' : 'Live Stock Data'}</span>
                                             </div>
                                         </div>
                                         {botsLoading ? (
@@ -2084,7 +2084,7 @@ export default function App() {
                                                 <TrendingUp className="text-brand-primary w-6 h-6" />
                                             </div>
                                             <div>
-                                                <h4 className="font-black text-[11px] uppercase tracking-widest text-slate-900">Market Synthesis</h4>
+                                                <h4 className="font-black text-[11px] uppercase tracking-widest text-slate-900">Market Trends</h4>
                                                 <span className="text-[9px] text-slate-400 font-black uppercase tracking-[0.2em]">{botsLoading ? 'Analyzing...' : 'External Data Linked'}</span>
                                             </div>
                                         </div>
@@ -2100,7 +2100,7 @@ export default function App() {
 
                                 <div className="mt-8 p-6 bg-brand-secondary text-white rounded-2xl flex flex-col md:flex-row items-center justify-between gap-6">
                                     <div className="space-y-2 text-center md:text-left">
-                                        <h4 className="text-lg font-black uppercase tracking-widest">Ask Banana Leaf Intelligence</h4>
+                                        <h4 className="text-lg font-black uppercase tracking-widest">Ask Banana Leaf AI</h4>
                                         <p className="text-sm text-gray-300">Get custom reports or business advice from our AI network.</p>
                                     </div>
                                     <form onSubmit={handleVendorAiQuery} className="flex w-full md:w-auto gap-3">
@@ -2337,7 +2337,7 @@ export default function App() {
                                                 onClick={() => setIsCartOpen(false)}
                                                 className="px-8 py-3 bg-slate-900 text-white text-[10px] font-black uppercase tracking-[0.2em] rounded-xl hover:bg-brand-primary transition-all shadow-xl shadow-slate-900/10"
                                             >
-                                                Initialize Acquisition
+                                                Shop Now
                                             </button>
                                         </div>
                                     ) : (
@@ -2370,7 +2370,7 @@ export default function App() {
                                                         onClick={() => indices.forEach(() => removeFromCart(cart.findIndex(c => c.id === item.id)))}
                                                         className="text-[9px] font-black uppercase tracking-widest text-slate-400 hover:text-red-500 transition-colors"
                                                     >
-                                                        Eject Module
+                                                        Remove
                                                     </button>
                                                 </div>
                                             </div>
@@ -2426,7 +2426,7 @@ export default function App() {
                                         <span className="text-white font-black uppercase tracking-tighter">Banana Leaf AI</span>
                                         <div className="flex items-center gap-1.5">
                                             <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
-                                            <span className="text-[9px] font-black uppercase tracking-widest text-slate-500">Neural Link Active</span>
+                                            <span className="text-[9px] font-black uppercase tracking-widest text-slate-500">AI Assistant</span>
                                         </div>
                                     </div>
                                 </div>
@@ -2452,7 +2452,7 @@ export default function App() {
                                 <div className="flex gap-3">
                                     <input
                                         type="text"
-                                        placeholder="Inquire module data..."
+                                        placeholder="Ask me anything..."
                                         className="flex-1 bg-white/5 border border-white/10 rounded-xl px-5 py-3 text-xs text-white focus:outline-none focus:border-brand-primary focus:bg-white/10 transition-all font-black uppercase tracking-widest placeholder:text-slate-600"
                                         value={chatInput}
                                         onChange={(e) => setChatInput(e.target.value)}
@@ -2479,11 +2479,7 @@ export default function App() {
 
             <footer className="bg-slate-900 text-white mt-auto">
                 {/* Return to Top */}
-                <button
-                    onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-                    className="w-full py-6 bg-slate-800 hover:bg-slate-700 text-[11px] font-black uppercase tracking-[0.3em] transition-all border-b border-white/5"
-                >
-                    Back To Top
+
                 </button>
 
                 <div className="max-w-[1500px] mx-auto px-8 py-20 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-16">

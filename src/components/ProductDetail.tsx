@@ -193,13 +193,13 @@ export default function ProductDetail({ group, selectedVariantId, onBack, onVari
                                 <div className="flex items-center gap-2">
                                     <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
                                     <p className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-600">
-                                        Inventory node active — Immediate Dispatch
+                                        In Stock — Ready to Ship
                                     </p>
                                 </div>
                             ) : (
                                 <div className="flex items-center gap-2">
                                     <div className="w-2 h-2 bg-rose-500 rounded-full" />
-                                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-rose-500">Node Depleted — Awaiting Restock</p>
+                                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-rose-500">Out of Stock — Check Back Soon</p>
                                 </div>
                             )}
                         </div>
@@ -288,13 +288,13 @@ export default function ProductDetail({ group, selectedVariantId, onBack, onVari
                                 <button
                                     onClick={handleAddToCart}
                                     disabled={selectedVariant.stockQty === 0 || isComingSoon}
-                                    className={`flex-1 w-full h-16 rounded-[2rem] flex items-center justify-center gap-3 font-black uppercase tracking-[0.2em] text-[11px] shadow-2xl transition-all active:scale-95 ${selectedVariant.stockQty > 0 && !isComingSoon
-                                        ? 'bg-slate-900 text-white hover:bg-brand-primary shadow-slate-900/20'
+                                    className={`flex-1 w-full h-16 rounded-[2rem] flex items-center justify-center gap-3 font-black uppercase tracking-[0.14em] text-sm shadow-2xl transition-all active:scale-[0.97] hover:scale-[1.02] ${selectedVariant.stockQty > 0 && !isComingSoon
+                                        ? 'bg-slate-900 text-white hover:bg-brand-primary shadow-slate-900/25'
                                         : 'bg-slate-100 text-slate-300 cursor-not-allowed'
                                         }`}
                                 >
-                                    <Package className="w-5 h-5" />
-                                    {isComingSoon ? 'Coming Soon' : selectedVariant.stockQty > 0 ? 'Initialize Secure Order' : 'Asset Unavailable'}
+                                    <Package className="w-6 h-6" />
+                                    {isComingSoon ? 'Coming Soon' : selectedVariant.stockQty > 0 ? 'Add to Cart' : 'Out of Stock'}
                                 </button>
                             </div>
 
@@ -304,13 +304,13 @@ export default function ProductDetail({ group, selectedVariantId, onBack, onVari
                                     <div className="w-8 h-8 bg-emerald-50 rounded-xl flex items-center justify-center">
                                         <Shield className="w-4 h-4 text-emerald-500" />
                                     </div>
-                                    Authenticity Verified
+                                    100% Authentic
                                 </div>
                                 <div className="flex items-center gap-3 text-[9px] font-black uppercase tracking-[0.3em] text-slate-400">
                                     <div className="w-8 h-8 bg-slate-50 rounded-xl flex items-center justify-center">
                                         <Truck className="w-4 h-4 text-brand-primary" />
                                     </div>
-                                    Secure Logistics
+                                    Fast Delivery
                                 </div>
                             </div>
                         </div>
@@ -319,7 +319,7 @@ export default function ProductDetail({ group, selectedVariantId, onBack, onVari
 
                 {/* Product Description */}
                 <div className="mt-8 premium-card p-8 lg:p-12">
-                    <h3 className="text-[11px] font-black uppercase tracking-widest text-slate-400 mb-6 border-b border-slate-100 pb-4">Product Specifications</h3>
+                    <h3 className="text-[11px] font-black uppercase tracking-widest text-slate-400 mb-6 border-b border-slate-100 pb-4">Product Description</h3>
                     <div className="prose prose-slate max-w-none">
                         <p className="text-slate-600 leading-relaxed font-bold text-sm">
                             {selectedVariant.description}

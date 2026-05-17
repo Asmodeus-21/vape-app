@@ -12,6 +12,7 @@ import { motion } from 'motion/react';
 import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { DEFAULT_CATALOG_IMAGE, resolveCatalogImage, resolveFlavorImage } from '../../shared/product-images';
+import { addSavedItem } from '../services/api';
 import { ParentVariantGroup, Product } from '../types';
 
 interface ProductDetailProps {
@@ -31,6 +32,7 @@ function selectNearestVariant(variants: Product[], nextFlavor: string, nextNicot
 
 export default function ProductDetail({ group, selectedVariantId, onBack, onVariantChange, onAddToCart }: ProductDetailProps) {
     const [quantity, setQuantity] = useState(1);
+    const [saving, setSaving] = useState(false);
     const selectedVariant = useMemo(() => {
         if (!group || group.variants.length === 0) {
             return null;
@@ -112,6 +114,24 @@ export default function ProductDetail({ group, selectedVariantId, onBack, onVari
         }
         onAddToCart(selectedVariant, quantity, { flavor: selectedVariant.flavor, nicotine: selectedVariant.nicotine });
         toast.success('Added to cart!');
+    };
+
+    const handleSaveItem = async () => {
+        const token = localStorage.getItem('vapeshub_token');
+        if (!token) {
+            toast.error('Please sign in to save items for later.');
+            return;
+        }
+
+        setSaving(true);
+        try {
+            await addSavedItem(token, selectedVariant.id);
+            toast.success('Saved to your items.');
+        } catch (err: any) {
+            toast.error(err?.message || 'Unable to save this item.');
+        } finally {
+            setSaving(false);
+        }
     };
 
     return (
@@ -297,6 +317,18 @@ export default function ProductDetail({ group, selectedVariantId, onBack, onVari
                                     {isComingSoon ? 'Coming Soon' : selectedVariant.stockQty > 0 ? 'Add to Cart' : 'Out of Stock'}
                                 </button>
                             </div>
+
+                            <button
+                                onClick={handleSaveItem}
+                                disabled={saving}
+                                className={`flex-1 w-full h-16 rounded-[2rem] flex items-center justify-center gap-3 font-black uppercase tracking-[0.14em] text-sm transition-all active:scale-[0.97] hover:scale-[1.02] ${saving
+                                    ? 'bg-slate-200 text-slate-500 cursor-not-allowed'
+                                    : 'bg-white text-slate-900 border border-slate-200 hover:bg-slate-100'
+                                }`}
+                            >
+                                {saving ? 'Saving…' : 'Save for later'}
+                            </button>
+                        </div>
 
                             {/* Guarantees */}
                             <div className="grid grid-cols-2 gap-6 mt-10">

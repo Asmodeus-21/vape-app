@@ -117,6 +117,71 @@ export default function Dashboard({ userName, email, token, onAddToCart }: Dashb
                     <p className="text-sm font-semibold text-slate-300">Signed in as {userName} ({email}).</p>
                 </header>
 
+                <div className="grid gap-4 md:grid-cols-3">
+                    <div className="rounded-[1.75rem] border border-slate-800 bg-slate-950 p-6">
+                        <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#4AB1F4]">Account Snapshot</p>
+                        <h2 className="mt-3 text-xl font-black uppercase tracking-tight text-white">Your hub at a glance</h2>
+                        <p className="mt-2 text-sm text-slate-400">Keep track of orders, saved products, and your account health from one place.</p>
+                        <div className="mt-6 space-y-3">
+                            <div className="rounded-3xl border border-slate-800 bg-slate-900/80 px-4 py-4 flex items-center justify-between gap-4">
+                                <div>
+                                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Saved items</p>
+                                    <p className="mt-2 text-lg font-black text-white">{savedItems.length}</p>
+                                </div>
+                                <span className="text-sm font-black uppercase tracking-[0.2em] text-[#4AB1F4]">Ready</span>
+                            </div>
+                            <div className="rounded-3xl border border-slate-800 bg-slate-900/80 px-4 py-4 flex items-center justify-between gap-4">
+                                <div>
+                                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Latest order</p>
+                                    <p className="mt-2 text-lg font-black text-white">{lastOrder ? `#${lastOrder.id}` : 'No orders yet'}</p>
+                                </div>
+                                <span className="text-sm font-black uppercase tracking-[0.2em] text-slate-400">Status</span>
+                            </div>
+                            <div className="rounded-3xl border border-slate-800 bg-slate-900/80 px-4 py-4 flex items-center justify-between gap-4">
+                                <div>
+                                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Account status</p>
+                                    <p className="mt-2 text-lg font-black text-white">Active</p>
+                                </div>
+                                <span className="text-sm font-black uppercase tracking-[0.2em] text-[#4AB1F4]">Secure</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="rounded-[1.75rem] border border-slate-800 bg-slate-950 p-6">
+                        <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#4AB1F4]">Quick Actions</p>
+                        <h2 className="mt-3 text-xl font-black uppercase tracking-tight text-white">Move faster</h2>
+                        <div className="mt-6 grid gap-3">
+                            <button
+                                type="button"
+                                onClick={() => updateTab('orders')}
+                                className="w-full rounded-3xl bg-[#4AB1F4] px-4 py-4 text-[11px] font-black uppercase tracking-[0.16em] text-slate-950 transition hover:bg-[#2f9ce5]"
+                            >
+                                View order status
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => updateTab('saved')}
+                                className="w-full rounded-3xl border border-slate-700 bg-slate-900 px-4 py-4 text-[11px] font-black uppercase tracking-[0.16em] text-slate-300 transition hover:border-[#4AB1F4] hover:text-white"
+                            >
+                                Manage saved items
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="rounded-[1.75rem] border border-slate-800 bg-slate-950 p-6">
+                        <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#4AB1F4]">Get more from Banana Leaf</p>
+                        <h2 className="mt-3 text-xl font-black uppercase tracking-tight text-white">Explore curated deals</h2>
+                        <p className="mt-4 text-sm text-slate-400">Open the shop to discover new launch products and exclusive promotions.</p>
+                        <button
+                            type="button"
+                            onClick={() => updateTab('orders')}
+                            className="mt-6 inline-flex items-center justify-center rounded-3xl bg-white px-5 py-3 text-[11px] font-black uppercase tracking-[0.16em] text-slate-900 transition hover:bg-slate-100"
+                        >
+                            Continue shopping
+                        </button>
+                    </div>
+                </div>
+
                 <div className="grid gap-3 sm:grid-cols-3">
                     {DASHBOARD_TABS.map((tab) => (
                         <button

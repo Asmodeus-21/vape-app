@@ -1634,14 +1634,20 @@ export default function App() {
                 {currentPath === '/shop/the-kits' && <TheKits />}
                 {currentPath === '/shop/the-originals' && <TheOriginals />}
 
-                {isDashboardPage && currentUser && (
+                {isDashboardPage && currentUser && currentUser.role === 'admin' ? (
+                    <AdminDashboard
+                        token={localStorage.getItem('vapeshub_token') || ''}
+                        stats={adminStats ?? {}}
+                        currentUser={currentUser}
+                    />
+                ) : isDashboardPage && currentUser ? (
                     <Dashboard
                         userName={currentUser.name}
                         email={currentUser.email}
                         token={localStorage.getItem('vapeshub_token') || ''}
                         onAddToCart={addToCart}
                     />
-                )}
+                ) : null}
 
                 {isDashboardPage && !currentUser && !authChecked && (
                     <section className="mx-4 mt-6 rounded-[2rem] border border-slate-100 bg-white p-8 shadow-sm md:p-10 text-center">

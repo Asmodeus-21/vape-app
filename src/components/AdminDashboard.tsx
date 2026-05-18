@@ -185,6 +185,72 @@ export default function AdminDashboard({ token, stats, currentUser }: AdminDashb
                 ))}
             </div>
 
+            {/* Quick site controls */}
+            <div className="grid gap-6 lg:grid-cols-[1.6fr_1fr]">
+                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                    {[
+                        {
+                            label: 'Product Catalog',
+                            value: stats?.totalProducts ?? filteredData.length,
+                            description: 'Live SKUs available for update',
+                            color: 'text-brand-primary',
+                        },
+                        {
+                            label: 'Order Streams',
+                            value: stats?.totalOrders ?? 0,
+                            description: 'Today’s orders in motion',
+                            color: 'text-slate-900',
+                        },
+                        {
+                            label: 'Pending Reviews',
+                            value: stats?.pendingVerifications ?? 0,
+                            description: 'Users waiting authorization',
+                            color: 'text-rose-600',
+                        },
+                        {
+                            label: 'Franchise Nodes',
+                            value: stats?.totalStores ?? stores.length,
+                            description: 'Local storefronts online',
+                            color: 'text-emerald-600',
+                        },
+                    ].map((card) => (
+                        <div key={card.label} className="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm">
+                            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">{card.label}</p>
+                            <p className={`mt-4 text-3xl font-black uppercase tracking-tight ${card.color}`}>{card.value}</p>
+                            <p className="mt-3 text-sm text-slate-500">{card.description}</p>
+                        </div>
+                    ))}
+                </div>
+                <div className="rounded-3xl border border-slate-100 bg-slate-50 p-6 shadow-sm">
+                    <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500">Website Control</p>
+                    <h2 className="mt-3 text-2xl font-black uppercase tracking-tight text-slate-900">Content & Commerce Hub</h2>
+                    <p className="mt-4 text-sm text-slate-600 leading-relaxed">Manage product assortment, review storefront campaigns, and monitor the live site experience from one control plane.</p>
+                    <div className="mt-6 grid gap-3">
+                        <button
+                            type="button"
+                            onClick={() => setActiveTab('products')}
+                            className="w-full rounded-2xl bg-slate-900 px-4 py-4 text-[11px] font-black uppercase tracking-[0.18em] text-white transition hover:bg-slate-800"
+                        >
+                            Open product catalog
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setActiveTab('orders')}
+                            className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-4 text-[11px] font-black uppercase tracking-[0.18em] text-slate-900 transition hover:border-brand-primary hover:text-brand-primary"
+                        >
+                            Review order streams
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => toast('Page management coming soon — site content controls are next.')}
+                            className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-4 text-[11px] font-black uppercase tracking-[0.18em] text-slate-900 transition hover:border-brand-primary hover:text-brand-primary"
+                        >
+                            Homepage & policy pages
+                        </button>
+                    </div>
+                </div>
+            </div>
+
             {/* Tabs */}
             <div className="flex items-center gap-2 bg-slate-100/50 backdrop-blur p-1.5 rounded-2xl w-fit border border-slate-100">
                 {[

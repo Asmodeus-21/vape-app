@@ -290,7 +290,7 @@ function MarketplaceProductCard({ group, selectedVariant, onOpenProduct, onSelec
     return (
         <article
             onClick={onOpenProduct}
-            className="group flex min-h-full cursor-pointer flex-col gap-4 rounded-[1.5rem] border border-[#e8ebef] bg-white p-4 shadow-[0_10px_30px_rgba(15,23,42,0.05)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_18px_42px_rgba(15,23,42,0.08)]"
+            className="group flex h-full cursor-pointer flex-col gap-4 rounded-[1.5rem] border border-[#e8ebef] bg-white p-4 shadow-[0_10px_30px_rgba(15,23,42,0.05)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_18px_42px_rgba(15,23,42,0.08)]"
         >
             <ProductCardImage
                 imageUrl={selectedVariant.image}
@@ -302,7 +302,7 @@ function MarketplaceProductCard({ group, selectedVariant, onOpenProduct, onSelec
                 salePercent={salePercentage}
             />
 
-            <div className="flex min-h-[250px] flex-col gap-4">
+            <div className="flex flex-1 flex-col gap-4">
                 <div className="space-y-2">
                     <p className="line-clamp-1 text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">{categoryLabel}</p>
                     <h4 className="line-clamp-2 text-base font-bold leading-6 text-slate-950">{group.parentName}</h4>
@@ -348,13 +348,13 @@ function MarketplaceProductCard({ group, selectedVariant, onOpenProduct, onSelec
                     <span className="text-[11px] font-semibold text-slate-500">({placeholderMetrics.reviews})</span>
                 </div>
 
-                <div className="flex items-baseline gap-2.5">
+                <div className="flex items-baseline gap-1.5">
                     {isMasterCard ? (
-                        <span className="text-2xl font-black tracking-tight text-[#4AB1F4]">From ${lowestPrice.toFixed(2)}</span>
+                        <span className="text-lg font-black tracking-tight text-[#4AB1F4] sm:text-2xl">From ${lowestPrice.toFixed(2)}</span>
                     ) : (
                         <>
-                            <span className="text-sm font-semibold text-slate-400 line-through">${originalPrice.toFixed(2)}</span>
-                            <span className="text-2xl font-black tracking-tight text-[#4AB1F4]">${selectedVariant.price.toFixed(2)}</span>
+                            <span className="text-xs font-semibold text-slate-400 line-through sm:text-sm">${originalPrice.toFixed(2)}</span>
+                            <span className="text-lg font-black tracking-tight text-[#4AB1F4] sm:text-2xl">${selectedVariant.price.toFixed(2)}</span>
                         </>
                     )}
                 </div>
@@ -1698,7 +1698,7 @@ export default function App() {
                         </section>
 
                         <section id="marketplace-grid-section" className="mx-4 rounded-[2rem] border border-slate-100 bg-white p-6 shadow-sm md:p-10">
-                            <div className="grid grid-cols-2 gap-4 lg:grid-cols-4 lg:gap-6">
+                            <div className="grid grid-cols-2 items-stretch gap-4 lg:grid-cols-4 lg:gap-6">
                                 {homepageGridLoading ? (
                                     <div className="col-span-full w-full py-20 text-center bg-slate-50 rounded-[2rem] border border-dashed border-slate-100 flex items-center justify-center gap-3">
                                         <Loader2 className="w-5 h-5 animate-spin text-brand-primary" />
@@ -1709,7 +1709,7 @@ export default function App() {
                                         const selectedVariant = group.variants[0];
 
                                         return (
-                                            <div key={`banner-grid-${group.key}`}>
+                                            <div key={`banner-grid-${group.key}`} className="h-full">
                                                 <MarketplaceProductCard
                                                     group={group}
                                                     selectedVariant={selectedVariant}

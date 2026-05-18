@@ -83,7 +83,7 @@ function ShopProductCard({ product, onOpen }: { product: Product; onOpen: () => 
     return (
         <article
             onClick={onOpen}
-            className="group flex flex-col rounded-[1.5rem] border border-[#e8ebef] bg-white cursor-pointer overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_18px_42px_rgba(15,23,42,0.10)]"
+            className="group flex h-full flex-col rounded-[1.5rem] border border-[#e8ebef] bg-white cursor-pointer overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_18px_42px_rgba(15,23,42,0.10)]"
         >
             {/* Image */}
             <div className="relative aspect-square bg-slate-50 overflow-hidden">
@@ -139,8 +139,8 @@ function ShopProductCard({ product, onOpen }: { product: Product; onOpen: () => 
 
                 {/* Price */}
                 <div className="flex items-baseline gap-2">
-                    <span className="text-xs font-semibold text-slate-400 line-through">${originalPrice.toFixed(2)}</span>
-                    <span className="text-xl font-black tracking-tight text-[#4AB1F4]">${product.price.toFixed(2)}</span>
+                    <span className="text-xs font-semibold text-slate-400 line-through sm:text-xs">${originalPrice.toFixed(2)}</span>
+                    <span className="text-lg font-black tracking-tight text-[#4AB1F4] sm:text-xl">${product.price.toFixed(2)}</span>
                 </div>
 
                 {/* CTA */}
@@ -592,7 +592,7 @@ export default function ShopAll() {
                             </button>
                         </div>
                     ) : (
-                        <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
+                        <div className="grid grid-cols-2 items-stretch gap-4 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
                             {displayProducts.map((product) => (
                                 <ShopProductCard
                                     key={product.id}

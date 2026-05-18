@@ -2074,6 +2074,18 @@ export default function App() {
                                     </button>
                                 </div>
                                 <div className="flex-1 overflow-y-auto p-5 space-y-7">
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setIsMenuOpen(false);
+                                            navigate('/shop');
+                                        }}
+                                        className="w-full rounded-2xl bg-brand-primary py-4 text-[11px] font-black uppercase tracking-[0.2em] text-slate-900 shadow-md transition-all hover:bg-white active:scale-95 flex items-center justify-center gap-2"
+                                    >
+                                        <ShoppingCart className="w-4 h-4" />
+                                        Shop All
+                                    </button>
+
                                     <div className="space-y-6">
                                         <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-brand-primary">Collections</h3>
                                         <ul className="space-y-5">

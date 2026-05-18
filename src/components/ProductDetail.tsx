@@ -258,7 +258,7 @@ export default function ProductDetail({ group, selectedVariantId, onBack, onVari
                         </div>
 
                         <div className="mt-auto pt-10 border-t border-slate-100">
-                            <div className="flex flex-col sm:flex-row items-center gap-6">
+                            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-6">
                                 {/* Qty Selector */}
                                 <div className="flex items-center justify-between w-full sm:w-40 bg-slate-50 border border-slate-100 rounded-[2rem] p-1.5 h-16">
                                     <button
@@ -280,7 +280,7 @@ export default function ProductDetail({ group, selectedVariantId, onBack, onVari
                                 <button
                                     onClick={handleAddToCart}
                                     disabled={selectedVariant.stockQty === 0}
-                                    className={`flex-1 w-full h-16 rounded-[2rem] flex items-center justify-center gap-3 font-black uppercase tracking-[0.14em] text-sm shadow-2xl transition-all active:scale-[0.97] hover:scale-[1.02] ${selectedVariant.stockQty > 0
+                                    className={`w-full min-h-[60px] h-16 sm:h-16 sm:flex-1 rounded-[2rem] flex items-center justify-center gap-3 font-black uppercase tracking-[0.14em] text-base shadow-2xl transition-all active:scale-[0.97] hover:scale-[1.02] ${selectedVariant.stockQty > 0
                                         ? 'bg-slate-900 text-white hover:bg-brand-primary shadow-slate-900/25'
                                         : 'bg-slate-100 text-slate-300 cursor-not-allowed'
                                         }`}

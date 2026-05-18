@@ -93,7 +93,7 @@ export default function CheckoutOverlay({
     const [city, setCity] = useState('');
     const [state, setState] = useState('');
     const [zip, setZip] = useState('');
-    const [country, setCountry] = useState('United Kingdom');
+    const [country, setCountry] = useState('United States');
     const [isAgeVerified, setIsAgeVerified] = useState(false);
     const [deliveryMethod, setDeliveryMethod] = useState<'standard' | 'express'>('standard');
 
@@ -270,7 +270,7 @@ export default function CheckoutOverlay({
                                             onChange={(e) => setCountry(e.target.value)}
                                             className="flex-1 text-sm text-slate-800 font-medium focus:outline-none bg-transparent appearance-none cursor-pointer"
                                         >
-                                            {['United Kingdom', 'United States', 'Canada', 'Australia', 'Ireland', 'Germany', 'France', 'Spain', 'Italy', 'Netherlands'].map((c) => (
+                                            {['United States', 'United Kingdom', 'Canada', 'Australia', 'Ireland', 'Germany', 'France', 'Spain', 'Italy', 'Netherlands'].map((c) => (
                                                 <option key={c}>{c}</option>
                                             ))}
                                         </select>

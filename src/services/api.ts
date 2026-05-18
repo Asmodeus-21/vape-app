@@ -62,8 +62,11 @@ export async function fetchProducts(params?: {
         const res = await fetch(url);
         if (!res.ok) throw new Error(`Products API error: ${res.status}`);
         const products = await res.json() as Product[];
-        // Remove RAZ brand products from storefront
-        return products.filter((p) => !/^raz$/i.test(p.brand?.trim() ?? ''));
+        // Remove RAZ and duplicate Fogger brand products from storefront
+        return products.filter((p) => {
+            const brand = p.brand?.trim() ?? '';
+            return !/^raz$/i.test(brand) && !/fogger/i.test(brand);
+        });
     } catch (err) {
         console.error('[api] fetchProducts failed:', err);
         return [];
@@ -77,8 +80,11 @@ export async function fetchHomepageMasterListings(limit: number = 8): Promise<Pa
         const res = await fetch(`/api/products/master-listings?limit=${safeLimit}`);
         if (!res.ok) throw new Error(`Master listings API error: ${res.status}`);
         const groups = await res.json() as ParentVariantGroup[];
-        // Remove RAZ brand groups from storefront
-        return groups.filter((g) => !/^raz$/i.test(g.brand?.trim() ?? ''));
+        // Remove RAZ and duplicate Fogger brand groups from storefront
+        return groups.filter((g) => {
+            const brand = g.brand?.trim() ?? '';
+            return !/^raz$/i.test(brand) && !/fogger/i.test(brand);
+        });
     } catch (err) {
         console.error('[api] fetchHomepageMasterListings failed:', err);
         return [];

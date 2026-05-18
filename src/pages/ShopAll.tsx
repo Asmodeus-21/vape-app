@@ -92,7 +92,7 @@ function ShopProductCard({ product, onOpen }: { product: Product; onOpen: () => 
                     alt={product.name}
                     loading="lazy"
                     onError={() => { setImgSrc((prev) => prev !== DEFAULT_CATALOG_IMAGE ? DEFAULT_CATALOG_IMAGE : prev); }}
-                    className={`h-full w-full object-contain p-5 transition-transform duration-500 group-hover:scale-105 ${/^(hydroxie|blues)/i.test(product.brand) ? 'grayscale opacity-60' : ''}`}
+                    className={`h-full w-full object-contain p-5 transition-transform duration-500 group-hover:scale-105`}
                 />
                 {salePercent > 0 && (
                     <span className="absolute left-3 top-3 rounded-md bg-emerald-500 px-2.5 py-1 text-[10px] font-black text-white">
@@ -110,12 +110,7 @@ function ShopProductCard({ product, onOpen }: { product: Product; onOpen: () => 
                         Limited Stock!
                     </span>
                 )}
-                {/^(hydroxie|blues)/i.test(product.brand) && (
-                    <div className="absolute inset-0 z-30 flex flex-col items-center justify-center gap-1.5 rounded-t-[1.5rem] bg-slate-900/60 backdrop-blur-[2px]">
-                        <span className="text-[9px] font-black uppercase tracking-[0.18em] text-white/90">Coming Soon</span>
-                        <span className="text-[8px] font-semibold text-white/60">Image Placeholder</span>
-                    </div>
-                )}
+
             </div>
 
             {/* Body */}

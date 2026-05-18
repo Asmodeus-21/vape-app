@@ -243,12 +243,7 @@ function ProductCardImage({ imageUrl, productName, brand, category, flavor, isEx
                     <span className="text-[9px] font-black uppercase tracking-[0.14em] text-slate-700">Express</span>
                 </div>
             )}
-            {/^(hydroxie|blues)/i.test(brand) && (
-                <div className="absolute inset-0 z-30 flex flex-col items-center justify-center gap-1.5 rounded-[1.25rem] bg-slate-900/60 backdrop-blur-[2px]">
-                    <span className="text-[9px] font-black uppercase tracking-[0.18em] text-white/90">Coming Soon</span>
-                    <span className="text-[8px] font-semibold text-white/60">Image Placeholder</span>
-                </div>
-            )}
+
         </div>
     );
 }
@@ -282,11 +277,7 @@ function isHighDemandProduct(product: Product): boolean {
     return Boolean(product.isBestSeller || product.isNewArrival || product.stockQty <= 150);
 }
 
-function isComingSoonProduct(product: Product): boolean {
-    return /^(hydroxie|blues)/i.test(product.brand || product.name || '')
-        || /coming soon/i.test(product.name || '')
-        || /coming soon/i.test(product.brand || '');
-}
+
 
 function MarketplaceProductCard({ group, selectedVariant, onOpenProduct, onSelectVariant, cardMode = 'standard' }: MarketplaceProductCardProps) {
     const originalPrice = getDisplayOriginalPrice(selectedVariant);
@@ -850,11 +841,6 @@ export default function App() {
 
 
     const addToCart = (product: Product, quantity: number = 1, options?: { flavor: string; nicotine: string }) => {
-        if (isComingSoonProduct(product)) {
-            toast.error('This product is coming soon. Sign up to be notified when it becomes available.');
-            return;
-        }
-
         const itemToAdd = {
             ...product,
             flavor: options?.flavor || product.flavor,

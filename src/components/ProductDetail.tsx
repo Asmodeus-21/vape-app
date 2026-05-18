@@ -96,16 +96,8 @@ export default function ProductDetail({ group, selectedVariantId, onBack, onVari
         );
     }
 
-    const isComingSoon = /^(hydroxie|blues)/i.test(selectedVariant.brand || selectedVariant.name || '')
-        || /coming soon/i.test(selectedVariant.name || '')
-        || /coming soon/i.test(selectedVariant.brand || '');
 
     const handleAddToCart = () => {
-        if (isComingSoon) {
-            toast.error('This product is coming soon. We’ll let you know when it’s available.');
-            return;
-        }
-
         if (selectedVariant.stockQty < quantity) {
             toast.error(`Only ${selectedVariant.stockQty} items left in stock.`);
             return;
@@ -287,14 +279,14 @@ export default function ProductDetail({ group, selectedVariantId, onBack, onVari
                                 {/* Add to Cart */}
                                 <button
                                     onClick={handleAddToCart}
-                                    disabled={selectedVariant.stockQty === 0 || isComingSoon}
-                                    className={`flex-1 w-full h-16 rounded-[2rem] flex items-center justify-center gap-3 font-black uppercase tracking-[0.14em] text-sm shadow-2xl transition-all active:scale-[0.97] hover:scale-[1.02] ${selectedVariant.stockQty > 0 && !isComingSoon
+                                    disabled={selectedVariant.stockQty === 0}
+                                    className={`flex-1 w-full h-16 rounded-[2rem] flex items-center justify-center gap-3 font-black uppercase tracking-[0.14em] text-sm shadow-2xl transition-all active:scale-[0.97] hover:scale-[1.02] ${selectedVariant.stockQty > 0
                                         ? 'bg-slate-900 text-white hover:bg-brand-primary shadow-slate-900/25'
                                         : 'bg-slate-100 text-slate-300 cursor-not-allowed'
                                         }`}
                                 >
                                     <Package className="w-6 h-6" />
-                                    {isComingSoon ? 'Coming Soon' : selectedVariant.stockQty > 0 ? 'Add to Cart' : 'Out of Stock'}
+                                    {selectedVariant.stockQty > 0 ? 'Add to Cart' : 'Out of Stock'}
                                 </button>
                             </div>
 

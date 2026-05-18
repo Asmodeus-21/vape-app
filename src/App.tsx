@@ -2254,13 +2254,13 @@ export default function App() {
 
 
             <footer className="bg-slate-900 text-white mt-auto">
-                {/* Return to Top */}
+                {/* Back To Top */}
                 <button
                     onClick={() => {
                         window.scrollTo({ top: 0, behavior: 'smooth' });
                         document.documentElement.scrollTop = 0;
                     }}
-                    className="w-full py-5 bg-slate-800 hover:bg-slate-700 text-[11px] font-black uppercase tracking-[0.3em] transition-all border-b border-white/5 flex items-center justify-center gap-2 group"
+                    className="w-full py-4 bg-slate-800 hover:bg-slate-700 text-[11px] font-black uppercase tracking-[0.3em] transition-all border-b border-white/5 flex items-center justify-center gap-2 group"
                 >
                     <svg className="w-3.5 h-3.5 group-hover:-translate-y-1 transition-transform duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" />
@@ -2268,36 +2268,37 @@ export default function App() {
                     Back To Top
                 </button>
 
-                <div className="max-w-[1500px] mx-auto px-8 py-20 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-16">
-                    <div className="space-y-6">
-                        <h4 className="text-[11px] font-black uppercase tracking-[0.2em] text-brand-primary">About Banana Leaf</h4>
-                        <ul className="space-y-4 text-[11px] text-slate-400 font-black uppercase tracking-widest">
+                {/* Link columns — 2 cols on mobile, 4 on desktop */}
+                <div className="max-w-[1500px] mx-auto px-6 py-10 grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-8 md:gap-12 md:py-16 lg:gap-16 lg:py-20">
+                    <div className="space-y-3">
+                        <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-brand-primary">About Banana Leaf</h4>
+                        <ul className="space-y-2.5 text-[11px] text-slate-400 font-black uppercase tracking-widest">
                             <li><Link to="/about/our-story" className="hover:text-white transition-colors">Our Story</Link></li>
                             <li><Link to="/about/authenticity" className="hover:text-white transition-colors">Authenticity</Link></li>
                             <li><Link to="/about/press" className="hover:text-white transition-colors">Press Assets</Link></li>
                         </ul>
                     </div>
-                    <div className="space-y-6">
-                        <h4 className="text-[11px] font-black uppercase tracking-[0.2em] text-brand-primary">Shop</h4>
-                        <ul className="space-y-4 text-[11px] text-slate-400 font-black uppercase tracking-widest">
+                    <div className="space-y-3">
+                        <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-brand-primary">Shop</h4>
+                        <ul className="space-y-2.5 text-[11px] text-slate-400 font-black uppercase tracking-widest">
                             <li><Link to="/shop/pulse-x-series" className="hover:text-white transition-colors">Pulse X Series</Link></li>
                             <li><Link to="/shop/the-kits" className="hover:text-white transition-colors">The Kits</Link></li>
                             <li><Link to="/shop/the-originals" className="hover:text-white transition-colors">The Originals</Link></li>
                             <li><Link to="/shop?q=Cloud" className="hover:text-white transition-colors">Cloud Series</Link></li>
                         </ul>
                     </div>
-                    <div className="space-y-6">
-                        <h4 className="text-[11px] font-black uppercase tracking-[0.2em] text-brand-primary">Support</h4>
-                        <ul className="space-y-4 text-[11px] text-slate-400 font-black uppercase tracking-widest">
+                    <div className="space-y-3">
+                        <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-brand-primary">Support</h4>
+                        <ul className="space-y-2.5 text-[11px] text-slate-400 font-black uppercase tracking-widest">
                             <li><Link to="/support/help-center" className="hover:text-white transition-colors">Help Center</Link></li>
                             <li><Link to="/support/shipping" className="hover:text-white transition-colors">Shipping</Link></li>
                             <li><Link to="/support/returns" className="hover:text-white transition-colors">Returns</Link></li>
                             <li><Link to="/support/contact" className="hover:text-white transition-colors">Contact</Link></li>
                         </ul>
                     </div>
-                    <div className="space-y-6">
-                        <h4 className="text-[11px] font-black uppercase tracking-[0.2em] text-brand-primary">Account</h4>
-                        <ul className="space-y-4 text-[11px] text-slate-400 font-black uppercase tracking-widest">
+                    <div className="space-y-3">
+                        <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-brand-primary">Account</h4>
+                        <ul className="space-y-2.5 text-[11px] text-slate-400 font-black uppercase tracking-widest">
                             <li><Link to="/dashboard" className="hover:text-white transition-colors" onClick={handleProtectedDashboardLinkClick}>My Profile</Link></li>
                             <li><Link to="/dashboard" className="hover:text-white transition-colors" onClick={handleProtectedDashboardLinkClick}>Order Status</Link></li>
                             <li><Link to="/dashboard" className="hover:text-white transition-colors" onClick={handleProtectedDashboardLinkClick}>Saved Items</Link></li>
@@ -2314,12 +2315,13 @@ export default function App() {
                     </div>
                 </div>
 
-                <div className="border-t border-white/5 py-16 flex flex-col items-center gap-8 bg-slate-950/50">
-                    <div className="flex flex-col items-center gap-3 group cursor-pointer md:flex-row md:gap-4">
+                {/* Bottom bar */}
+                <div className="border-t border-white/5 py-8 flex flex-col items-center gap-4 bg-slate-950/50 md:py-12 md:gap-6">
+                    <div className="flex flex-col items-center gap-2 group cursor-pointer md:flex-row md:gap-4">
                         <img
                             src="/logo.png"
                             alt="Banana Leaf Store"
-                            className="h-16 md:h-[112px] w-auto object-contain brightness-0 invert"
+                            className="h-10 md:h-16 w-auto object-contain brightness-0 invert"
                             onError={(e) => {
                                 const img = e.currentTarget;
                                 img.style.display = 'none';
@@ -2329,11 +2331,11 @@ export default function App() {
                         />
                         <span className="hidden text-3xl font-black tracking-tighter uppercase italic">Banana Leaf<span className="text-brand-primary">.</span></span>
                     </div>
-                    <div className="text-center space-y-3 px-6">
+                    <div className="text-center space-y-1.5 px-6">
                         <p className="text-[11px] font-black uppercase tracking-[0.35em] text-white">Banana Leaf // Authenticity First.</p>
-                        <p className="text-sm text-slate-400">Curated Quality. Seamless Delivery.</p>
+                        <p className="text-xs text-slate-400">Curated Quality. Seamless Delivery.</p>
                     </div>
-                    <div className="flex flex-wrap justify-center gap-10 text-[9px] font-black uppercase tracking-[0.3em] text-slate-500">
+                    <div className="flex flex-wrap justify-center gap-6 text-[9px] font-black uppercase tracking-[0.3em] text-slate-500">
                         <span className="hover:text-white cursor-pointer transition-colors">Privacy</span>
                         <span className="hover:text-white cursor-pointer transition-colors">Terms</span>
                         <span className="hover:text-white cursor-pointer transition-colors">Support</span>

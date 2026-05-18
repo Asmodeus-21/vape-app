@@ -74,17 +74,20 @@ export async function fetchProducts(params?: {
 }
 
 export async function fetchHomepageMasterListings(limit: number = 8): Promise<ParentVariantGroup[]> {
-    const safeLimit = Number.isInteger(limit) && limit > 0 ? Math.min(limit, 24) : 8;
+    // Fetch 24 items to ensure we have enough after filtering
+    const fetchLimit = 24;
 
     try {
-        const res = await fetch(`/api/products/master-listings?limit=${safeLimit}`);
+        const res = await fetch(`/api/products/master-listings?limit=${fetchLimit}`);
         if (!res.ok) throw new Error(`Master listings API error: ${res.status}`);
         const groups = await res.json() as ParentVariantGroup[];
         // Remove RAZ and duplicate Fogger brand groups from storefront
-        return groups.filter((g) => {
+        const filteredGroups = groups.filter((g) => {
             const brand = g.brand?.trim() ?? '';
             return !/^raz$/i.test(brand) && !/fogger/i.test(brand);
         });
+        
+        return filteredGroups.slice(0, limit);
     } catch (err) {
         console.error('[api] fetchHomepageMasterListings failed:', err);
         return [];

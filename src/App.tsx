@@ -1737,10 +1737,10 @@ export default function App() {
                         </section>
 
                         {/* ── Why Shop Banana Leaf ─────────────────────────── */}
-                        <section id="inventory-stream-section" className="mx-4 rounded-[2rem] border border-slate-100 bg-white p-8 md:p-12 shadow-sm">
-                            <div className="text-center mb-10">
+                        <section id="inventory-stream-section" className="mx-4 rounded-[2rem] border border-slate-100 bg-white p-5 sm:p-8 md:p-12 shadow-sm">
+                            <div className="text-center mb-8 sm:mb-10">
                                 <p className="text-[10px] font-black uppercase tracking-[0.4em] text-[#4AB1F4] mb-3">Our Promise</p>
-                                <h2 className="text-2xl md:text-3xl font-black uppercase tracking-tighter text-slate-900">Why Shop Banana Leaf?</h2>
+                                <h2 className="text-xl sm:text-2xl md:text-3xl font-black uppercase tracking-tighter text-slate-900">Why Shop Banana Leaf?</h2>
                             </div>
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
                                 {([
@@ -1763,11 +1763,11 @@ export default function App() {
                         </section>
 
                         {/* ── Customer Reviews ─────────────────────────────── */}
-                        <section className="mx-4 rounded-[2rem] border border-slate-100 bg-slate-50 p-8 md:p-12 shadow-sm">
-                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-10">
+                        <section className="mx-4 rounded-[2rem] border border-slate-100 bg-slate-50 p-5 sm:p-8 md:p-12 shadow-sm">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-5 sm:gap-6 mb-8 sm:mb-10">
                                 <div>
                                     <p className="text-[10px] font-black uppercase tracking-[0.4em] text-[#4AB1F4] mb-2">Verified Reviews</p>
-                                    <h2 className="text-2xl md:text-3xl font-black uppercase tracking-tighter text-slate-900">What Our Customers Say</h2>
+                                    <h2 className="text-xl sm:text-2xl md:text-3xl font-black uppercase tracking-tighter text-slate-900">What Our Customers Say</h2>
                                 </div>
                                 <div className="flex items-center gap-3 bg-white border border-slate-100 rounded-2xl px-5 py-4 shadow-sm shrink-0 self-start sm:self-auto">
                                     <div className="flex text-[#FFA41C]">
@@ -1803,10 +1803,10 @@ export default function App() {
                         </section>
 
                         {/* ── FAQ ──────────────────────────────────────────── */}
-                        <section className="mx-4 rounded-[2rem] border border-slate-100 bg-white p-8 md:p-12 shadow-sm">
-                            <div className="text-center mb-10">
+                        <section className="mx-4 rounded-[2rem] border border-slate-100 bg-white p-5 sm:p-8 md:p-12 shadow-sm">
+                            <div className="text-center mb-8 sm:mb-10">
                                 <p className="text-[10px] font-black uppercase tracking-[0.4em] text-[#4AB1F4] mb-3">Got Questions?</p>
-                                <h2 className="text-2xl md:text-3xl font-black uppercase tracking-tighter text-slate-900">Frequently Asked Questions</h2>
+                                <h2 className="text-xl sm:text-2xl md:text-3xl font-black uppercase tracking-tighter text-slate-900">Frequently Asked Questions</h2>
                             </div>
                             <div className="max-w-3xl mx-auto divide-y divide-slate-100">
                                 {HOMEPAGE_FAQS.map((faq, index) => {

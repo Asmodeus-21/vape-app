@@ -61,7 +61,9 @@ export async function fetchProducts(params?: {
     try {
         const res = await fetch(url);
         if (!res.ok) throw new Error(`Products API error: ${res.status}`);
-        return await res.json() as Product[];
+        const products = await res.json() as Product[];
+        // Remove RAZ brand products from storefront
+        return products.filter((p) => !/^raz$/i.test(p.brand?.trim() ?? ''));
     } catch (err) {
         console.error('[api] fetchProducts failed:', err);
         return [];
@@ -74,7 +76,9 @@ export async function fetchHomepageMasterListings(limit: number = 8): Promise<Pa
     try {
         const res = await fetch(`/api/products/master-listings?limit=${safeLimit}`);
         if (!res.ok) throw new Error(`Master listings API error: ${res.status}`);
-        return await res.json() as ParentVariantGroup[];
+        const groups = await res.json() as ParentVariantGroup[];
+        // Remove RAZ brand groups from storefront
+        return groups.filter((g) => !/^raz$/i.test(g.brand?.trim() ?? ''));
     } catch (err) {
         console.error('[api] fetchHomepageMasterListings failed:', err);
         return [];

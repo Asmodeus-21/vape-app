@@ -403,14 +403,14 @@ const FEATURE_BANNERS: readonly FeatureBanner[] = [
         search: 'Flum Mello',
     },
     {
-        brand: 'RAZ',
-        headlinePrefix: 'RAZ from',
-        fallbackPrice: 22.5,
-        description: 'A moody, modern disposable edit styled for high-conversion deal framing.',
-        imageUrl: '/images/devices/pngtree-a-sleek-vaping-device-with-transparent-tank-glowing-orange-light-and-png-image_15912369.png',
-        backgroundImageUrl: '/images/devices/geekvape-aegis-legend.jpg',
+        brand: 'Utbar',
+        headlinePrefix: 'Utbar from',
+        fallbackPrice: 18.99,
+        description: 'Smooth, long-lasting disposables packed with bold fruit and icy flavours — a crowd favourite every time.',
+        imageUrl: '/images/devices/uwell-caliburn-g2.webp',
+        backgroundImageUrl: '/images/devices/smok-nord-4-kit.jpg',
         category: 'Disposables',
-        search: 'RAZ',
+        search: 'Utbar',
     },
 ] as const;
 

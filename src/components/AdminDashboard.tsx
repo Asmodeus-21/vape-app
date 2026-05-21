@@ -58,6 +58,7 @@ export default function AdminDashboard({ token, stats, currentUser }: AdminDashb
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
     const [updatingId, setUpdatingId] = useState<number | null>(null);
+    const [renderError, setRenderError] = useState<string | null>(null);
 
     useEffect(() => {
         loadData();
@@ -79,6 +80,7 @@ export default function AdminDashboard({ token, stats, currentUser }: AdminDashb
     const loadData = async () => {
         try {
             setLoading(true);
+            setRenderError(null);
             if (activeTab === 'users') {
                 const users = await fetchAdminUsers(token);
                 setData(users);
@@ -94,7 +96,9 @@ export default function AdminDashboard({ token, stats, currentUser }: AdminDashb
                 setData(storesData);
             }
         } catch (err: any) {
-            toast.error(`Failed to load ${activeTab}`);
+            const msg = err?.message || `Failed to load ${activeTab}`;
+            toast.error(msg);
+            setRenderError(msg);
         } finally {
             setLoading(false);
         }
@@ -120,7 +124,7 @@ export default function AdminDashboard({ token, stats, currentUser }: AdminDashb
             toast.success(`User role updated to ${newRole}`);
             await loadData();
         } catch (err: any) {
-            toast.error('Failed to update user role');
+            toast.error(err?.message || 'Failed to update user role');
         } finally {
             setUpdatingId(null);
         }
@@ -133,7 +137,7 @@ export default function AdminDashboard({ token, stats, currentUser }: AdminDashb
             toast.success('Product removed');
             await loadData();
         } catch (err: any) {
-            toast.error('Failed to delete product');
+            toast.error(err?.message || 'Failed to delete product');
         }
     };
 
@@ -321,8 +325,22 @@ export default function AdminDashboard({ token, stats, currentUser }: AdminDashb
                     </div>
                 )}
 
-                <div className="overflow-x-auto text-slate-900">
-                    <table className="w-full text-left">
+                {renderError ? (
+                    <div className="rounded-3xl border border-rose-200 bg-rose-50 p-8 text-rose-700">
+                        <p className="text-sm font-black uppercase tracking-widest">Error loading {activeTab}</p>
+                        <p className="mt-3 text-base">{renderError}</p>
+                        <div className="mt-6">
+                            <button
+                                onClick={() => loadData()}
+                                className="px-6 py-3 bg-rose-700 text-white rounded-2xl font-black uppercase tracking-widest"
+                            >
+                                Retry
+                            </button>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="overflow-x-auto text-slate-900">
+                        <table className="w-full text-left">
                         <thead className="bg-slate-50 border-b border-slate-100 uppercase text-[10px] font-black tracking-[0.2em] text-slate-400">
                             {activeTab === 'users' ? (
                                 <tr>
@@ -528,6 +546,7 @@ export default function AdminDashboard({ token, stats, currentUser }: AdminDashb
                         </tbody>
                     </table>
                 </div>
+                )}
             </div>
         </div>
     );

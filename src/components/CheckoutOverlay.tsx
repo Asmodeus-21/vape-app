@@ -90,6 +90,7 @@ export default function CheckoutOverlay({
     const [customerEmail, setCustomerEmail] = useState(currentUser?.email || '');
     const [phone, setPhone] = useState('');
     const [address, setAddress] = useState('');
+    const [apt, setApt] = useState('');
     const [city, setCity] = useState('');
     const [state, setState] = useState('');
     const [zip, setZip] = useState('');
@@ -120,7 +121,7 @@ export default function CheckoutOverlay({
     const total = subtotal + deliveryFee;
     const isGuestCheckout = !currentUser;
 
-    const shippingAddress = [address, city, state, zip, country].filter(Boolean).join(', ');
+    const shippingAddress = [address, apt, city, state, zip, country].filter(Boolean).join(', ');
 
     const validateShippingStep = () => {
         if (!fullName.trim()) { toast.error('Full name is required'); return false; }
@@ -255,6 +256,7 @@ export default function CheckoutOverlay({
                                 <InputField icon={Mail} value={customerEmail} onChange={(e) => setCustomerEmail(e.target.value)} placeholder="Email Address" type="email" />
                                 <InputField icon={Phone} value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Phone Number" type="tel" />
                                 <InputField icon={MapPin} value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Address" />
+                                <InputField icon={Building2} value={apt} onChange={(e) => setApt(e.target.value)} placeholder="APT / Unit Number (optional)" />
 
                                 <div className="grid grid-cols-2 gap-3">
                                     <InputField icon={Building2} value={city} onChange={(e) => setCity(e.target.value)} placeholder="City" />

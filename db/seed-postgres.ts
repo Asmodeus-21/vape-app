@@ -19,7 +19,7 @@ const DEFAULT_BRAND_IMAGE_BY_NAME: Record<string, string> = {
     'Geekbar Pulse X': '/images/geek-bar-pulse-x-25000-clear.jpg',
     'Foger Pods': '/images/devices/uwell-caliburn-g2.webp',
     Utbar: '/images/ut-bar-clear-no-flavor.jpg',
-    'Flum Mello': '/images/devices/elf-bar-bc5000.png',
+    'Flum Mello': '/images/products/flum-mello/watermelon-icy.png',
     'Geek Bar Pulse X 25K': '/images/devices/geek-bar-pulse-x-25k.jpg',
     'Utbar UT 50K': '/images/devices/utbar-ut-50k.jpg',
     'Float Mello Pro 50K': '/images/devices/float-mello-pro-50k.jpg',

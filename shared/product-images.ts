@@ -52,7 +52,6 @@ const CATEGORY_IMAGE_MAP: Array<{ pattern: RegExp; image: string }> = [
 export const DEFAULT_CATALOG_IMAGE = '/images/devices/pngtree-a-sleek-vaping-device-with-transparent-tank-glowing-orange-light-and-png-image_15912369.png';
 const PLACEHOLDER_LOCAL_IMAGE_PATHS = new Set([
     '/images/2023-05-11.webp',
-    '/images/devices/elf-bar-bc5000.png',
 ]);
 
 // ─── Per-flavor image map ─────────────────────────────────────────────────────

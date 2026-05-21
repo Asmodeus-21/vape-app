@@ -389,8 +389,8 @@ const FEATURE_BANNERS: readonly FeatureBanner[] = [
         headlinePrefix: 'Flum from',
         fallbackPrice: 19.92,
         description: 'Bright, fruit-forward all-day picks with the soft silhouette customers recognize.',
-        imageUrl: '/images/devices/elf-bar-bc5000.png',
-        backgroundImageUrl: '/images/devices/elf-bar-bc5000.png',
+        imageUrl: '/images/products/flum-mello/watermelon-icy.png',
+        backgroundImageUrl: '/images/products/flum-mello/watermelon-icy.png',
         search: 'Flum Mello',
     },
     {

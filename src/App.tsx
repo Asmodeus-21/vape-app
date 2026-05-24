@@ -2361,6 +2361,7 @@ export default function App() {
                     <div className="text-center space-y-1.5 px-6">
                         <p className="text-[11px] font-black uppercase tracking-[0.35em] text-white">Banana Leaf // Authenticity First.</p>
                         <p className="text-xs text-slate-400">Curated Quality. Seamless Delivery.</p>
+                        <p className="text-[11px] font-black uppercase tracking-[0.35em] text-brand-primary">Customer Service: <a href="tel:+17077343866" className="text-white hover:text-brand-secondary transition-colors">+1 (707) 734-3866</a></p>
                     </div>
                     <div className="flex flex-wrap justify-center gap-6 text-[9px] font-black uppercase tracking-[0.3em] text-slate-500">
                         <span className="hover:text-white cursor-pointer transition-colors">Privacy</span>

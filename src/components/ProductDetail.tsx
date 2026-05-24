@@ -312,6 +312,16 @@ export default function ProductDetail({ group, selectedVariantId, onBack, onVari
                                     Fast Delivery
                                 </div>
                             </div>
+                            <div className="mt-8 flex flex-col items-center justify-center gap-3 rounded-3xl border border-slate-200 bg-slate-50 p-5">
+                                <img
+                                    src="https://www.banana-leaf.store/images/trust-symbols_a.webp"
+                                    alt="Guaranteed Safe Checkout"
+                                    className="max-w-full h-auto rounded-3xl"
+                                />
+                                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500">
+                                    Guaranteed Safe Checkout
+                                </p>
+                            </div>
                         </div>
                     </div>
                 </div>

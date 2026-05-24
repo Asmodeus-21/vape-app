@@ -46,6 +46,8 @@ const createProducts = (
         bestseller?: boolean;
         newArrival?: boolean;
         descriptionPrefix?: string;
+        baseDescription?: string;
+        featuredFlavors?: Record<string, string>;
         imagePathBuilder?: (brand: string, flavor: string) => string;
     }
 ): SeedProduct[] => {
@@ -58,27 +60,40 @@ const createProducts = (
     const descriptionPrefix = options?.descriptionPrefix ?? 'Premium';
     const imagePathBuilder = options?.imagePathBuilder;
 
-    return flavors.map((flavor) => ({
-        name: `${brand} - ${flavor}`,
-        brand,
-        flavor,
-        nicotine,
-        price,
-        rating,
-        reviews,
-        image: resolveCatalogImage({
-            image: imagePathBuilder ? imagePathBuilder(brand, flavor) : makePlaceholderImage(brand, flavor),
-            brand,
-            category,
+    return flavors.map((flavor) => {
+        let desc = '';
+        if (options?.baseDescription) {
+            desc = options.baseDescription;
+            const featuredFlavorDesc = options.featuredFlavors?.[flavor];
+            if (featuredFlavorDesc) {
+                desc += `\n\n**Featured Flavor (${flavor})**: ${featuredFlavorDesc}`;
+            }
+        } else {
+            desc = `${descriptionPrefix} ${brand} profile in ${flavor}.`;
+        }
+
+        return {
             name: `${brand} - ${flavor}`,
-        }),
-        category,
-        description: `${descriptionPrefix} ${brand} profile in ${flavor}.`,
-        stock_qty: stockQty,
-        is_express_delivery: express ? 1 : 0,
-        is_bestseller: bestseller ? 1 : 0,
-        is_new_arrival: newArrival ? 1 : 0,
-    }));
+            brand,
+            flavor,
+            nicotine,
+            price,
+            rating,
+            reviews,
+            image: resolveCatalogImage({
+                image: imagePathBuilder ? imagePathBuilder(brand, flavor) : makePlaceholderImage(brand, flavor),
+                brand,
+                category,
+                name: `${brand} - ${flavor}`,
+            }),
+            category,
+            description: desc,
+            stock_qty: stockQty,
+            is_express_delivery: express ? 1 : 0,
+            is_bestseller: bestseller ? 1 : 0,
+            is_new_arrival: newArrival ? 1 : 0,
+        };
+    });
 };
 
 const zynFlavors = ['Wintergreen', 'Peppermint', 'Citrus', 'Cool Mint', 'Cinnamon'];
@@ -141,7 +156,6 @@ const utbarFlavors = [
     'Passion Kiwi Pineapple',
     'Banana Smoothie Strawberry',
     'Watermelon Blow Pop',
-    // New flavors with dedicated images
     'Blue Rancher',
     'Blue Razz Icy',
     'Double Green Pop',
@@ -164,7 +178,6 @@ const flumMelloFlavors = [
     'White Gummy',
     'Cool Mint',
     'Miami Mint',
-    // New flavors with dedicated images
     'Blue Razz Icy',
     'Peach Icy',
     'Spearmint Watermelon',
@@ -280,6 +293,103 @@ const numbzOriginalsFlavors = [
 const hydroxieStrengths = ['10-15mg', '10-30mg', '5-15mg', '5-30mg', '5-60mg'];
 const bluesStrengths = ['35mg', '55mg', '75mg', '100mg', '120mg'];
 
+const descZyns = {
+    baseDescription: "The Pitch: The gold standard in smoke-free, spit-free nicotine satisfaction. Zyn oral nicotine pouches are completely white, highly discreet, and meticulously formulated to provide a clean, steady release of nicotine over 30–45 minutes. Perfect for hands-free use anywhere.\n\nSpecs: 6mg Nicotine Strength | 15 Pouches Per Can | Slim, Comfortable Fit | Non-Staining Formula.",
+    featuredFlavors: {
+        "Wintergreen": "A crisp, bold, and traditional woodsy mint with a deep throat tingle.",
+        "Peppermint": "A sharp, icy burst of pure peppermint oil that refreshes instantly.",
+        "Citrus": "A bright, slightly sweet lemon-lime flavor profile with zero bitterness."
+    }
+};
+
+const descGeekbarPulseX = {
+    baseDescription: "The Pitch: Experience the world’s first 3D curved screen disposable. The Geekbar Pulse X delivers an unparalleled visual experience alongside powerhouse performance, featuring a dual mesh coil system and an advanced dual-core processor.\n\nPerformance Modes: Switch between Regular Mode for a massive 25,000 puffs or activate Pulse Mode for intensified flavor and cloud production up to 15,000 puffs.\n\nSpecs: 18mL Pre-filled E-liquid | 5% (50mg) Nicotine Strength | Type-C Rechargeable | Dynamic LED Display.",
+    featuredFlavors: {
+        "Blackberry B Burst": "A deep, sweet explosion of wild blackberries with a candy-like finish.",
+        "Blue Rancher": "A nostalgic, tangy blue raspberry hard candy vape.",
+        "Miami Mint": "A sophisticated, crisp spearmint with a cooling oceanic breeze."
+    }
+};
+
+const descGeekBarPulseX25K = {
+    baseDescription: "The Pitch: The legendary Pulse X design, optimized with an updated selection of the industry's most requested flavor profiles. Features the signature cosmic starry-sky display screen and dual-mode functionality.\n\nSpecs: 25,000 Puffs (Regular) / 15,000 Puffs (Pulse) | 5% Nicotine | Dual Mesh Coils.",
+    featuredFlavors: {
+        "Blackberry B-Pop": "A dark berry juice base layered over a sweet, classic lollipop core.",
+        "Sour Apple Ice": "Tart green apple candy with a sharp, freezing throat hit.",
+        "Watermelon Ice": "Lush, juicy watermelon slices chilled to absolute perfection."
+    }
+};
+
+const descUtbar = {
+    baseDescription: "The Pitch: Sleek, ergonomic, and highly dependable, the Utbar series focuses on smooth airflow delivery and hyper-realistic fruit profiles. Designed for vapers who want consistent performance without the bulk.\n\nSpecs: High-capacity reservoir | 5% Nicotine | Premium Mesh Coil | Ergonomic mouthpiece.",
+    featuredFlavors: {
+        "Aloe Grape/Watermelon": "A unique, refreshing blend of soothing aloe vera, sweet purple grapes, and crisp watermelon.",
+        "Root Vanilla Soda": "A rich, effervescent take on classic root beer laced with creamy vanilla bean.",
+        "White Peach Lemon Head": "Juicy white peaches collided with an aggressive, sour lemonade candy twist."
+    }
+};
+
+const descUtbarUT50K = {
+    baseDescription: "The Pitch: Break free from frequent replacements with the massive Utbar UT 50K. Engineered with a revolutionary Dual Tank System and a giant 2.01-inch smart display screen, this device lets you monitor battery life, juice levels, and power output at a glance.\n\nPerformance Modes: Eco Mode delivers up to 50,000 smooth puffs, while Turbo Mode opens up airflow for 25,000 high-intensity cloud pulls.\n\nSpecs: 50,000 Max Puffs | Dual Tank Architecture | 5% Nicotine | Type-C Fast Charging.",
+    featuredFlavors: {
+        "Banana Smoothy/Strawberry": "A rich, velvety banana smoothie base swirled with ripe summer strawberries.",
+        "Blue Razz Ice/Triple Berry": "A complex berry fusion pairing sharp blue raspberry ice with a deep, dark triple berry blend."
+    }
+};
+
+const descFogerPods = {
+    baseDescription: "The Pitch: The ultimate sweet spot between device longevity and eco-friendly design. Foger Pods offer a highly efficient airflow layout engineered to preserve flavor purity from the first hit to the very last.\n\nSpecs: High-capacity puff count | 5% Nicotine | Advanced anti-leak construction | Optimized mesh core.",
+    featuredFlavors: {
+        "Sour Blue Dust": "A mouth-puckering explosion of sour blue raspberry crystals.",
+        "OMG Blow Pop": "A mysterious, sweet fruit punch blend that perfectly mimics a classic bubblegum lollipop.",
+        "Red Velvet Cupcake": "A rare dessert profile serving up rich cocoa layers and sweet cream frosting notes."
+    }
+};
+
+const descFogerSwitchPro = {
+    baseDescription: "The Pitch: Stop throwing away batteries. The Foger Switch Pro Kit introduces a premium, rechargeable device base paired with a detachable pod system. Keep the base, switch the flavors, and enjoy up to 30,000 puffs per pod.\n\nSpecs: 19mL Capacity Pod Included | Rechargeable Base Unit | 5% Nicotine | Sustainable Modular Design.",
+    featuredFlavors: {
+        "Blue Rancher B-Pop": "Tangy blue raspberry candy with a sweet lollipop undertone.",
+        "Gummy Bear": "A perfect replication of chewy, sweet, multi-flavored gummy candy."
+    }
+};
+
+const descFogerSwitchProPods = {
+    baseDescription: "The Pitch: Keep the performance, swap your style. These pre-filled replacement pods drop seamlessly right into your existing Foger Switch Pro base unit.\n\nSpecs: 19mL Pre-filled Capacity | Up to 30,000 Puffs | Integrated Mesh Coil | Quick-Connect connection.",
+    featuredFlavors: {
+        "Cherry Slush": "An icy, nostalgic bright red cherry slushie.",
+        "Cola Slush": "Fizzy, syrup-sweet classic cola served over crushed ice.",
+        "Mexico Mango": "Pure, unadulterated sweet Mexican mango juice with a warm tropical finish."
+    }
+};
+
+const descFlumMello = {
+    baseDescription: "The Pitch: True to its name, the Flum Mello delivers an ultra-smooth, velvety draw. Known for its elegant, minimalist matte design and subtle, balanced flavor mixing, it's built for those who appreciate premium aesthetic and refined flavor profiles.\n\nSpecs: 20,000 Puffs | 5% Nicotine | Soft-touch outer chassis | Dynamic smart power indicator.",
+    featuredFlavors: {
+        "Watermelon Peach Lime": "A brilliant three-part blend hitting sweet watermelon, soft peach, and a bright, zesty lime finish.",
+        "Straw Melon": "A timeless, refreshing collision of field strawberries and watermelons.",
+        "White Gummy": "Clear pineapple-infused gummy bears straight out of the bag."
+    }
+};
+
+const descFloatMelloPro50K = {
+    baseDescription: "The Pitch: Combining massive capacity with unparalleled comfort. The Float Mello Pro features a unique, food-grade Soft-Bite Mouthpiece for a more natural feel, backed by a dual-core firing system that maintains rich flavor profile integrity even at 50,000 puffs.\n\nSpecs: 50,000 Puffs (Eco) | 5% Nicotine | Soft-Bite Silicone Mouthpiece | Dual Core Mesh Firing.",
+    featuredFlavors: {
+        "Blue Razz Icy": "A clean, crisp blue raspberry profile accented by an aggressive sub-zero cooling kick.",
+        "Sour Mango Pineapple": "Exotic, tangy mango chunks drenched in sour pineapple nectar."
+    }
+};
+
+const descHydroxie = {
+    baseDescription: "The Pitch: A premium, targeted wellness supplement designed for advanced alkaloid rotation. Meticulously extracted and calibrated for high-purity profile consistency, providing tailored serving configurations for experienced enthusiasts seeking premium standard options.\n\nFormulations Available: 10-15mg | 10-30mg | 5-15mg | 5-30mg | 5-60mg.",
+    featuredFlavors: {}
+};
+
+const descBlues = {
+    baseDescription: "The Pitch: Engineered for high-performance lifestyle optimization. The Blues supplement lineup features clean, variable-strength extractions designed to support cognitive focus, endurance, and physical balance.\n\nStrengths Available: 35mg | 55mg | 75mg | 100mg | 120mg.",
+    featuredFlavors: {}
+};
+
 export const seedProducts: SeedProduct[] = [
     ...createProducts('Zyns', 'Nicotine Pouches', '6mg', 5.99, zynFlavors, {
         rating: 4.8,
@@ -288,7 +398,7 @@ export const seedProducts: SeedProduct[] = [
         express: true,
         bestseller: true,
         newArrival: false,
-        descriptionPrefix: 'Juicefly-matched'
+        ...descZyns
     }),
     ...createProducts('Geekbar Pulse X', 'Disposables', '5%', 24.90, geekbarPulseXFlavors, {
         rating: 4.7,
@@ -297,7 +407,7 @@ export const seedProducts: SeedProduct[] = [
         express: true,
         bestseller: true,
         newArrival: true,
-        descriptionPrefix: 'Juicefly-matched'
+        ...descGeekbarPulseX
     }),
     ...createProducts('Foger Pods', 'Disposables', '5%', 14.98, fogerPodFlavors, {
         rating: 4.7,
@@ -306,7 +416,7 @@ export const seedProducts: SeedProduct[] = [
         express: true,
         bestseller: false,
         newArrival: true,
-        descriptionPrefix: 'Juicefly-matched'
+        ...descFogerPods
     }),
     ...createProducts('Utbar', 'Disposables', '5%', 25.99, utbarFlavors, {
         rating: 4.6,
@@ -315,7 +425,7 @@ export const seedProducts: SeedProduct[] = [
         express: true,
         bestseller: true,
         newArrival: true,
-        descriptionPrefix: 'Premium Clear Tank Edition'
+        ...descUtbar
     }),
     ...createProducts('Flum Mello', 'Disposables', '5%', 20.00, flumMelloFlavors, {
         rating: 4.6,
@@ -324,7 +434,7 @@ export const seedProducts: SeedProduct[] = [
         express: true,
         bestseller: false,
         newArrival: true,
-        descriptionPrefix: 'Juicefly-matched'
+        ...descFlumMello
     }),
     ...createProducts('Hydroxie (7-OH)', 'Specialty', '7-OH', 29.99, hydroxieStrengths, {
         rating: 4.7,
@@ -333,7 +443,7 @@ export const seedProducts: SeedProduct[] = [
         express: false,
         bestseller: false,
         newArrival: true,
-        descriptionPrefix: 'Premium Alkaloid Strength Tier'
+        ...descHydroxie
     }),
     ...createProducts('Blues', 'Specialty', '7-OH', 34.99, bluesStrengths, {
         rating: 4.6,
@@ -342,7 +452,7 @@ export const seedProducts: SeedProduct[] = [
         express: false,
         bestseller: true,
         newArrival: true,
-        descriptionPrefix: 'Concentrate Scale Tiers'
+        ...descBlues
     }),
     ...createProducts('Geek Bar Pulse X 25K', 'Disposables', '5%', 15.99, geekBarPulseX25KFlavors, {
         rating: 4.8,
@@ -351,7 +461,7 @@ export const seedProducts: SeedProduct[] = [
         express: true,
         bestseller: true,
         newArrival: true,
-        descriptionPrefix: '25,000 Puffs | 18mL | 3D Curved Screen | Dual Mesh Coil | Pulse & Regular Modes —'
+        ...descGeekBarPulseX25K
     }),
     ...createProducts('Utbar UT 50K', 'Disposables', '5%', 22.99, utbarUT50KFlavors, {
         rating: 4.7,
@@ -360,7 +470,7 @@ export const seedProducts: SeedProduct[] = [
         express: true,
         bestseller: true,
         newArrival: true,
-        descriptionPrefix: '50,000 Puffs (Eco) / 25,000 (Turbo) | 2.01" Display | Dual Tank | Dual Mesh Coil —'
+        ...descUtbarUT50K
     }),
     ...createProducts('Float Mello Pro 50K', 'Disposables', '5%', 20.99, floatMelloPro50KFlavors, {
         rating: 4.7,
@@ -369,7 +479,7 @@ export const seedProducts: SeedProduct[] = [
         express: true,
         bestseller: false,
         newArrival: true,
-        descriptionPrefix: '50,000 Max Puffs | Mesh Coils | Eco/Turbo Modes | Digital Display | Soft-Bite Mouthpiece —'
+        ...descFloatMelloPro50K
     }),
     ...createProducts('Foger Switch Pro', 'Disposables', '5%', 17.99, fogerSwitchProKitFlavors, {
         rating: 4.6,
@@ -378,7 +488,7 @@ export const seedProducts: SeedProduct[] = [
         express: true,
         bestseller: true,
         newArrival: true,
-        descriptionPrefix: '30,000 Puffs | 19mL | Rechargeable Base + Replaceable Pod System —'
+        ...descFogerSwitchPro
     }),
     ...createProducts('Foger Switch Pro Pods', 'Disposables', '5%', 13.99, fogerSwitchProPodFlavors, {
         rating: 4.6,
@@ -387,7 +497,7 @@ export const seedProducts: SeedProduct[] = [
         express: true,
         bestseller: false,
         newArrival: true,
-        descriptionPrefix: '30,000 Puffs | Pre-filled 19mL Replacement Pods | Mesh Coil —'
+        ...descFogerSwitchProPods
     }),
     ...createProducts('Geek Bar Pulse X', 'Pulse X Series', '5%', 21.90, geekBarPulseXSeriesFlavors, {
         rating: 4.8,
@@ -396,8 +506,8 @@ export const seedProducts: SeedProduct[] = [
         express: true,
         bestseller: true,
         newArrival: true,
-        descriptionPrefix: 'Premium 3D Curved Smart Display Edition',
         imagePathBuilder: buildProductImagePath,
+        ...descGeekbarPulseX
     }),
     ...createProducts('Fogger Pods', 'The Originals', '5%', 14.99, foggerPodsOriginalsFlavors, {
         rating: 4.7,
@@ -406,8 +516,8 @@ export const seedProducts: SeedProduct[] = [
         express: true,
         bestseller: true,
         newArrival: true,
-        descriptionPrefix: 'Replacement pre-filled replacement pods',
         imagePathBuilder: buildProductImagePath,
+        ...descFogerPods
     }),
     ...createProducts('Fogger Kit', 'The Kits', '5%', 24.99, foggerKitFlavors, {
         rating: 4.7,
@@ -416,8 +526,8 @@ export const seedProducts: SeedProduct[] = [
         express: true,
         bestseller: true,
         newArrival: true,
-        descriptionPrefix: 'Full Closed-Loop Pod System Hardware Kit',
         imagePathBuilder: buildProductImagePath,
+        ...descFogerPods
     }),
     ...createProducts('Flum Mellow', 'The Originals', '5%', 20.00, flumMellowOriginalsFlavors, {
         rating: 4.6,
@@ -426,8 +536,8 @@ export const seedProducts: SeedProduct[] = [
         express: true,
         bestseller: false,
         newArrival: true,
-        descriptionPrefix: 'Up to 20,000 puffs High-Capacity line',
         imagePathBuilder: buildProductImagePath,
+        ...descFlumMello
     }),
     ...createProducts('Numbz', 'Specialty', '5%', 19.99, numbzOriginalsFlavors, {
         rating: 4.5,

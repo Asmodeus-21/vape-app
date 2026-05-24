@@ -98,6 +98,7 @@ export default function AdminDashboard({ token, stats, currentUser }: AdminDashb
         } catch (err: any) {
             const msg = err?.message || `Failed to load ${activeTab}`;
             toast.error(msg);
+            setData([]);
             setRenderError(msg);
         } finally {
             setLoading(false);
@@ -152,13 +153,13 @@ export default function AdminDashboard({ token, stats, currentUser }: AdminDashb
     const filteredData = scopedData.filter(item => {
         const q = searchQuery.toLowerCase();
         if (activeTab === 'users') {
-            return item.name.toLowerCase().includes(q) || item.email.toLowerCase().includes(q);
+            return String(item.name || '').toLowerCase().includes(q) || String(item.email || '').toLowerCase().includes(q);
         } else if (activeTab === 'products') {
-            return item.name.toLowerCase().includes(q) || item.brand.toLowerCase().includes(q);
+            return String(item.name || '').toLowerCase().includes(q) || String(item.brand || '').toLowerCase().includes(q);
         } else if (activeTab === 'orders') {
-            return item.customer_name?.toLowerCase().includes(q) || item.shipping_address?.toLowerCase().includes(q) || item.id.toString().includes(q);
+            return String(item.customer_name || '').toLowerCase().includes(q) || String(item.shipping_address || '').toLowerCase().includes(q) || String(item.id ?? '').includes(q);
         } else if (activeTab === 'franchises') {
-            return item.name?.toLowerCase().includes(q) || item.owner_name?.toLowerCase().includes(q) || item.address?.toLowerCase().includes(q);
+            return String(item.name || '').toLowerCase().includes(q) || String(item.owner_name || '').toLowerCase().includes(q) || String(item.address || '').toLowerCase().includes(q);
         }
         return true;
     });
@@ -473,11 +474,11 @@ export default function AdminDashboard({ token, stats, currentUser }: AdminDashb
                                                 {(item.storeId ?? item.store_id) ? (stores.find((store) => store.id === (item.storeId ?? item.store_id))?.name || `Store #${item.storeId ?? item.store_id}`) : 'N/A'}
                                             </td>
                                             <td className="px-6 py-4 text-sm font-black text-brand-secondary">
-                                                ${item.price.toFixed(2)}
+                                                ${Number.isFinite(Number(item.price)) ? Number(item.price).toFixed(2) : '—'}
                                             </td>
                                             <td className="px-6 py-4">
-                                                <span className={`text-sm font-bold ${item.stockQty < 10 ? 'text-red-500' : 'text-gray-700'}`}>
-                                                    {item.stockQty}
+                                                <span className={`text-sm font-bold ${Number(item.stockQty) < 10 ? 'text-red-500' : 'text-gray-700'}`}>
+                                                    {Number.isFinite(Number(item.stockQty)) ? Number(item.stockQty) : '—'}
                                                 </span>
                                             </td>
                                             <td className="px-6 py-4 text-right">
@@ -505,14 +506,14 @@ export default function AdminDashboard({ token, stats, currentUser }: AdminDashb
                                                     {(item.storeId ?? item.store_id) ? (stores.find((store) => store.id === (item.storeId ?? item.store_id))?.name || `Store #${item.storeId ?? item.store_id}`) : 'N/A'}
                                                 </td>
                                                 <td className="px-6 py-4 text-sm font-black text-brand-secondary">
-                                                    ${item.total_amount.toFixed(2)}
+                                                    ${Number.isFinite(Number(item.total_amount)) ? Number(item.total_amount).toFixed(2) : '—'}
                                                 </td>
                                                 <td className="px-6 py-4">
                                                     <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-md ${item.status === 'delivered' ? 'bg-green-50 text-green-600' :
                                                         item.status === 'cancelled' ? 'bg-red-50 text-red-600' :
                                                             'bg-amber-50 text-amber-600'
                                                         }`}>
-                                                        {item.status}
+                                                        {String(item.status || 'unknown')}
                                                     </span>
                                                 </td>
                                                 <td className="px-6 py-4 text-right">

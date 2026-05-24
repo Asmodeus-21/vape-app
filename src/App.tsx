@@ -1378,6 +1378,9 @@ export default function App() {
             </AnimatePresence>
             {/* Premium Top Nav */}
             <header className="w-full bg-[#f8f9fa] md:bg-white/95 border-b border-slate-200/80 text-slate-900 sticky top-0 z-50 backdrop-blur-xl">
+                <div className="bg-amber-600 text-white text-center text-[11px] font-black uppercase tracking-[0.24em] px-4 py-2">
+                    WARNING: This product contains nicotine. Nicotine is an addictive chemical.
+                </div>
                 <div className="max-w-[1500px] mx-auto w-full px-0 md:px-6 md:h-24 md:flex md:items-center md:gap-8">
                     <div className="md:hidden mx-3 my-2 rounded-full bg-white shadow-lg px-4 py-3">
                         <div className="relative flex items-center">

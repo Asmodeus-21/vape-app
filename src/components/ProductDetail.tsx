@@ -134,7 +134,7 @@ export default function ProductDetail({ group, selectedVariantId, onBack, onVari
                         <motion.div
                             initial={{ opacity: 0, scale: 0.9 }}
                             animate={{ opacity: 1, scale: 1 }}
-                            className="relative w-full aspect-square max-w-md"
+                            className="relative w-full aspect-square max-w-md mb-8"
                         >
                             <img
                                 src={displayImage}
@@ -149,6 +149,13 @@ export default function ProductDetail({ group, selectedVariantId, onBack, onVari
                                 }}
                             />
                         </motion.div>
+                        {!/hydroxie|blues|numbz/i.test(group.brand) && (
+                            <div className="absolute bottom-0 inset-x-0 bg-slate-100/50 border-t border-slate-100 p-3 text-center">
+                                <p className="text-[10px] font-black text-slate-900 uppercase tracking-widest">
+                                    WARNING: This product contains nicotine. Nicotine is an addictive chemical.
+                                </p>
+                            </div>
+                        )}
                     </div>
 
                     {/* Right: Product Details */}

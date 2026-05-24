@@ -243,7 +243,13 @@ function ProductCardImage({ imageUrl, productName, brand, category, flavor, isEx
                     <span className="text-[9px] font-black uppercase tracking-[0.14em] text-slate-700">Express</span>
                 </div>
             )}
-
+            {!/hydroxie|blues|numbz/i.test(brand) && (
+                <div className="absolute bottom-0 inset-x-0 bg-white/90 backdrop-blur border-t border-slate-200 p-1.5 text-center z-10">
+                    <p className="text-[9px] font-black text-slate-900 uppercase tracking-tighter">
+                        WARNING: This product contains nicotine. Nicotine is an addictive chemical.
+                    </p>
+                </div>
+            )}
         </div>
     );
 }

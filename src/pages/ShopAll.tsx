@@ -106,11 +106,17 @@ function ShopProductCard({ product, onOpen }: { product: Product; onOpen: () => 
                     </span>
                 )}
                 {(product.isBestSeller || product.stockQty <= 150) && (
-                    <span className="absolute bottom-3 left-3 rounded-full bg-rose-500 px-2.5 py-1 text-[9px] font-black uppercase tracking-wide text-white">
+                    <span className="absolute bottom-8 left-3 rounded-full bg-rose-500 px-2.5 py-1 text-[9px] font-black uppercase tracking-wide text-white z-20">
                         Limited Stock!
                     </span>
                 )}
-
+                {!/hydroxie|blues|numbz/i.test(product.brand) && (
+                    <div className="absolute bottom-0 inset-x-0 bg-white/90 backdrop-blur border-t border-slate-200 p-1.5 text-center z-10">
+                        <p className="text-[9px] font-black text-slate-900 uppercase tracking-tighter">
+                            WARNING: This product contains nicotine. Nicotine is an addictive chemical.
+                        </p>
+                    </div>
+                )}
             </div>
 
             {/* Body */}

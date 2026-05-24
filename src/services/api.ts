@@ -371,6 +371,20 @@ export async function updateAdminUserRole(token: string, userId: number, role: s
     return res.json();
 }
 
+export async function updateAdminProduct(token: string, productId: number, productData: any) {
+    const res = await fetch(`/api/admin/products/${productId}`, {
+        method: 'PATCH',
+        headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(productData),
+    });
+    const data = await safeJson(res);
+    if (!res.ok) throw new Error(data.error || 'Failed to update product');
+    return data;
+}
+
 export async function fetchAdminProducts(token: string, storeId?: number | 'all') {
     const query = storeId && storeId !== 'all' ? `?storeId=${storeId}` : '';
     const res = await fetch(`/api/admin/products${query}`, {

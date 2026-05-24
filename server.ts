@@ -43,6 +43,7 @@ import {
     addSavedItem,
     setCartItemQuantity,
     storeExists,
+    updateAdminProduct,
     updateUserRole,
     updateUserVerification,
     updateVendorOrderStatus,
@@ -134,6 +135,19 @@ function parseProductInput(body: any, fallbackVendorId: number, storeId: number)
         vendorId: fallbackVendorId,
         storeId,
     };
+}
+
+function parseOptionalInteger(raw: unknown): number | null {
+    if (raw === null || raw === undefined || raw === '') return null;
+    const value = Number(raw);
+    return Number.isInteger(value) && value > 0 ? value : null;
+}
+
+function parseOptionalBoolean(raw: unknown): boolean {
+    if (typeof raw === 'boolean') return raw;
+    if (typeof raw === 'string') return raw.toLowerCase() === 'true';
+    if (typeof raw === 'number') return raw === 1;
+    return false;
 }
 
 function isTwentyOneOrOlder(dob: string): boolean {
@@ -1019,6 +1033,85 @@ export async function createApp(options: { skipSeed?: boolean; skipVite?: boolea
             res.json(await listAdminStores(sql));
         } catch (err: any) {
             sendSafeError(res, err, 'Failed to fetch stores');
+        }
+    });
+
+    app.patch('/api/admin/products/:id', authMiddleware, async (req, res) => {
+        if (!isSuperAdminRole(req.user?.role)) {
+            res.status(403).json({ error: 'Admin access required' });
+            return;
+        }
+
+        const { id } = req.params;
+        const {
+            name,
+            brand,
+            flavor,
+            nicotine,
+            price,
+            rating,
+            reviews,
+            image,
+            category,
+            description,
+            stockQty,
+            isExpressDelivery,
+            isBestseller,
+            isNewArrival,
+            vendorId,
+            storeId,
+        } = req.body;
+
+        if (!name || !brand || !image || !category || !description) {
+            res.status(400).json({ error: 'Missing required product fields' });
+            return;
+        }
+
+        try {
+            const { price: validatedPrice, stockQty: validatedStockQty } = parseProductNumberFields(price, stockQty);
+            const normalizedRating = Number.isFinite(Number(rating)) ? Number(rating) : 0;
+            const normalizedReviews = Number.isInteger(Number(reviews)) && Number(reviews) >= 0 ? Number(reviews) : 0;
+            const resolvedVendorId = parseOptionalInteger(vendorId);
+            const resolvedStoreId = parseOptionalInteger(storeId);
+
+            if (resolvedVendorId !== null) {
+                const existingVendor = await findUserById(sql, resolvedVendorId);
+                if (!existingVendor) {
+                    res.status(404).json({ error: `Vendor ID ${resolvedVendorId} does not exist` });
+                    return;
+                }
+            }
+
+            if (resolvedStoreId !== null && !(await storeExists(sql, resolvedStoreId))) {
+                res.status(404).json({ error: `Store ID ${resolvedStoreId} does not exist` });
+                return;
+            }
+
+            await updateAdminProduct(sql, Number(id), {
+                name,
+                brand,
+                flavor: flavor || 'N/A',
+                nicotine: nicotine || 'N/A',
+                price: validatedPrice,
+                rating: Math.min(Math.max(normalizedRating, 0), 5),
+                reviews: normalizedReviews,
+                image,
+                category,
+                description,
+                stockQty: validatedStockQty,
+                isExpressDelivery: parseOptionalBoolean(isExpressDelivery),
+                isBestseller: parseOptionalBoolean(isBestseller),
+                isNewArrival: parseOptionalBoolean(isNewArrival),
+                vendorId: resolvedVendorId,
+                storeId: resolvedStoreId,
+            });
+            res.json({ success: true });
+        } catch (err: any) {
+            if (err.message.includes('Price must') || err.message.includes('Stock quantity')) {
+                res.status(400).json({ error: err.message });
+                return;
+            }
+            sendSafeError(res, err, 'Failed to update product');
         }
     });
 

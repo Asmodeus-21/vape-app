@@ -617,6 +617,39 @@ export async function updateVendorProduct(
     `;
 }
 
+export async function updateAdminProduct(
+    sql: Sql,
+    productId: number,
+    input: {
+        name: string;
+        brand: string;
+        flavor: string;
+        nicotine: string;
+        price: number;
+        rating: number;
+        reviews: number;
+        image: string;
+        category: string;
+        description: string;
+        stockQty: number;
+        isExpressDelivery: boolean;
+        isBestseller: boolean;
+        isNewArrival: boolean;
+        vendorId: number | null;
+        storeId: number | null;
+    },
+) {
+    await sql`
+        UPDATE products
+        SET name = ${input.name}, brand = ${input.brand}, flavor = ${input.flavor}, nicotine = ${input.nicotine},
+            price = ${input.price}, rating = ${input.rating}, reviews = ${input.reviews}, image = ${input.image},
+            category = ${input.category}, description = ${input.description}, stock_qty = ${input.stockQty},
+            is_express_delivery = ${input.isExpressDelivery}, is_bestseller = ${input.isBestseller}, is_new_arrival = ${input.isNewArrival},
+            vendor_id = ${input.vendorId}, store_id = ${input.storeId}
+        WHERE id = ${productId}
+    `;
+}
+
 export async function deleteVendorProduct(sql: Sql, productId: number, storeId?: number | null) {
     if (storeId) {
         await sql`DELETE FROM products WHERE id = ${productId} AND store_id = ${storeId}`;

@@ -9,6 +9,7 @@ import {
     Eye,
     Loader2,
     Package,
+    Pencil,
     Search,
     ShieldCheck,
     ShoppingBag,
@@ -28,6 +29,7 @@ import {
     fetchAdminProducts,
     fetchAdminStores,
     fetchAdminUsers,
+    updateAdminProduct,
     updateAdminUserRole,
     updateAdminUserVerification
 } from '../services/api';
@@ -59,6 +61,9 @@ export default function AdminDashboard({ token, stats, currentUser }: AdminDashb
     const [searchQuery, setSearchQuery] = useState('');
     const [updatingId, setUpdatingId] = useState<number | null>(null);
     const [renderError, setRenderError] = useState<string | null>(null);
+    const [editingProduct, setEditingProduct] = useState<any>(null);
+    const [editSaving, setEditSaving] = useState(false);
+    const [editError, setEditError] = useState<string | null>(null);
 
     useEffect(() => {
         loadData();
@@ -139,6 +144,61 @@ export default function AdminDashboard({ token, stats, currentUser }: AdminDashb
             await loadData();
         } catch (err: any) {
             toast.error(err?.message || 'Failed to delete product');
+        }
+    };
+
+    const openEditProduct = (product: any) => {
+        setEditError(null);
+        setEditingProduct({
+            ...product,
+            vendorId: product.vendorId ?? product.vendor_id ?? null,
+            storeId: product.storeId ?? product.store_id ?? null,
+            isExpressDelivery: Boolean(product.isExpressDelivery),
+            isBestseller: Boolean(product.isBestSeller),
+            isNewArrival: Boolean(product.isNewArrival),
+            rating: Number.isFinite(Number(product.rating)) ? Number(product.rating) : 0,
+            reviews: Number.isFinite(Number(product.reviews)) ? Number(product.reviews) : 0,
+            stockQty: Number.isFinite(Number(product.stockQty)) ? Number(product.stockQty) : 0,
+            price: Number.isFinite(Number(product.price)) ? Number(product.price) : 0,
+        });
+    };
+
+    const closeEditProduct = () => {
+        setEditingProduct(null);
+        setEditError(null);
+    };
+
+    const handleSaveProductEdit = async () => {
+        if (!editingProduct) return;
+        setEditSaving(true);
+        setEditError(null);
+
+        try {
+            await updateAdminProduct(token, editingProduct.id, {
+                name: String(editingProduct.name || '').trim(),
+                brand: String(editingProduct.brand || '').trim(),
+                flavor: String(editingProduct.flavor || 'N/A').trim(),
+                nicotine: String(editingProduct.nicotine || 'N/A').trim(),
+                price: Number(editingProduct.price),
+                rating: Number(editingProduct.rating),
+                reviews: Number(editingProduct.reviews),
+                image: String(editingProduct.image || '').trim(),
+                category: String(editingProduct.category || '').trim(),
+                description: String(editingProduct.description || '').trim(),
+                stockQty: Number(editingProduct.stockQty),
+                isExpressDelivery: Boolean(editingProduct.isExpressDelivery),
+                isBestseller: Boolean(editingProduct.isBestseller),
+                isNewArrival: Boolean(editingProduct.isNewArrival),
+                vendorId: editingProduct.vendorId ? Number(editingProduct.vendorId) : null,
+                storeId: editingProduct.storeId ? Number(editingProduct.storeId) : null,
+            });
+            toast.success('Product updated successfully');
+            closeEditProduct();
+            await loadData();
+        } catch (err: any) {
+            setEditError(err?.message || 'Failed to save product');
+        } finally {
+            setEditSaving(false);
         }
     };
 
@@ -277,6 +337,209 @@ export default function AdminDashboard({ token, stats, currentUser }: AdminDashb
                     </button>
                 ))}
             </div>
+
+            {activeTab === 'products' && editingProduct && (
+                <div className="rounded-3xl border border-slate-200 bg-slate-50 p-6">
+                    <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                        <div>
+                            <h3 className="text-lg font-black uppercase tracking-tighter text-slate-900">Edit product #{editingProduct.id}</h3>
+                            <p className="text-sm text-slate-500">Update all product fields. ID is read-only.</p>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={closeEditProduct}
+                            className="self-start rounded-2xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold uppercase tracking-[0.2em] text-slate-700 transition hover:border-rose-300 hover:text-rose-600"
+                        >
+                            Cancel
+                        </button>
+                    </div>
+                    {editError && (
+                        <div className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700">
+                            {editError}
+                        </div>
+                    )}
+                    <div className="mt-6 grid gap-4 lg:grid-cols-2">
+                        <label className="space-y-2 text-sm text-slate-700">
+                            <span className="font-black uppercase tracking-[0.18em] text-slate-500">Product ID</span>
+                            <input value={editingProduct.id} disabled className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900" />
+                        </label>
+                        <label className="space-y-2 text-sm text-slate-700">
+                            <span className="font-black uppercase tracking-[0.18em] text-slate-500">Created at</span>
+                            <input value={editingProduct.created_at ? new Date(editingProduct.created_at).toLocaleString() : 'Unknown'} disabled className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900" />
+                        </label>
+                        <label className="space-y-2 text-sm text-slate-700">
+                            <span className="font-black uppercase tracking-[0.18em] text-slate-500">Name</span>
+                            <input
+                                value={editingProduct.name || ''}
+                                onChange={(e) => setEditingProduct((prev: any) => ({ ...prev, name: e.target.value }))}
+                                className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900"
+                            />
+                        </label>
+                        <label className="space-y-2 text-sm text-slate-700">
+                            <span className="font-black uppercase tracking-[0.18em] text-slate-500">Brand</span>
+                            <input
+                                value={editingProduct.brand || ''}
+                                onChange={(e) => setEditingProduct((prev: any) => ({ ...prev, brand: e.target.value }))}
+                                className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900"
+                            />
+                        </label>
+                        <label className="space-y-2 text-sm text-slate-700">
+                            <span className="font-black uppercase tracking-[0.18em] text-slate-500">Flavor</span>
+                            <input
+                                value={editingProduct.flavor || ''}
+                                onChange={(e) => setEditingProduct((prev: any) => ({ ...prev, flavor: e.target.value }))}
+                                className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900"
+                            />
+                        </label>
+                        <label className="space-y-2 text-sm text-slate-700">
+                            <span className="font-black uppercase tracking-[0.18em] text-slate-500">Nicotine</span>
+                            <input
+                                value={editingProduct.nicotine || ''}
+                                onChange={(e) => setEditingProduct((prev: any) => ({ ...prev, nicotine: e.target.value }))}
+                                className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900"
+                            />
+                        </label>
+                        <label className="space-y-2 text-sm text-slate-700">
+                            <span className="font-black uppercase tracking-[0.18em] text-slate-500">Price</span>
+                            <input
+                                type="number"
+                                step="0.01"
+                                value={editingProduct.price ?? ''}
+                                onChange={(e) => setEditingProduct((prev: any) => ({ ...prev, price: Number(e.target.value) }))}
+                                className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900"
+                            />
+                        </label>
+                        <label className="space-y-2 text-sm text-slate-700">
+                            <span className="font-black uppercase tracking-[0.18em] text-slate-500">Stock qty</span>
+                            <input
+                                type="number"
+                                value={editingProduct.stockQty ?? ''}
+                                onChange={(e) => setEditingProduct((prev: any) => ({ ...prev, stockQty: Number(e.target.value) }))}
+                                className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900"
+                            />
+                        </label>
+                        <label className="space-y-2 text-sm text-slate-700">
+                            <span className="font-black uppercase tracking-[0.18em] text-slate-500">Rating</span>
+                            <input
+                                type="number"
+                                step="0.1"
+                                min="0"
+                                max="5"
+                                value={editingProduct.rating ?? ''}
+                                onChange={(e) => setEditingProduct((prev: any) => ({ ...prev, rating: Number(e.target.value) }))}
+                                className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900"
+                            />
+                        </label>
+                        <label className="space-y-2 text-sm text-slate-700">
+                            <span className="font-black uppercase tracking-[0.18em] text-slate-500">Reviews</span>
+                            <input
+                                type="number"
+                                step="1"
+                                min="0"
+                                value={editingProduct.reviews ?? ''}
+                                onChange={(e) => setEditingProduct((prev: any) => ({ ...prev, reviews: Number(e.target.value) }))}
+                                className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900"
+                            />
+                        </label>
+                        <label className="space-y-2 text-sm text-slate-700">
+                            <span className="font-black uppercase tracking-[0.18em] text-slate-500">Image URL</span>
+                            <input
+                                value={editingProduct.image || ''}
+                                onChange={(e) => setEditingProduct((prev: any) => ({ ...prev, image: e.target.value }))}
+                                className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900"
+                            />
+                        </label>
+                        <label className="space-y-2 text-sm text-slate-700">
+                            <span className="font-black uppercase tracking-[0.18em] text-slate-500">Category</span>
+                            <input
+                                value={editingProduct.category || ''}
+                                onChange={(e) => setEditingProduct((prev: any) => ({ ...prev, category: e.target.value }))}
+                                className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900"
+                            />
+                        </label>
+                        <label className="space-y-2 col-span-full text-sm text-slate-700">
+                            <span className="font-black uppercase tracking-[0.18em] text-slate-500">Description</span>
+                            <textarea
+                                rows={4}
+                                value={editingProduct.description || ''}
+                                onChange={(e) => setEditingProduct((prev: any) => ({ ...prev, description: e.target.value }))}
+                                className="h-28 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900"
+                            />
+                        </label>
+                        <div className="col-span-full grid gap-4 md:grid-cols-3">
+                            <label className="space-y-2 text-sm text-slate-700">
+                                <span className="font-black uppercase tracking-[0.18em] text-slate-500">Vendor ID</span>
+                                <input
+                                    type="number"
+                                    min="1"
+                                    value={editingProduct.vendorId ?? ''}
+                                    onChange={(e) => setEditingProduct((prev: any) => ({ ...prev, vendorId: e.target.value ? Number(e.target.value) : '' }))}
+                                    className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900"
+                                />
+                            </label>
+                            <label className="space-y-2 text-sm text-slate-700">
+                                <span className="font-black uppercase tracking-[0.18em] text-slate-500">Store ID</span>
+                                <input
+                                    type="number"
+                                    min="1"
+                                    value={editingProduct.storeId ?? ''}
+                                    onChange={(e) => setEditingProduct((prev: any) => ({ ...prev, storeId: e.target.value ? Number(e.target.value) : '' }))}
+                                    className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900"
+                                />
+                            </label>
+                            <div className="space-y-4 text-sm text-slate-700">
+                                <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3">
+                                    <input
+                                        id="expressDelivery"
+                                        type="checkbox"
+                                        checked={Boolean(editingProduct.isExpressDelivery)}
+                                        onChange={(e) => setEditingProduct((prev: any) => ({ ...prev, isExpressDelivery: e.target.checked }))}
+                                        className="h-4 w-4 rounded border-slate-300 text-brand-primary focus:ring-brand-primary"
+                                    />
+                                    <label htmlFor="expressDelivery" className="font-black uppercase tracking-[0.18em] text-slate-500">Express Delivery</label>
+                                </div>
+                                <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3">
+                                    <input
+                                        id="bestSeller"
+                                        type="checkbox"
+                                        checked={Boolean(editingProduct.isBestseller)}
+                                        onChange={(e) => setEditingProduct((prev: any) => ({ ...prev, isBestseller: e.target.checked }))}
+                                        className="h-4 w-4 rounded border-slate-300 text-brand-primary focus:ring-brand-primary"
+                                    />
+                                    <label htmlFor="bestSeller" className="font-black uppercase tracking-[0.18em] text-slate-500">Bestseller</label>
+                                </div>
+                                <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3">
+                                    <input
+                                        id="newArrival"
+                                        type="checkbox"
+                                        checked={Boolean(editingProduct.isNewArrival)}
+                                        onChange={(e) => setEditingProduct((prev: any) => ({ ...prev, isNewArrival: e.target.checked }))}
+                                        className="h-4 w-4 rounded border-slate-300 text-brand-primary focus:ring-brand-primary"
+                                    />
+                                    <label htmlFor="newArrival" className="font-black uppercase tracking-[0.18em] text-slate-500">New Arrival</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-end">
+                        <button
+                            type="button"
+                            onClick={closeEditProduct}
+                            className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-black uppercase tracking-[0.18em] text-slate-700 transition hover:border-slate-300 hover:text-slate-900"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            type="button"
+                            disabled={editSaving}
+                            onClick={handleSaveProductEdit}
+                            className="rounded-2xl bg-slate-900 px-5 py-3 text-sm font-black uppercase tracking-[0.18em] text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                            {editSaving ? 'Saving...' : 'Save product'}
+                        </button>
+                    </div>
+                </div>
+            )}
 
             {/* Main Content Area */}
             <div className="premium-card bg-white">
@@ -482,12 +745,21 @@ export default function AdminDashboard({ token, stats, currentUser }: AdminDashb
                                                 </span>
                                             </td>
                                             <td className="px-6 py-4 text-right">
-                                                <button
-                                                    onClick={() => handleDeleteProduct(item.id)}
-                                                    className="p-2 hover:bg-red-50 rounded-lg text-gray-400 hover:text-red-600 transition-all"
-                                                >
-                                                    <Trash2 className="w-5 h-5" />
-                                                </button>
+                                                <div className="flex items-center justify-end gap-2">
+                                                    <button
+                                                        onClick={() => openEditProduct(item)}
+                                                        className="p-2 hover:bg-slate-100 rounded-lg text-gray-400 hover:text-brand-primary transition-all"
+                                                        title="Edit product"
+                                                    >
+                                                        <Pencil className="w-5 h-5" />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleDeleteProduct(item.id)}
+                                                        className="p-2 hover:bg-red-50 rounded-lg text-gray-400 hover:text-red-600 transition-all"
+                                                    >
+                                                        <Trash2 className="w-5 h-5" />
+                                                    </button>
+                                                </div>
                                             </td>
                                         </>
                                     ) : (

@@ -94,12 +94,20 @@ function parseOptionalStoreId(rawStoreId: unknown): number | null {
     return parsed;
 }
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_dummy_key_to_prevent_startup_crash', {
-    apiVersion: '2026-04-22.dahlia',
-});
+const stripeSecretKey = process.env.STRIPE_SECRET_KEY?.trim() || '';
+const stripe = stripeSecretKey
+    ? new Stripe(stripeSecretKey, {
+        apiVersion: '2026-04-22.dahlia',
+    })
+    : null;
 
 function sendSafeError(res: express.Response, err: any, fallback: string): void {
-    const safeMessage = process.env.NODE_ENV === 'production' ? fallback : (err?.message || fallback);
+    const errorMessage = typeof err?.message === 'string' ? err.message : '';
+    const exposeError = process.env.NODE_ENV !== 'production'
+        || String(err?.type).startsWith('Stripe')
+        || /stripe/i.test(errorMessage);
+
+    const safeMessage = exposeError ? (errorMessage || fallback) : fallback;
     console.error('[server]', err);
     res.status(500).json({ error: safeMessage });
 }
@@ -541,6 +549,11 @@ export async function createApp(options: { skipSeed?: boolean; skipVite?: boolea
             return;
         }
 
+        if (!stripe) {
+            res.status(500).json({ error: 'Stripe is not configured. Set STRIPE_SECRET_KEY in the environment.' });
+            return;
+        }
+
         try {
             const total = await calculateOrderTotal(sql, items, deliveryMethod || 'standard');
             const amountInCents = Math.round(total * 100);
@@ -552,6 +565,10 @@ export async function createApp(options: { skipSeed?: boolean; skipVite?: boolea
                     enabled: true,
                 },
             });
+
+            if (!paymentIntent.client_secret) {
+                throw new Error('Payment provider did not return a client secret');
+            }
 
             res.json({ clientSecret: paymentIntent.client_secret });
         } catch (err: any) {

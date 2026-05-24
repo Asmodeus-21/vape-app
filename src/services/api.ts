@@ -235,6 +235,7 @@ export async function createPaymentIntent(items: { productId: number; quantity: 
     });
     const data = await safeJson(res);
     if (!res.ok) throw new Error(data.error || 'Failed to initialize payment');
+    if (!data?.clientSecret) throw new Error('Payment initialization failed: missing client secret');
     return data as { clientSecret: string };
 }
 

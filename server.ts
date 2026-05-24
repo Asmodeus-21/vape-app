@@ -101,6 +101,16 @@ const stripe = stripeSecretKey
     })
     : null;
 
+// Diagnostics: log whether a secret key is present without printing the key.
+// This is safe to leave in temporarily for debugging deployment issues.
+try {
+    const hasKey = Boolean(stripeSecretKey);
+    const looksLikeSk = hasKey && stripeSecretKey.startsWith('sk_');
+    console.info('[server] STRIPE_SECRET_KEY present:', hasKey ? 'yes' : 'no', '; looksLikeSk:', looksLikeSk ? 'yes' : 'no');
+} catch (e) {
+    // swallow any accidental errors in logging
+}
+
 function sendSafeError(res: express.Response, err: any, fallback: string): void {
     const errorMessage = typeof err?.message === 'string' ? err.message : '';
     const exposeError = process.env.NODE_ENV !== 'production'

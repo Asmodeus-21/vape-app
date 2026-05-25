@@ -110,13 +110,7 @@ function ShopProductCard({ product, onOpen }: { product: Product; onOpen: () => 
                         Limited Stock!
                     </span>
                 )}
-                {!/hydroxie|blues|numbz/i.test(product.brand) && (
-                    <div className="absolute bottom-0 inset-x-0 bg-white/90 backdrop-blur border-t border-slate-200 p-1.5 text-center z-10">
-                        <p className="text-[9px] font-black text-slate-900 uppercase tracking-tighter">
-                            WARNING: This product contains nicotine. Nicotine is an addictive chemical.
-                        </p>
-                    </div>
-                )}
+                {/* Top site-wide nicotine warning is handled globally; remove per-card warnings */}
             </div>
 
             {/* Body */}

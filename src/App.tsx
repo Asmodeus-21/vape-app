@@ -244,13 +244,7 @@ function ProductCardImage({ imageUrl, productName, brand, category, flavor, isEx
                     <span className="text-[9px] font-black uppercase tracking-[0.14em] text-slate-700">Express</span>
                 </div>
             )}
-            {!/hydroxie|blues|numbz/i.test(brand) && (
-                <div className="absolute bottom-0 inset-x-0 bg-white/90 backdrop-blur border-t border-slate-200 p-1.5 text-center z-10">
-                    <p className="text-[9px] font-black text-slate-900 uppercase tracking-tighter">
-                        WARNING: This product contains nicotine. Nicotine is an addictive chemical.
-                    </p>
-                </div>
-            )}
+            {/* Top site-wide nicotine warning is handled globally; remove per-card warnings */}
         </div>
     );
 }
@@ -405,8 +399,8 @@ const FEATURE_BANNERS: readonly FeatureBanner[] = [
         headlinePrefix: 'Utbar from',
         fallbackPrice: 18.99,
         description: 'Smooth, long-lasting disposables packed with bold fruit and icy flavours — a crowd favourite every time.',
-        imageUrl: '/images/products/utbar/blue-razz-icy.png',
-        backgroundImageUrl: '/images/products/utbar/double-green-pop.png',
+        imageUrl: '/images/products/utbar/aloe-grape-watermelon.webp',
+        backgroundImageUrl: '/images/products/utbar/aloe-grape-watermelon.webp',
         category: 'Disposables',
         search: 'Utbar',
     },

@@ -368,13 +368,14 @@ const FEATURE_BANNERS: readonly FeatureBanner[] = [
         search: 'Geekbar Pulse X',
     },
     {
-        brand: 'Flum',
-        headlinePrefix: 'Flum from',
-        fallbackPrice: 19.92,
-        description: 'Bright, fruit-forward all-day picks with the soft silhouette customers recognize.',
-        imageUrl: '/images/products/flum-mello/watermelon-icy.png',
-        backgroundImageUrl: '/images/products/flum-mello/watermelon-icy.png',
-        search: 'Flum Mello',
+        brand: 'Foger',
+        headlinePrefix: 'Foger from',
+        fallbackPrice: 13.99,
+        description: 'The ultimate sweet spot between device longevity and eco-friendly design.',
+        imageUrl: '/images/products/foger-pods/red-velvet-cupcake.webp?v=1.1',
+        backgroundImageUrl: '/images/products/foger-pods/red-velvet-cupcake.webp?v=1.1',
+        category: 'Disposables',
+        search: 'Foger Pods',
     },
     {
         brand: 'Utbar',
@@ -385,6 +386,15 @@ const FEATURE_BANNERS: readonly FeatureBanner[] = [
         backgroundImageUrl: '/images/products/utbar/aloe-grape-watermelon.webp',
         category: 'Disposables',
         search: 'Utbar',
+    },
+    {
+        brand: 'Flum',
+        headlinePrefix: 'Flum from',
+        fallbackPrice: 19.92,
+        description: 'Bright, fruit-forward all-day picks with the soft silhouette customers recognize.',
+        imageUrl: '/images/products/flum-mello/watermelon-icy.png',
+        backgroundImageUrl: '/images/products/flum-mello/watermelon-icy.png',
+        search: 'Flum Mello',
     },
 ] as const;
 

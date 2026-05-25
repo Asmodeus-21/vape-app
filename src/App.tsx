@@ -75,16 +75,7 @@ interface CheckoutSummary {
 }
 
 type ProductFilter = 'all' | 'bestsellers' | 'newarrivals' | 'express';
-    {
-        brand: 'Foger',
-        headlinePrefix: 'Foger from',
-        fallbackPrice: 13.99,
-        description: 'The ultimate sweet spot between device longevity and eco-friendly design.',
-        imageUrl: '/images/products/foger-pods/red-velvet-cupcake.webp?v=1.1',
-        backgroundImageUrl: '/images/products/foger-pods/red-velvet-cupcake.webp?v=1.1',
-        category: 'Disposables',
-        search: 'Foger Pods',
-    },
+
 interface FeatureBanner {
     brand: string;
     headlinePrefix: string;

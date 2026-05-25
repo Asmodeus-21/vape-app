@@ -368,6 +368,10 @@ export default function CheckoutOverlay({
                                             try {
                                                 const itemsToOrder = cartItems.map((item) => ({ productId: item.product.id, quantity: item.quantity }));
                                                 const { clientSecret: secret } = await createPaymentIntent(itemsToOrder, deliveryMethod);
+                                                if (!secret) {
+                                                    toast.error('Payment initialization failed. Please try again.');
+                                                    return;
+                                                }
                                                 setClientSecret(secret);
                                                 setStep('payment');
                                             } catch (err: any) {
@@ -426,7 +430,7 @@ export default function CheckoutOverlay({
                                     </div>
                                 )}
 
-                                {clientSecret && (
+                                {clientSecret ? (
                                     <Elements options={{ clientSecret, appearance: { theme: 'stripe' } }} stripe={stripePromise}>
                                         <StripePaymentForm
                                             onPaymentSuccess={handleCompletePurchase}
@@ -434,6 +438,10 @@ export default function CheckoutOverlay({
                                             onBack={() => setStep('delivery')}
                                         />
                                     </Elements>
+                                ) : (
+                                    <div className="rounded-2xl border border-rose-200 bg-rose-50 p-5 text-sm text-rose-700">
+                                        Unable to load payment details. Please go back and retry payment initialization, or contact support if this continues.
+                                    </div>
                                 )}
 
                                 <p className="flex items-center justify-center gap-2 text-[11px] text-slate-400 font-medium">

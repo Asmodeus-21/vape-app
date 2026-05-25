@@ -1,7 +1,7 @@
 import { GoogleGenAI } from '@google/genai';
 
 // ─── Gemini client ────────────────────────────────────────────────────────────
-const API_KEY = import.meta.env.VITE_GEMINI_API_KEY || (typeof process !== 'undefined' ? process.env.GEMINI_API_KEY : '');
+const API_KEY = (import.meta as any).env.VITE_GEMINI_API_KEY || (typeof process !== 'undefined' ? process.env.GEMINI_API_KEY : '');
 const genai = API_KEY ? new GoogleGenAI({ apiKey: API_KEY }) : null;
 
 // ─── Store context the AI knows about ────────────────────────────────────────
@@ -212,4 +212,7 @@ export const vapeosAI = {
         }
         return getSmartAiResponse(prompt, systemInstruction);
     },
+    async saveLead(data: any): Promise<void> {
+        console.log('Lead saved', data);
+    }
 };

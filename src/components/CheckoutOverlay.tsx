@@ -26,7 +26,7 @@ import { createGuestOrder, createOrder, createPaymentIntent, registerWithOtp, re
 import { Product } from '../types';
 import StripePaymentForm from './StripePaymentForm';
 
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '');
+const stripePromise = loadStripe((import.meta as any).env.VITE_STRIPE_PUBLISHABLE_KEY || '');
 
 interface AuthUser {
     id: number;

@@ -34,6 +34,7 @@ import { DEFAULT_CATALOG_IMAGE, resolveCatalogImage } from '../shared/product-im
 import AdminDashboard from './components/AdminDashboard';
 import AuthModal from './components/AuthModal';
 import CheckoutOverlay from './components/CheckoutOverlay';
+import IdVerification from './components/IdVerification';
 import ProductDetail from './components/ProductDetail';
 import VendorOrders from './components/VendorOrders';
 import VendorProductForm from './components/VendorProductForm';
@@ -1369,7 +1370,7 @@ export default function App() {
             <AnimatePresence>
                 {showIdVerification && checkoutSummary && (
                     <IdVerification
-                        orderId={checkoutSummary.orderId}
+                        orderId={String(checkoutSummary.orderId)}
                         customerEmail={checkoutSummary.customerEmail}
                         onVerified={() => setShowIdVerification(false)}
                         onClose={() => setShowIdVerification(false)}

@@ -1,7 +1,7 @@
 import { Eye, EyeOff, Loader2, Lock, Mail } from 'lucide-react';
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { toast } from 'react-hot-toast';
-import { registerWithOtp, requestOtp } from '../services/api';
+import { registerWithOtp, requestOtp } from '../../services/api';
 
 interface FormData {
     fullName: string;

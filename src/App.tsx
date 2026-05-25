@@ -1572,7 +1572,7 @@ export default function App() {
                                     <div className="flex flex-col">
                                         <span className="text-[9px] text-slate-400 font-black uppercase tracking-widest leading-none mb-1">Credentials</span>
                                         <div className="flex items-center gap-1 group-hover:text-brand-primary transition-colors">
-                                            <span className="text-sm font-black text-slate-900 uppercase tracking-tight">Login Flow</span>
+                                            <span className="text-sm font-black text-slate-900 uppercase tracking-tight">Login / Signup</span>
                                             <ChevronDown className="w-4 h-4 text-slate-300 group-hover:text-brand-primary" />
                                         </div>
                                     </div>

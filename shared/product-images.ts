@@ -14,6 +14,11 @@ const PRODUCT_NAME_IMAGE_MAP: Array<{ pattern: RegExp; image: string }> = [
     { pattern: /^zyns?\s*(?:-\s*wintergreen)?$/i, image: '/images/products/zyns/wintergreen.jpeg' },
     { pattern: /^hydroxie\s*(?:\(7-oh\))?\s*-\s*10-15mg$/i, image: '/images/products/hydroxie/10-15mg.jpg' },
     { pattern: /^hydroxie\s*(?:\(7-oh\))?\s*-/i, image: '/images/products/hydroxie/10-15mg.jpg' },
+    // Numbz — mg-specific variant image lookup by product name
+    { pattern: /numbz.*berry.*burst.*300mg/i,     image: '/images/numbz/berry-burst-300mg.jpg' },
+    { pattern: /numbz.*berry.*burst.*500mg/i,     image: '/images/numbz/berry-burst-500mg.jpg' },
+    { pattern: /numbz.*watermelon.*rush.*300mg/i, image: '/images/numbz/watermelon-rush-300mg.jpg' },
+    { pattern: /numbz.*watermelon.*rush.*500mg/i, image: '/images/numbz/watermelon-rush-500mg.jpg' },
 ];
 
 const BRAND_IMAGE_MAP: Array<{ pattern: RegExp; image: string }> = [
@@ -145,6 +150,10 @@ const FLAVOR_IMAGE_MAP: Readonly<Record<string, string>> = {
     'flum-mello:blue-razz-icy': '/images/products/flum-mello/blue-razz-icy.png',
     'flum-mello:peach-icy': '/images/products/flum-mello/peach-icy.png',
     'flum-mello:spearmint-watermelon': '/images/products/flum-mello/spearmint-watermelon.png',
+
+    // Numbz — default flavor image (mg-specific images resolved via PRODUCT_NAME_IMAGE_MAP)
+    'numbz:berry-burst':     '/images/numbz/berry-burst-500mg.jpg',
+    'numbz:watermelon-rush': '/images/numbz/watermelon-rush-500mg.jpg',
 };
 
 function toFlavorSlug(value: string): string {

@@ -266,17 +266,27 @@ const descUtBar = {
 
 // ─── 6. Numbz ────────────────────────────────────────────────────────────────
 // Standard Retail Benchmark for Numbz Botanicals / 7-Hydroxymitragynine specialty lines
-const numbzBerryBurstPrice      = 14.99;  // Numbz 500mg pack
-const numbzWatermelonRushPrice  = 24.99;  // Numbz 300mg 5-pack bundle
+const numbzBerryBurstPrice      = 14.99;  // Berry Burst (both variants)
+const numbzWatermelonRushPrice  = 24.99;  // Watermelon Rush (both variants)
 
-const descNumbzBerryBurst = {
+const descNumbzBerryBurst300 = {
     baseDescription:
-        "Numbz Berry Burst — a premium 500mg infused pack engineered for a rich, full-spectrum experience. Made with high-purity extraction and consistent per-serving dosing, each pack delivers a bold berry flavour profile with reliable, calibrated performance.\n\nSpecs: 500mg Total | High-Purity Extract | Berry Burst Flavour Profile.",
+        "Numbz Berry Burst 300mg — a precisely portioned, single-serve infused piece delivering a bold burst of sweet mixed berries with a clean, measured release. Perfect for on-the-go use and consistent session control.\n\nSpecs: 300mg Total | Single-Serve Format | High-Purity Extract | Berry Burst Flavour Profile.",
 };
 
-const descNumbzWatermelonRush = {
+const descNumbzBerryBurst500 = {
     baseDescription:
-        "Numbz Watermelon Rush — a 5-pack of individually portioned 300mg servings, designed for flexible, session-based use. Each piece delivers a juicy, sweet watermelon flavour with a clean, measured release.\n\nSpecs: 300mg Per Piece | 5 Pieces Per Pack | 1,500mg Total | Watermelon Rush Flavour Profile.",
+        "Numbz Berry Burst 500mg — a premium, full-strength infused pack engineered for a rich, full-spectrum berry experience. Made with high-purity extraction and consistent per-serving dosing, delivering reliable, calibrated performance every time.\n\nSpecs: 500mg Total | High-Purity Extract | Berry Burst Flavour Profile.",
+};
+
+const descNumbzWatermelonRush300 = {
+    baseDescription:
+        "Numbz Watermelon Rush 300mg — a single-serve, precisely dosed piece bursting with juicy, sweet watermelon flavour. Designed for flexible, session-based use with a clean and measured release every time.\n\nSpecs: 300mg Total | Single-Serve Format | Watermelon Rush Flavour Profile.",
+};
+
+const descNumbzWatermelonRush500 = {
+    baseDescription:
+        "Numbz Watermelon Rush 500mg — a premium, high-strength infused pack for those seeking a more intense experience. Each pack delivers a rich, sweet watermelon profile with a potent, full-spectrum extract and smooth release.\n\nSpecs: 500mg Total | High-Purity Extract | Watermelon Rush Flavour Profile.",
 };
 
 // ─── MASTER EXPORT ───────────────────────────────────────────────────────────
@@ -337,36 +347,71 @@ export const seedProducts: SeedProduct[] = [
         ...descUtBar,
     }),
 
-    // 6. Numbz — 2 specialty items, 10 stock each
-    // Berry Burst 500mg Pack
+    // 6. Numbz — 4 specialty items, 10 stock each (Berry Burst & Watermelon Rush in 300mg and 500mg)
+
+    // Berry Burst 300mg
     {
-        name: 'Numbz - Berry Burst (500mg Pack)',
+        name: 'Numbz - Berry Burst (300mg)',
         brand: 'Numbz',
         flavor: 'Berry Burst',
-        nicotine: '500mg',
-        price: numbzBerryBurstPrice, // ⚠️ PRICE PENDING
+        nicotine: '300mg',
+        price: numbzBerryBurstPrice,
         rating: 4.5,
-        reviews: 65,
-        image: resolveCatalogImage({ brand: 'Numbz', name: 'Numbz - Berry Burst (500mg Pack)', category: 'Specialty' }),
+        reviews: 58,
+        image: '/images/numbz/berry-burst-300mg.jpg',
         category: 'Specialty',
-        description: descNumbzBerryBurst.baseDescription,
+        description: descNumbzBerryBurst300.baseDescription,
         stock_qty: 10,
         is_express_delivery: 1,
         is_bestseller: 0,
         is_new_arrival: 1,
     },
-    // Watermelon Rush 300mg 5-Pack
+    // Berry Burst 500mg
     {
-        name: 'Numbz - Watermelon Rush (300mg 5-Pack)',
+        name: 'Numbz - Berry Burst (500mg)',
+        brand: 'Numbz',
+        flavor: 'Berry Burst',
+        nicotine: '500mg',
+        price: numbzBerryBurstPrice,
+        rating: 4.6,
+        reviews: 72,
+        image: '/images/numbz/berry-burst-500mg.jpg',
+        category: 'Specialty',
+        description: descNumbzBerryBurst500.baseDescription,
+        stock_qty: 10,
+        is_express_delivery: 1,
+        is_bestseller: 0,
+        is_new_arrival: 1,
+    },
+    // Watermelon Rush 300mg
+    {
+        name: 'Numbz - Watermelon Rush (300mg)',
         brand: 'Numbz',
         flavor: 'Watermelon Rush',
         nicotine: '300mg',
-        price: numbzWatermelonRushPrice, // ⚠️ PRICE PENDING
+        price: numbzWatermelonRushPrice,
         rating: 4.5,
-        reviews: 60,
-        image: resolveCatalogImage({ brand: 'Numbz', name: 'Numbz - Watermelon Rush (300mg 5-Pack)', category: 'Specialty' }),
+        reviews: 55,
+        image: '/images/numbz/watermelon-rush-300mg.jpg',
         category: 'Specialty',
-        description: descNumbzWatermelonRush.baseDescription,
+        description: descNumbzWatermelonRush300.baseDescription,
+        stock_qty: 10,
+        is_express_delivery: 1,
+        is_bestseller: 0,
+        is_new_arrival: 1,
+    },
+    // Watermelon Rush 500mg
+    {
+        name: 'Numbz - Watermelon Rush (500mg)',
+        brand: 'Numbz',
+        flavor: 'Watermelon Rush',
+        nicotine: '500mg',
+        price: numbzWatermelonRushPrice,
+        rating: 4.6,
+        reviews: 68,
+        image: '/images/numbz/watermelon-rush-500mg.jpg',
+        category: 'Specialty',
+        description: descNumbzWatermelonRush500.baseDescription,
         stock_qty: 10,
         is_express_delivery: 1,
         is_bestseller: 0,

@@ -3,28 +3,23 @@ import { hashPassword } from '../server/auth.js';
 import { getPostgresClient, initializePostgresSchema } from './index.js';
 import { seedProducts } from './seed.js';
 
+// ─── Master Inventory Brands (Banana Leaf) ────────────────────────────────────
 const HOMEPAGE_INVENTORY_BRANDS = new Set([
-    'Geekbar Pulse X',
-    'Foger Pods',
-    'Utbar',
-    'Flum Mello',
-    'Geek Bar Pulse X 25K',
-    'Utbar UT 50K',
-    'Float Mello Pro 50K',
-    'Foger Switch Pro',
-    'Foger Switch Pro Pods',
+    'Geek Bar Pulse X',
+    'Fogger Pods',
+    'Fogger Kit',
+    'Float/Flum Mellow',
+    'UT Bar',
+    'Numbz',
 ]);
 
 const DEFAULT_BRAND_IMAGE_BY_NAME: Record<string, string> = {
-    'Geekbar Pulse X': '/images/geek-bar-pulse-x-25000-clear.jpg',
-    'Foger Pods': '/images/devices/uwell-caliburn-g2.webp',
-    Utbar: '/images/ut-bar-clear-no-flavor.jpg',
-    'Flum Mello': '/images/products/flum-mello/watermelon-icy.png',
-    'Geek Bar Pulse X 25K': '/images/devices/geek-bar-pulse-x-25k.jpg',
-    'Utbar UT 50K': '/images/devices/utbar-ut-50k.jpg',
-    'Float Mello Pro 50K': '/images/devices/float-mello-pro-50k.jpg',
-    'Foger Switch Pro': '/images/devices/foger-switch-pro-kit.jpg',
-    'Foger Switch Pro Pods': '/images/devices/foger-switch-pro-pods.jpg',
+    'Geek Bar Pulse X':  '/images/products/geekbar-pulse-x/hero.png',
+    'Fogger Pods':       '/images/products/foger-pods/miami-mint.webp',
+    'Fogger Kit':        '/images/products/foger-pods/gummy-bear.webp',
+    'Float/Flum Mellow': '/images/products/flum-mello/watermelon-icy.png',
+    'UT Bar':            '/images/products/utbar/aloe-grape-watermelon.webp',
+    'Numbz':             '/images/2023-05-11.webp',
 };
 
 const DEFAULT_PLACEHOLDER_IMAGE = '/images/2023-05-11.webp';
@@ -175,7 +170,7 @@ export async function seedPostgres(options?: { closeClient?: boolean }): Promise
     const hasRequiredHomepageInventory = homepageInventorySeedProducts.length > 0;
 
     if (!hasRequiredHomepageInventory) {
-        throw new Error('Seed catalog missing required homepage brands (Geekbar, Foger, Utbar, Flum Mello).');
+        throw new Error('Seed catalog missing required homepage brands (Geek Bar Pulse X, Fogger Pods, Fogger Kit, Float/Flum Mellow, UT Bar, Numbz).');
     }
 
     const countResult = await sql<{ cnt: string }[]>`SELECT COUNT(*)::text AS cnt FROM products`;

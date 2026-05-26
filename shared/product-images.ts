@@ -17,22 +17,20 @@ const PRODUCT_NAME_IMAGE_MAP: Array<{ pattern: RegExp; image: string }> = [
 ];
 
 const BRAND_IMAGE_MAP: Array<{ pattern: RegExp; image: string }> = [
-    { pattern: /geekbar|geek.?bar/i, image: '/images/products/geekbar-pulse-x/hero.png' },
-    // Foger: any Foger variant → real product flavor photo
-    { pattern: /^foger switch pro pods?$/i, image: '/images/products/foger-pods/sour-blue-dust.webp' },
-    { pattern: /^foger switch pro$/i, image: '/images/products/foger-pods/gummy-bear.webp' },
-    { pattern: /foger/i, image: '/images/products/foger-pods/miami-mint.webp' },
-    // Utbar: any Utbar variant
-    { pattern: /utbar/i, image: '/images/products/utbar/aloe-grape-watermelon.webp' },
-    // Flum / Float Mello: any variant
-    { pattern: /flum|float mello/i, image: '/images/products/flum-mello/watermelon-icy.png' },
-    // Zyns: use real product photo instead of generic stock
-    { pattern: /^zyns?$/i, image: '/images/products/zyns/wintergreen.jpeg' },
-    // Hydroxie: real product photo
-    { pattern: /^hydroxie$/i, image: '/images/products/hydroxie/10-15mg.jpg' },
-    { pattern: /^hydroxie \(7-oh\)$/i, image: '/images/products/hydroxie/10-15mg.jpg' },
-    // Blues: real product photo
-    { pattern: /^blues$/i, image: '/images/products/blues/35mg.jpg' },
+    // Geek Bar Pulse X
+    { pattern: /^geek bar pulse x$/i,    image: '/images/products/geekbar-pulse-x/hero.png' },
+    { pattern: /geekbar|geek.?bar/i,     image: '/images/products/geekbar-pulse-x/hero.png' },
+    // Fogger Pods
+    { pattern: /^fogger pods?$/i,        image: '/images/products/foger-pods/miami-mint.webp' },
+    { pattern: /^fogger kit$/i,          image: '/images/products/foger-pods/gummy-bear.webp' },
+    // Float/Flum Mellow
+    { pattern: /float.*flum|flum.*mellow|float.*mellow/i, image: '/images/products/flum-mello/watermelon-icy.png' },
+    { pattern: /flum|float mello/i,      image: '/images/products/flum-mello/watermelon-icy.png' },
+    // UT Bar
+    { pattern: /^ut bar$/i,              image: '/images/products/utbar/aloe-grape-watermelon.webp' },
+    { pattern: /utbar/i,                 image: '/images/products/utbar/aloe-grape-watermelon.webp' },
+    // Numbz
+    { pattern: /^numbz$/i,               image: '/images/2023-05-11.webp' },
 ];
 
 const CATEGORY_IMAGE_MAP: Array<{ pattern: RegExp; image: string }> = [

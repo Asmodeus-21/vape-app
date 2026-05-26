@@ -91,8 +91,8 @@ const createProducts = (
 // ─────────────────────────────────────────────────────────────────────────────
 
 // ─── 1. Geek Bar Pulse X ─────────────────────────────────────────────────────
-// ⚠️ PRICE PENDING: Currently set to 0 — update `geekBarPulseXPrice` before launch
-const geekBarPulseXPrice = 0; // TODO: Set retail price (e.g. 21.90)
+// Juicefly Retail: $29.90 | Current Sale: $24.90
+const geekBarPulseXPrice = 24.90;
 
 const geekBarPulseXFlavors = [
     'Raspberry Peach Lime',
@@ -131,8 +131,8 @@ const descGeekBarPulseX = {
 };
 
 // ─── 2. Fogger Pods ──────────────────────────────────────────────────────────
-// ⚠️ PRICE PENDING: Currently set to 0 — update `foggerPodsPrice` before launch
-const foggerPodsPrice = 0; // TODO: Set retail price (e.g. 14.99)
+// Juicefly Retail: $21.99 | Current Sale: $19.90 (Replacement Pod Unit)
+const foggerPodsPrice = 19.90;
 
 const foggerPodsFlavors = [
     'Kiwi Dragon Berry',
@@ -173,8 +173,8 @@ const descFoggerPods = {
 };
 
 // ─── 3. Fogger Kit ───────────────────────────────────────────────────────────
-// ⚠️ PRICE PENDING: Currently set to 0 — update `foggerKitPrice` before launch
-const foggerKitPrice = 0; // TODO: Set retail price (e.g. 24.99)
+// Juicefly Standard Retail: $23.99 (Full Modular Kit with Power Dock)
+const foggerKitPrice = 23.99;
 
 const foggerKitFlavors = [
     'Gummy Bear',
@@ -197,8 +197,8 @@ const descFoggerKit = {
 };
 
 // ─── 4. Float/Flum Mellow ────────────────────────────────────────────────────
-// ⚠️ PRICE PENDING: Currently set to 0 — update `floatFlumMellowPrice` before launch
-const floatFlumMellowPrice = 0; // TODO: Set retail price (e.g. 20.00)
+// Juicefly Retail: $29.99 | Current Sale: $22.99
+const floatFlumMellowPrice = 22.99;
 
 const floatFlumMellowFlavors = [
     'Straw Melon',
@@ -229,8 +229,8 @@ const descFloatFlumMellow = {
 };
 
 // ─── 5. UT Bar ───────────────────────────────────────────────────────────────
-// ⚠️ PRICE PENDING: Currently set to 0 — update `utBarPrice` before launch
-const utBarPrice = 0; // TODO: Set retail price (e.g. 25.99)
+// Juicefly Retail: $23.99 | Current Sale: $19.19 (50K Puffs Dual-Tank Edition)
+const utBarPrice = 19.19;
 
 const utBarFlavors = [
     'Blue Razz Ice',
@@ -265,9 +265,9 @@ const descUtBar = {
 };
 
 // ─── 6. Numbz ────────────────────────────────────────────────────────────────
-// ⚠️ PRICE PENDING: Currently set to 0 — update `numbzBerryBurstPrice` and `numbzWatermelonRushPrice` before launch
-const numbzBerryBurstPrice = 0;    // TODO: Set retail price for Berry Burst 500mg Pack
-const numbzWatermelonRushPrice = 0; // TODO: Set retail price for Watermelon Rush 300mg 5-Pack
+// Standard Retail Benchmark for Numbz Botanicals / 7-Hydroxymitragynine specialty lines
+const numbzBerryBurstPrice      = 14.99;  // Numbz 500mg pack
+const numbzWatermelonRushPrice  = 24.99;  // Numbz 300mg 5-pack bundle
 
 const descNumbzBerryBurst = {
     baseDescription:

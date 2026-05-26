@@ -91,7 +91,7 @@ const createProducts = (
 // ─────────────────────────────────────────────────────────────────────────────
 
 // ─── 1. Geek Bar Pulse X ─────────────────────────────────────────────────────
-// Juicefly Retail: $29.90 | Current Sale: $24.90
+// Market Retail: $29.90 | Current Sale: $24.90
 const geekBarPulseXPrice = 24.90;
 
 const geekBarPulseXFlavors = [
@@ -131,7 +131,7 @@ const descGeekBarPulseX = {
 };
 
 // ─── 2. Fogger Pods ──────────────────────────────────────────────────────────
-// Juicefly Retail: $21.99 | Current Sale: $19.90 (Replacement Pod Unit)
+// Market Retail: $21.99 | Current Sale: $19.90 (Replacement Pod Unit)
 const foggerPodsPrice = 19.90;
 
 const foggerPodsFlavors = [
@@ -173,7 +173,7 @@ const descFoggerPods = {
 };
 
 // ─── 3. Fogger Kit ───────────────────────────────────────────────────────────
-// Juicefly Standard Retail: $23.99 (Full Modular Kit with Power Dock)
+// Market Standard Retail: $23.99 (Full Modular Kit with Power Dock)
 const foggerKitPrice = 23.99;
 
 const foggerKitFlavors = [
@@ -197,7 +197,7 @@ const descFoggerKit = {
 };
 
 // ─── 4. Float/Flum Mellow ────────────────────────────────────────────────────
-// Juicefly Retail: $29.99 | Current Sale: $22.99
+// Market Retail: $29.99 | Current Sale: $22.99
 const floatFlumMellowPrice = 22.99;
 
 const floatFlumMellowFlavors = [
@@ -229,7 +229,7 @@ const descFloatFlumMellow = {
 };
 
 // ─── 5. UT Bar ───────────────────────────────────────────────────────────────
-// Juicefly Retail: $23.99 | Current Sale: $19.19 (50K Puffs Dual-Tank Edition)
+// Market Retail: $23.99 | Current Sale: $19.19 (50K Puffs Dual-Tank Edition)
 const utBarPrice = 19.19;
 
 const utBarFlavors = [

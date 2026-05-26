@@ -293,7 +293,7 @@ function MarketplaceProductCard({ group, selectedVariant, onOpenProduct, onSelec
                         <p className="text-[11px] font-semibold text-slate-500">{group.variants.length} Flavors available</p>
                     )}
                     {isHighDemandProduct(selectedVariant) && (
-                        <span className="juicefly-stock-pill" role="status" aria-live="polite">Limited Stock!</span>
+                        <span className="store-stock-pill" role="status" aria-live="polite">Limited Stock!</span>
                     )}
                 </div>
 
@@ -348,7 +348,7 @@ function MarketplaceProductCard({ group, selectedVariant, onOpenProduct, onSelec
                         event.stopPropagation();
                         onOpenProduct();
                     }}
-                    className="juicefly-action-button mt-auto w-full justify-center"
+                    className="store-action-button mt-auto w-full justify-center"
                 >
                     Select Option
                 </button>

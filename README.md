@@ -1,11 +1,11 @@
 # Banana Leaf Store
 
-Banana Leaf Store is a production-ready vape and nicotine commerce platform that combines fast mobile shopping with secure OTP authentication and a high-conversion JuiceFly-style checkout journey.
+Banana Leaf Store is a production-ready vape and nicotine commerce platform that combines fast mobile shopping with secure OTP authentication and a high-conversion, premium checkout journey.
 
 ## Core Features
 
 - OTP Auth: password and email-OTP login/register with verification-based onboarding
-- JuiceFly-style UX: conversion-focused banners, mobile-first navigation, and side-cart feedback
+- Premium UX: conversion-focused banners, mobile-first navigation, and side-cart feedback
 - Guest Checkout: complete purchases without account creation, with optional save-details verification
 - 3-step Checkout: Shipping, Delivery, and Payment flow with success summary
 - Role-aware Experiences: customer, vendor, and admin routing paths

@@ -266,8 +266,8 @@ const descUtBar = {
 
 // ─── 6. Numbz ────────────────────────────────────────────────────────────────
 // Standard Retail Benchmark for Numbz Botanicals / 7-Hydroxymitragynine specialty lines
-const numbzBerryBurstPrice      = 14.99;  // Berry Burst (both variants)
-const numbzWatermelonRushPrice  = 24.99;  // Watermelon Rush (both variants)
+const numbz300mgPrice = 59.99;  // Berry Burst 300mg & Watermelon Rush 300mg
+const numbz500mgPrice = 79.99;  // Berry Burst 500mg & Watermelon Rush 500mg
 
 const descNumbzBerryBurst300 = {
     baseDescription:
@@ -355,7 +355,7 @@ export const seedProducts: SeedProduct[] = [
         brand: 'Numbz',
         flavor: 'Berry Burst',
         nicotine: '300mg',
-        price: numbzBerryBurstPrice,
+        price: numbz300mgPrice,
         rating: 4.5,
         reviews: 58,
         image: '/images/numbz/berry-burst-300mg.jpg',
@@ -372,7 +372,7 @@ export const seedProducts: SeedProduct[] = [
         brand: 'Numbz',
         flavor: 'Berry Burst',
         nicotine: '500mg',
-        price: numbzBerryBurstPrice,
+        price: numbz500mgPrice,
         rating: 4.6,
         reviews: 72,
         image: '/images/numbz/berry-burst-500mg.jpg',
@@ -389,7 +389,7 @@ export const seedProducts: SeedProduct[] = [
         brand: 'Numbz',
         flavor: 'Watermelon Rush',
         nicotine: '300mg',
-        price: numbzWatermelonRushPrice,
+        price: numbz300mgPrice,
         rating: 4.5,
         reviews: 55,
         image: '/images/numbz/watermelon-rush-300mg.jpg',
@@ -406,7 +406,7 @@ export const seedProducts: SeedProduct[] = [
         brand: 'Numbz',
         flavor: 'Watermelon Rush',
         nicotine: '500mg',
-        price: numbzWatermelonRushPrice,
+        price: numbz500mgPrice,
         rating: 4.6,
         reviews: 68,
         image: '/images/numbz/watermelon-rush-500mg.jpg',

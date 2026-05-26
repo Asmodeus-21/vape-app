@@ -15,7 +15,7 @@ The server is configured with these published defaults:
 - `NODE_ENV=production`
 - `GEMINI_API_KEY` (optional) - leave unset for no AI chat or set it for demo AI as you wish.
 
-The product dataset uses Juicy Fly pricing (Foger, Utbar, Flum Mello, Hydroxie, Blues, Zyns, etc.) and is seeded automatically from `db/seed.ts` during startup. The `/api/products` path supports full listing, search, filter, paging, and sort.
+The product dataset (Fogger, Utbar, Flum Mello, Hydroxie, Zyns, etc.) is seeded automatically from `db/seed.ts` during startup. The `/api/products` path supports full listing, search, filter, paging, and sort.
 
 
 ## 3. Demo Logins (normal seeded accounts)

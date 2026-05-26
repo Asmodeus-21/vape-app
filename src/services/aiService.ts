@@ -15,7 +15,6 @@ STORE PRODUCTS (use these when making recommendations):
 - Utbar Disposables: Aloe Grape Watermelon, Blue Rancher, Strawberry Blast, White Gummy, Watermelon Icy
 - Flum Mello: Cool Mint, Sour Apple Icy, Watermelon Peach Lime, Blue Razz Icy
 - Zyns (Nicotine Pouches): Wintergreen, Peppermint, Citrus, Cool Mint, Cinnamon — tobacco-free
-- Blues (Kratom): 35mg, 55mg, 75mg, 100mg
 - Hydroxie (7-OH): 10-15mg, 10-30mg, 5-15mg
 
 PERSONALITY:

@@ -228,7 +228,7 @@ export async function listHomepageMasterListings(sql: Sql, limit = 8) {
                 MAX(rating)::float AS top_rating,
                 SUM(reviews)::int AS total_reviews,
                 CASE
-                    WHEN LOWER(brand) IN ('blues', 'zyns', 'hydroxie (7-oh)') THEN 0
+                    WHEN LOWER(brand) IN ('zyns', 'hydroxie (7-oh)') THEN 0
                     ELSE 1
                 END AS homepage_priority
             FROM products

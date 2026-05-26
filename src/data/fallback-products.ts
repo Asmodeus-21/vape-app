@@ -30,7 +30,7 @@ export const FALLBACK_PRODUCTS: Product[] = [
     { ...BASE, id: 9012, name: 'Zyns - Cool Mint', flavor: 'Cool Mint', nicotine: '6mg', price: 7.99, category: 'Nicotine Pouches', brand: 'Zyns' },
     { ...BASE, id: 9013, name: 'Hydroxie (7-OH) - 10-15mg', flavor: '10-15mg', nicotine: '7-OH', price: 14.99, category: 'Supplements', brand: 'Hydroxie (7-OH)' },
     { ...BASE, id: 9014, name: 'Hydroxie (7-OH) - 10-30mg', flavor: '10-30mg', nicotine: '7-OH', price: 24.99, category: 'Supplements', brand: 'Hydroxie (7-OH)' },
-    { ...BASE, id: 9015, name: 'Blues - 35mg', flavor: '35mg', nicotine: '7-OH', price: 12.00, category: 'Supplements', brand: 'Blues' },
+
     { ...BASE, id: 9016, name: 'Foger Pods Refillable - Clear', flavor: 'Clear', nicotine: '5%', price: 16.99, category: 'Disposables', brand: 'Foger' },
     { ...BASE, id: 9017, name: 'Foger Pods Refillable - Tobacco', flavor: 'Tobacco', nicotine: '5%', price: 16.99, category: 'Disposables', brand: 'Foger' },
 ];
@@ -42,6 +42,6 @@ export const HOMEPAGE_FALLBACK_GROUPS: ParentVariantGroup[] = [
     { key: 'mock-flum-mello', parentName: 'Flum Mello 20000', brand: 'Flum', category: 'Disposables', variants: FALLBACK_PRODUCTS.slice(8, 10) },
     { key: 'mock-zyns', parentName: 'Zyns Nicotine Pouches', brand: 'Zyns', category: 'Nicotine Pouches', variants: FALLBACK_PRODUCTS.slice(10, 12) },
     { key: 'mock-hydroxie', parentName: 'Hydroxie (7-OH)', brand: 'Hydroxie (7-OH)', category: 'Supplements', variants: FALLBACK_PRODUCTS.slice(12, 14) },
-    { key: 'mock-blues', parentName: 'Blues', brand: 'Blues', category: 'Supplements', variants: FALLBACK_PRODUCTS.slice(14, 15) },
+
     { key: 'mock-foger-pods', parentName: 'Foger Pods Refillable', brand: 'Foger', category: 'Disposables', variants: FALLBACK_PRODUCTS.slice(15, 17) },
 ];

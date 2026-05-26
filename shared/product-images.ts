@@ -9,8 +9,7 @@ export interface ProductImageContext {
 const EXTERNAL_PLACEHOLDER_PATTERN = /placehold\.co|source\.unsplash\.com|images\.unsplash\.com|picsum\.photos/i;
 
 const PRODUCT_NAME_IMAGE_MAP: Array<{ pattern: RegExp; image: string }> = [
-    { pattern: /^blues\s*(?:-\s*35mg)?$/i, image: '/images/products/blues/35mg.jpg' },
-    { pattern: /^blues\s*-\s*\d/i, image: '/images/products/blues/35mg.jpg' },
+
     { pattern: /^zyns?\s*(?:-\s*wintergreen)?$/i, image: '/images/products/zyns/wintergreen.jpeg' },
     { pattern: /^hydroxie\s*(?:\(7-oh\))?\s*-\s*10-15mg$/i, image: '/images/products/hydroxie/10-15mg.jpg' },
     { pattern: /^hydroxie\s*(?:\(7-oh\))?\s*-/i, image: '/images/products/hydroxie/10-15mg.jpg' },
@@ -75,12 +74,7 @@ const FLAVOR_IMAGE_MAP: Readonly<Record<string, string>> = {
     'hydroxie-7-oh:5-30mg': '/images/products/hydroxie/10-15mg.jpg',
     'hydroxie-7-oh:5-60mg': '/images/products/hydroxie/10-15mg.jpg',
 
-    // Blues — real product photos
-    'blues:35mg': '/images/products/blues/35mg.jpg',
-    'blues:55mg': '/images/products/blues/35mg.jpg',
-    'blues:75mg': '/images/products/blues/35mg.jpg',
-    'blues:100mg': '/images/products/blues/35mg.jpg',
-    'blues:120mg': '/images/products/blues/35mg.jpg',
+
 
     // Geekbar Pulse X — full flavor set
     'geekbar-pulse-x:blackberry-b-burst': '/images/products/geekbar-pulse-x/blackberry-b-burst.png',

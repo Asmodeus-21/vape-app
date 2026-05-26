@@ -212,7 +212,7 @@ function ProductCardImage({ imageUrl, productName, brand, category, flavor, isEx
                             setCurrentImageUrl(DEFAULT_CATALOG_IMAGE);
                         }
                     }}
-                    className={`h-full w-full object-contain transition-transform duration-500 group-hover:scale-105 ${/^(hydroxie|blues)/i.test(brand) ? 'grayscale opacity-60' : ''}`}
+                    className={`h-full w-full object-contain transition-transform duration-500 group-hover:scale-105 ${/^hydroxie/i.test(brand) ? 'grayscale opacity-60' : ''}`}
                 />
             </div>
             {salePercent > 0 && (

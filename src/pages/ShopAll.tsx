@@ -166,6 +166,7 @@ const BRANDS = [
     'Float/Flum Mellow',
     'UT Bar',
     'Numbz',
+    'ZYN',
 ];
 const TAGS = [
     { key: 'all', label: 'All' },

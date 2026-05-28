@@ -289,6 +289,30 @@ const descNumbzWatermelonRush500 = {
         "Numbz Watermelon Rush 500mg — a premium, high-strength infused pack for those seeking a more intense experience. Each pack delivers a rich, sweet watermelon profile with a potent, full-spectrum extract and smooth release.\n\nSpecs: 500mg Total | High-Purity Extract | Watermelon Rush Flavour Profile.",
 };
 
+// ─── 7. ZYN Nicotine Pouches ─────────────────────────────────────────────────
+const zyn3mgPrice = 8.99;   // ZYN 3mg (mini/light strength)
+const zyn6mgPrice = 14.99;  // ZYN 6mg (regular strength)
+
+const zynFlavors = [
+    'Wintergreen',
+    'Peppermint',
+    'Citrus',
+    'Cool Mint',
+    'Cinnamon',
+];
+
+const descZyn = {
+    baseDescription:
+        "The gold standard in smoke-free, spit-free nicotine satisfaction. ZYN oral nicotine pouches are completely white, highly discreet, and meticulously formulated to provide a clean, steady release of nicotine over 30–45 minutes. Tobacco-leaf free, non-staining, and perfect for hands-free use anywhere.\n\nSpecs: 15 Pouches Per Can | Slim, Comfortable Fit | Non-Staining Formula | Tobacco-Leaf Free.",
+    featuredFlavors: {
+        'Wintergreen': 'A crisp, bold, and traditional woodsy mint with a deep, satisfying throat tingle.',
+        'Peppermint': 'A sharp, icy burst of pure peppermint oil that refreshes and cools instantly.',
+        'Citrus': 'A bright, slightly sweet lemon-lime flavour profile with zero bitterness.',
+        'Cool Mint': 'A smooth, clean, refreshingly cool spearmint with a mild menthol finish.',
+        'Cinnamon': 'A warm, spicy cinnamon with a gentle sweet heat that lingers satisfyingly.',
+    },
+};
+
 // ─── MASTER EXPORT ───────────────────────────────────────────────────────────
 export const seedProducts: SeedProduct[] = [
 
@@ -417,4 +441,30 @@ export const seedProducts: SeedProduct[] = [
         is_bestseller: 0,
         is_new_arrival: 1,
     },
+
+    // 7. ZYN 3mg — 5 flavors, 10 stock each
+    ...createProducts('ZYN', 'Nicotine Pouches', '3mg', zyn3mgPrice, zynFlavors, {
+        rating: 4.8,
+        reviews: 320,
+        stockQty: 10,
+        express: true,
+        bestseller: true,
+        newArrival: false,
+        ...descZyn,
+        imagePathBuilder: (brand, flavor) =>
+            `/images/products/zyns/${flavor.toLowerCase().replace(/\s+/g, '-')}.jpeg`,
+    }),
+
+    // 8. ZYN 6mg — 5 flavors, 10 stock each
+    ...createProducts('ZYN', 'Nicotine Pouches', '6mg', zyn6mgPrice, zynFlavors, {
+        rating: 4.8,
+        reviews: 320,
+        stockQty: 10,
+        express: true,
+        bestseller: true,
+        newArrival: false,
+        ...descZyn,
+        imagePathBuilder: (brand, flavor) =>
+            `/images/products/zyns/${flavor.toLowerCase().replace(/\s+/g, '-')}.jpeg`,
+    }),
 ];

@@ -21,4 +21,8 @@ db.prepare('UPDATE products SET price = 19.19 WHERE brand = "UT Bar"').run();
 db.prepare('UPDATE products SET price = 59.99 WHERE brand = "Numbz" AND nicotine = "300mg"').run();
 db.prepare('UPDATE products SET price = 79.99 WHERE brand = "Numbz" AND nicotine = "500mg"').run();
 
+// Update ZYN Nicotine Pouches with strength-tiered pricing
+db.prepare('UPDATE products SET price = 8.99 WHERE brand = "ZYN" AND nicotine = "3mg"').run();
+db.prepare('UPDATE products SET price = 14.99 WHERE brand = "ZYN" AND nicotine = "6mg"').run();
+
 console.log('All product prices updated to current Banana Leaf pricing!');

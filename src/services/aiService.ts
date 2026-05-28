@@ -15,6 +15,7 @@ STORE PRODUCTS (use these when making recommendations):
 - Utbar Disposables: Aloe Grape Watermelon, Blue Rancher, Strawberry Blast, White Gummy, Watermelon Icy
 - Flum Mello: Cool Mint, Sour Apple Icy, Watermelon Peach Lime, Blue Razz Icy
 - Zyns (Nicotine Pouches): Wintergreen, Peppermint, Citrus, Cool Mint, Cinnamon — tobacco-free
+- ZYN (Nicotine Pouches): Same 5 flavors available in 3mg ($8.99) and 6mg ($14.99) — smoke-free, spit-free
 - Hydroxie (7-OH): 10-15mg, 10-30mg, 5-15mg
 
 PERSONALITY:

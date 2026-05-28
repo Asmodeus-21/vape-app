@@ -11,6 +11,11 @@ const EXTERNAL_PLACEHOLDER_PATTERN = /placehold\.co|source\.unsplash\.com|images
 const PRODUCT_NAME_IMAGE_MAP: Array<{ pattern: RegExp; image: string }> = [
 
     { pattern: /^zyns?\s*(?:-\s*wintergreen)?$/i, image: '/images/products/zyns/wintergreen.jpeg' },
+    { pattern: /^zyn\s*-\s*wintergreen/i, image: '/images/products/zyns/wintergreen.jpeg' },
+    { pattern: /^zyn\s*-\s*peppermint/i,  image: '/images/products/zyns/peppermint.jpeg' },
+    { pattern: /^zyn\s*-\s*citrus/i,      image: '/images/products/zyns/citrus.jpeg' },
+    { pattern: /^zyn\s*-\s*cool.?mint/i,  image: '/images/products/zyns/cool-mint.jpeg' },
+    { pattern: /^zyn\s*-\s*cinnamon/i,    image: '/images/products/zyns/cinnamon.jpeg' },
     { pattern: /^hydroxie\s*(?:\(7-oh\))?\s*-\s*10-15mg$/i, image: '/images/products/hydroxie/10-15mg.jpg' },
     { pattern: /^hydroxie\s*(?:\(7-oh\))?\s*-/i, image: '/images/products/hydroxie/10-15mg.jpg' },
     // Numbz — mg-specific variant image lookup by product name
@@ -60,12 +65,17 @@ const PLACEHOLDER_LOCAL_IMAGE_PATHS = new Set([
 // Keys are `${brandSlug}:${flavorSlug}` where slugs are lowercase-hyphenated.
 // Used by resolveFlavorImage() to drive dynamic flavor switching in ProductDetail.
 const FLAVOR_IMAGE_MAP: Readonly<Record<string, string>> = {
-    // Zyns — 5/5 flavors
+    // Zyns / ZYN — 5 flavors (both 'zyns' and 'zyn' brand slugs)
     'zyns:wintergreen': '/images/products/zyns/wintergreen.jpeg',
-    'zyns:peppermint': '/images/products/zyns/peppermint.jpeg',
-    'zyns:citrus': '/images/products/zyns/citrus.jpeg',
-    'zyns:cool-mint': '/images/products/zyns/cool-mint.jpeg',
-    'zyns:cinnamon': '/images/products/zyns/cinnamon.jpeg',
+    'zyns:peppermint':  '/images/products/zyns/peppermint.jpeg',
+    'zyns:citrus':      '/images/products/zyns/citrus.jpeg',
+    'zyns:cool-mint':   '/images/products/zyns/cool-mint.jpeg',
+    'zyns:cinnamon':    '/images/products/zyns/cinnamon.jpeg',
+    'zyn:wintergreen':  '/images/products/zyns/wintergreen.jpeg',
+    'zyn:peppermint':   '/images/products/zyns/peppermint.jpeg',
+    'zyn:citrus':       '/images/products/zyns/citrus.jpeg',
+    'zyn:cool-mint':    '/images/products/zyns/cool-mint.jpeg',
+    'zyn:cinnamon':     '/images/products/zyns/cinnamon.jpeg',
 
     // Hydroxie (7-OH) — real product photos
     'hydroxie-7-oh:10-15mg': '/images/products/hydroxie/10-15mg.jpg',

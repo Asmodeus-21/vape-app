@@ -122,24 +122,45 @@ export async function sendDeliveredNotification(to: string, orderId: number): Pr
 }
 
 export async function sendOtpEmail(to: string, code: string, name?: string): Promise<void> {
-    if (process.env.SMTP_USER && process.env.SMTP_PASS) {
-        try {
-            await transporter.sendMail({
-                from: `"Banana Leaf Store" <${process.env.SMTP_USER}>`,
-                to,
-                subject: 'Your Login OTP - Banana Leaf Store',
-                text: `Hello ${name || 'there'},\n\nYour OTP for Banana Leaf Store is: ${code}\n\nThis code will expire in 10 minutes.\n\nThank you!`,
-                html: `<p>Hello ${name || 'there'},</p><p>Your OTP for Banana Leaf Store is: <strong>${code}</strong></p><p>This code will expire in 10 minutes.</p><p>Thank you!</p>`
-            });
-            console.log(`[email] OTP email sent to ${to} via SMTP`);
-        } catch (err) {
-            console.error(`[email] Failed to send OTP email via SMTP to ${to}:`, err);
-        }
-    } else {
-        await sendWebhookEvent('otp_verification', {
-            email: to,
-            otp_code: code,
-            name: name || undefined
-        });
+    const subject = 'Your Verification Code - Banana Leaf';
+    const text = `Welcome to Banana Leaf!\n\nHello ${name || 'there'},\n\nYour verification code is: ${code}\n\nThis code will expire in 10 minutes.\n\nThank you,\nThe Banana Leaf Team`;
+    const html = `
+        <div style="font-family: 'Inter', system-ui, -apple-system, sans-serif; color: #1e293b; line-height: 1.6; max-width: 500px; margin: 0 auto; padding: 32px 20px; border: 1px solid #e2e8f0; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);">
+            <div style="text-align: center; margin-bottom: 32px;">
+                <h1 style="font-size: 24px; font-weight: 800; color: #0f172a; margin: 0; letter-spacing: -0.5px;">🍌 Banana Leaf</h1>
+            </div>
+            
+            <p style="font-size: 16px; margin-bottom: 24px;">Hello <strong>${name || 'there'}</strong>,</p>
+            
+            <p style="font-size: 16px; margin-bottom: 24px;">Welcome to Banana Leaf! Please use the verification code below to securely access your account.</p>
+            
+            <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; padding: 24px; border-radius: 12px; text-align: center; margin: 32px 0;">
+                <div style="font-size: 32px; font-weight: 800; letter-spacing: 8px; color: #3b82f6;">
+                    ${code}
+                </div>
+            </div>
+            
+            <p style="font-size: 14px; color: #64748b; margin-bottom: 32px; text-align: center;">
+                For your security, this code will expire in <strong>10 minutes</strong>.
+            </p>
+            
+            <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 32px 0;" />
+            
+            <p style="font-size: 12px; color: #94a3b8; text-align: center; margin: 0;">
+                If you didn't request this code, you can safely ignore this email. Someone may have typed your email address by mistake.
+            </p>
+        </div>
+    `;
+
+    // Try to send via SMTP/Resend first
+    if (smtpTransporter || resendClient) {
+        await sendRawEmail(to, subject, text, html);
     }
+    
+    // Always fire webhook to GHL as a backup/tracker
+    await sendWebhookEvent('otp_verification', {
+        email: to,
+        otp_code: code,
+        name: name || undefined
+    });
 }

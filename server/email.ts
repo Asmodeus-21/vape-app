@@ -4,8 +4,8 @@ import { Resend } from 'resend';
 const GHL_WEBHOOK_URL = process.env.GHL_WEBHOOK_URL || 'https://services.leadconnectorhq.com/hooks/YtBszBQY2oMblsvgLGUG/webhook-trigger/b583c244-f625-47a5-9b01-3cdf13ef59c8';
 const RESEND_API_KEY = process.env.RESEND_API_KEY?.trim();
 
-const smtpTransporter = process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS
-    ? nodemailer.createTransport({
+const smtpConfig = process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS
+    ? {
         host: process.env.SMTP_HOST,
         port: Number(process.env.SMTP_PORT) || 465,
         secure: true,
@@ -13,8 +13,18 @@ const smtpTransporter = process.env.SMTP_HOST && process.env.SMTP_USER && proces
             user: process.env.SMTP_USER,
             pass: process.env.SMTP_PASS,
         },
-    })
+    }
     : null;
+
+const smtpTransporter = smtpConfig
+    ? nodemailer.createTransport(smtpConfig)
+    : null;
+
+if (smtpTransporter) {
+    console.log(`[email] SMTP configured: ${smtpConfig!.host}:${smtpConfig!.port}`);
+} else {
+    console.log('[email] SMTP not configured (SMTP_HOST, SMTP_USER, or SMTP_PASS missing)');
+}
 
 const resendClient = RESEND_API_KEY ? new Resend(RESEND_API_KEY) : null;
 
@@ -58,35 +68,42 @@ function getEmailFrom(): string {
 async function sendRawEmail(to: string, subject: string, text: string, html: string): Promise<void> {
     if (smtpTransporter) {
         try {
-            await smtpTransporter.sendMail({
+            const info = await smtpTransporter.sendMail({
                 from: getEmailFrom(),
                 to,
                 subject,
                 text,
                 html,
             });
-            console.log(`[email] Order email sent via SMTP to ${to}`);
+            console.log(`[email] SMTP email sent to ${to} (response: ${info.response})`);
             return;
-        } catch (err) {
-            console.error(`[email] Failed to send order email via SMTP to ${to}:`, err);
+        } catch (err: any) {
+            console.error(`[email] SMTP failed for ${to}:`, {
+                code: err?.code,
+                command: err?.command,
+                message: err?.message,
+            });
+            // Fall through to try Resend
         }
     }
 
     if (resendClient) {
         try {
-            await resendClient.emails.send({
+            const response = await resendClient.emails.send({
                 from: getEmailFrom(),
                 to,
                 subject,
                 text,
                 html,
             });
-            console.log(`[email] Order email sent via Resend to ${to}`);
+            console.log(`[email] Resend email sent to ${to} (id: ${response.data?.id})`);
             return;
-        } catch (err) {
-            console.error(`[email] Failed to send order email via Resend to ${to}:`, err);
+        } catch (err: any) {
+            console.error(`[email] Resend failed for ${to}:`, err?.message || err);
         }
     }
+
+    console.warn(`[email] No email provider available. SMTP: ${!!smtpTransporter}, Resend: ${!!resendClient}`);
 }
 
 export async function sendOrderConfirmation(to: string, orderId: number, total: number): Promise<void> {

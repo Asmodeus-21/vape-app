@@ -218,6 +218,10 @@ export async function createApp(options: { skipSeed?: boolean; skipVite?: boolea
     const app = express();
     app.locals.isDatabaseConnected = isDatabaseConnected;
 
+    // Trust Vercel proxy (or other reverse proxies). This tells Express to trust
+    // the X-Forwarded-For header for identifying the client IP address.
+    app.set('trust proxy', 1);
+
     app.use(express.json());
 
     // Build allowed origins list:
@@ -270,12 +274,25 @@ export async function createApp(options: { skipSeed?: boolean; skipVite?: boolea
         credentials: Boolean(allowedOrigins),
     }));
 
+    // Custom key generator that extracts client IP from X-Forwarded-For or req.ip
+    const getClientIp = (req: express.Request): string => {
+        const xForwardedFor = req.headers['x-forwarded-for'];
+        if (xForwardedFor) {
+            // x-forwarded-for is a comma-separated list; take the first IP (client)
+            const ips = typeof xForwardedFor === 'string' ? xForwardedFor.split(',') : xForwardedFor;
+            return ips[0]?.trim() || req.ip || 'unknown';
+        }
+        return req.ip || 'unknown';
+    };
+
     const apiLimiter = rateLimit({
         windowMs: 15 * 60 * 1000,
         max: 200,
         standardHeaders: true,
         legacyHeaders: false,
         message: { error: "Too many requests, please try again later." },
+        keyGenerator: (req) => getClientIp(req),
+        skip: (req) => !isDatabaseConnected, // Don't rate-limit if DB is down
     });
 
     const authLimiter = rateLimit({
@@ -284,6 +301,8 @@ export async function createApp(options: { skipSeed?: boolean; skipVite?: boolea
         standardHeaders: true,
         legacyHeaders: false,
         message: { error: "Too many auth attempts, please try again later." },
+        keyGenerator: (req) => getClientIp(req),
+        skip: (req) => !isDatabaseConnected, // Don't rate-limit if DB is down
     });
 
     const aiLimiter = rateLimit({
@@ -292,6 +311,8 @@ export async function createApp(options: { skipSeed?: boolean; skipVite?: boolea
         standardHeaders: true,
         legacyHeaders: false,
         message: { error: "AI quota exceeded. Please try again later." },
+        keyGenerator: (req) => getClientIp(req),
+        skip: (req) => !isDatabaseConnected, // Don't rate-limit if DB is down
     });
 
     app.use("/api/auth/login", authLimiter);

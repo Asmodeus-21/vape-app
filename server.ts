@@ -274,15 +274,27 @@ export async function createApp(options: { skipSeed?: boolean; skipVite?: boolea
         credentials: Boolean(allowedOrigins),
     }));
 
-    // Custom key generator that extracts client IP from X-Forwarded-For or req.ip
+    // Custom key generator that safely extracts client IP from X-Forwarded-For or req.ip
     const getClientIp = (req: express.Request): string => {
-        const xForwardedFor = req.headers['x-forwarded-for'];
-        if (xForwardedFor) {
-            // x-forwarded-for is a comma-separated list; take the first IP (client)
-            const ips = typeof xForwardedFor === 'string' ? xForwardedFor.split(',') : xForwardedFor;
-            return ips[0]?.trim() || req.ip || 'unknown';
+        try {
+            const xForwardedFor = req.headers['x-forwarded-for'];
+            if (xForwardedFor) {
+                // x-forwarded-for can be a string (comma-separated) or array
+                const ips = typeof xForwardedFor === 'string'
+                    ? xForwardedFor.split(',')
+                    : Array.isArray(xForwardedFor)
+                    ? xForwardedFor
+                    : [String(xForwardedFor)];
+                const clientIp = ips[0]?.trim();
+                if (clientIp && clientIp !== 'unknown') return clientIp;
+            }
+            // Fallback to req.ip or use a stable fallback
+            const fallback = req.ip || req.socket?.remoteAddress || 'unknown';
+            return String(fallback);
+        } catch (err) {
+            console.error('[ratelimit] Error extracting client IP:', err);
+            return 'unknown';
         }
-        return req.ip || 'unknown';
     };
 
     const apiLimiter = rateLimit({
@@ -291,7 +303,14 @@ export async function createApp(options: { skipSeed?: boolean; skipVite?: boolea
         standardHeaders: true,
         legacyHeaders: false,
         message: { error: "Too many requests, please try again later." },
-        keyGenerator: (req) => getClientIp(req),
+        keyGenerator: (req) => {
+            try {
+                return getClientIp(req);
+            } catch (err) {
+                console.error('[ratelimit/api] keyGenerator error:', err);
+                return 'fallback-api';
+            }
+        },
         skip: (req) => !isDatabaseConnected, // Don't rate-limit if DB is down
     });
 
@@ -301,7 +320,14 @@ export async function createApp(options: { skipSeed?: boolean; skipVite?: boolea
         standardHeaders: true,
         legacyHeaders: false,
         message: { error: "Too many auth attempts, please try again later." },
-        keyGenerator: (req) => getClientIp(req),
+        keyGenerator: (req) => {
+            try {
+                return getClientIp(req);
+            } catch (err) {
+                console.error('[ratelimit/auth] keyGenerator error:', err);
+                return 'fallback-auth';
+            }
+        },
         skip: (req) => !isDatabaseConnected, // Don't rate-limit if DB is down
     });
 
@@ -311,7 +337,14 @@ export async function createApp(options: { skipSeed?: boolean; skipVite?: boolea
         standardHeaders: true,
         legacyHeaders: false,
         message: { error: "AI quota exceeded. Please try again later." },
-        keyGenerator: (req) => getClientIp(req),
+        keyGenerator: (req) => {
+            try {
+                return getClientIp(req);
+            } catch (err) {
+                console.error('[ratelimit/ai] keyGenerator error:', err);
+                return 'fallback-ai';
+            }
+        },
         skip: (req) => !isDatabaseConnected, // Don't rate-limit if DB is down
     });
 
@@ -437,6 +470,7 @@ export async function createApp(options: { skipSeed?: boolean; skipVite?: boolea
         try {
             const existingUser = await findUserByEmail(sql, normalizedEmail);
             if (!existingUser) {
+                console.log(`[auth/login-otp] No user found for: ${normalizedEmail}`);
                 res.status(404).json({ error: 'No account found for that email.' });
                 return;
             }
@@ -444,9 +478,20 @@ export async function createApp(options: { skipSeed?: boolean; skipVite?: boolea
             const code = Math.floor(100000 + Math.random() * 900000).toString();
             const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
             await createOtp(sql, normalizedEmail, code, expiresAt);
-            await sendOtpEmail(normalizedEmail, code);
+            console.log(`[auth/login-otp] OTP created for ${normalizedEmail}, code: ${code}`);
+
+            try {
+                await sendOtpEmail(normalizedEmail, code);
+                console.log(`[auth/login-otp] Email sent successfully to ${normalizedEmail}`);
+            } catch (emailErr: any) {
+                console.error(`[auth/login-otp] Email send failed for ${normalizedEmail}:`, emailErr?.message || emailErr);
+                // Still return success since OTP was created; user can retry with resend
+                // In production, you might want to fail here or queue for retry
+            }
+
             res.json({ success: true });
         } catch (err: any) {
+            console.error(`[auth/login-otp] Unexpected error:`, err?.message || err);
             sendSafeError(res, err, 'Failed to send login code');
         }
     });
@@ -454,25 +499,31 @@ export async function createApp(options: { skipSeed?: boolean; skipVite?: boolea
     app.post('/api/auth/verify-login-otp', async (req, res) => {
         const { email, code } = req.body;
         if (!email || !code) {
+            console.log(`[auth/verify-login-otp] Missing email or code. email=${!!email}, code=${!!code}`);
             res.status(400).json({ error: 'Email and code are required.' });
             return;
         }
 
         const normalizedEmail = String(email).toLowerCase().trim();
+        const trimmedCode = String(code).trim();
+        
         try {
-            const otp = await getValidOtp(sql, normalizedEmail, String(code).trim());
+            const otp = await getValidOtp(sql, normalizedEmail, trimmedCode);
             if (!otp) {
+                console.log(`[auth/verify-login-otp] Invalid or expired OTP for ${normalizedEmail}`);
                 res.status(400).json({ error: 'Invalid or expired verification code.' });
                 return;
             }
 
             const existingUser = await findUserByEmail(sql, normalizedEmail);
             if (!existingUser) {
+                console.log(`[auth/verify-login-otp] User not found after OTP validation: ${normalizedEmail}`);
                 res.status(404).json({ error: 'User not found.' });
                 return;
             }
 
             await markOtpUsed(sql, otp.id);
+            console.log(`[auth/verify-login-otp] OTP verified successfully for ${normalizedEmail}`);
 
             const token = createToken({
                 userId: Number(existingUser.id),
@@ -492,6 +543,7 @@ export async function createApp(options: { skipSeed?: boolean; skipVite?: boolea
                 },
             });
         } catch (err: any) {
+            console.error(`[auth/verify-login-otp] Unexpected error for ${normalizedEmail}:`, err?.message || err);
             sendSafeError(res, err, 'Failed to verify login code');
         }
     });

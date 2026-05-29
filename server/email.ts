@@ -169,9 +169,18 @@ export async function sendOtpEmail(to: string, code: string, name?: string): Pro
         </div>
     `;
 
-    // Try to send via SMTP/Resend first
-    if (smtpTransporter || resendClient) {
+    // Check if any email provider is available
+    if (!smtpTransporter && !resendClient) {
+        console.error(`[email/otp] No email providers configured! SMTP: ${!!smtpTransporter}, Resend: ${!!resendClient}`);
+        console.error('[email/otp] Set SMTP_HOST + SMTP_USER + SMTP_PASS or RESEND_API_KEY in environment');
+    }
+    
+    // Try to send via SMTP/Resend
+    try {
         await sendRawEmail(to, subject, text, html);
+    } catch (err: any) {
+        console.error(`[email/otp] sendRawEmail threw error for ${to}:`, err?.message);
+        throw err;
     }
     
     // Always fire webhook to GHL as a backup/tracker

@@ -1036,9 +1036,6 @@ export default function App() {
         '/support/returns',
         '/support/contact',
         '/shop',
-        '/shop/pulse-x-series',
-        '/shop/the-kits',
-        '/shop/the-originals',
         '/admin/leads',
     ].includes(currentPath);
 
@@ -1124,24 +1121,56 @@ export default function App() {
 
     const collectionMenuItems = useMemo<CollectionMenuItem[]>(() => ([
         {
-            id: 'pulse-x-series',
-            label: 'Pulse X Series',
-            onSelect: () => navigate('/shop/pulse-x-series'),
+            id: 'foger-pods',
+            label: 'Foger',
+            onSelect: () => {
+                setActiveTab('marketplace');
+                setSelectedProductId(null);
+                setActiveFilter('all');
+                setActiveCategory(undefined);
+                setSearchQuery('Foger');
+                navigate('/shop?q=Foger');
+                setIsCollectionMenuOpen(false);
+            },
         },
         {
-            id: 'the-kits',
-            label: 'The Kits',
-            onSelect: () => navigate('/shop/the-kits'),
+            id: 'utbar',
+            label: 'Utbar',
+            onSelect: () => {
+                setActiveTab('marketplace');
+                setSelectedProductId(null);
+                setActiveFilter('all');
+                setActiveCategory(undefined);
+                setSearchQuery('Utbar');
+                navigate('/shop?q=Utbar');
+                setIsCollectionMenuOpen(false);
+            },
         },
         {
-            id: 'the-originals',
-            label: 'The Originals',
-            onSelect: () => navigate('/shop/the-originals'),
+            id: 'geek-bar',
+            label: 'Geek Bar',
+            onSelect: () => {
+                setActiveTab('marketplace');
+                setSelectedProductId(null);
+                setActiveFilter('all');
+                setActiveCategory(undefined);
+                setSearchQuery('Geek Bar');
+                navigate('/shop?q=Geek%20Bar');
+                setIsCollectionMenuOpen(false);
+            },
         },
         {
-            id: 'cloud-series',
-            label: 'Cloud Series',
-            onSelect: () => navigate('/shop?q=Cloud'),
+            id: 'flum-mello',
+            label: 'Flum Mello',
+            onSelect: () => {
+                setActiveTab('marketplace');
+                setSelectedProductId(null);
+                setActiveFilter('all');
+                setActiveCategory(undefined);
+                setSearchQuery('Flum Mello');
+                navigate('/shop?q=Flum%20Mello');
+                setIsCollectionMenuOpen(false);
+            },
         },
     ]), [navigate]);
 
@@ -2295,10 +2324,10 @@ export default function App() {
                     <div className="space-y-3">
                         <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-brand-primary">Shop</h4>
                         <ul className="space-y-2.5 text-[11px] text-slate-400 font-black uppercase tracking-widest">
-                            <li><Link to="/shop/pulse-x-series" className="hover:text-white transition-colors">Pulse X Series</Link></li>
-                            <li><Link to="/shop/the-kits" className="hover:text-white transition-colors">The Kits</Link></li>
-                            <li><Link to="/shop/the-originals" className="hover:text-white transition-colors">The Originals</Link></li>
-                            <li><Link to="/shop?q=Cloud" className="hover:text-white transition-colors">Cloud Series</Link></li>
+                            <li><Link to="/shop?q=Foger" className="hover:text-white transition-colors">Foger</Link></li>
+                            <li><Link to="/shop?q=Utbar" className="hover:text-white transition-colors">Utbar</Link></li>
+                            <li><Link to="/shop?q=Geek%20Bar" className="hover:text-white transition-colors">Geek Bar</Link></li>
+                            <li><Link to="/shop?q=Flum%20Mello" className="hover:text-white transition-colors">Flum Mello</Link></li>
                         </ul>
                     </div>
                     <div className="space-y-3">
